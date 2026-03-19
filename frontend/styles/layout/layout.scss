@@ -1,0 +1,29 @@
+@import './_variables';
+@import "./_mixins";
+@import "./_main";
+@import "./_topbar";
+@import "./_menu";
+@import "./_config";
+@import "./_content";
+@import "./_footer";
+@import "./_responsive";
+@import "./_utils";
+@import "./_typography";
+
+.red-header .p-dialog-title {
+  color: #d6551e;
+}
+
+/* Arquivo de estilo CSS */
+.second-calendar-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* Garante que a altura da segunda agenda ocupe todo o espaço disponível */
+}
+
+/* Estilos adicionais para o FullCalendar na segunda agenda, se necessário */
+.second-calendar-container .fc {
+  flex: 1;
+  /* Ocupa todo o espaço vertical disponível */
+}
