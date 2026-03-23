@@ -5,8 +5,8 @@ PG_URL="postgresql://vecontab:Vec123vec@localhost:5432/vecontab?schema=public&co
 SERVER_PORT = 3333
 
 #JWT_SECRET "Su4S3nh4"
-JWT_SECRET = aaabbbcccddd111222333444
+JWT_SECRET=bcc41a45c0dff86cb37fba76b0a7cb87
 
 # ATENÇÃO à variável abaixo: se for produção, alterar para production
 
-NODE_ENV = development
+#NODE_ENV = development

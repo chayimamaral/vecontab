@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -25,6 +26,7 @@ type TipoEmpresaListParams struct {
 	Rows      int
 	SortField string
 	SortOrder int
+	Descricao string
 }
 
 type TipoEmpresaRepository struct {
@@ -51,12 +53,28 @@ func (r *TipoEmpresaRepository) List(ctx context.Context, params TipoEmpresaList
 		orderBy = field + " " + direction
 	}
 
+	whereParts := []string{"ativo = true"}
+	args := []any{}
+	argIndex := 1
+
+	if descricao := strings.TrimSpace(params.Descricao); descricao != "" {
+		whereParts = append(whereParts, fmt.Sprintf("descricao ILIKE $%d", argIndex))
+		args = append(args, "%"+descricao+"%")
+		argIndex++
+	}
+
+	whereClause := strings.Join(whereParts, " AND ")
+	args = append(args, params.Rows, params.First)
+
 	query := fmt.Sprintf(
-		"SELECT id, descricao, capital, anual, ativo FROM public.tipoempresa WHERE ativo = true ORDER BY %s LIMIT $1 OFFSET $2",
+		"SELECT id, descricao, COALESCE(capital, 0), COALESCE(anual, 0), ativo FROM public.tipoempresa WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d",
+		whereClause,
 		orderBy,
+		argIndex,
+		argIndex+1,
 	)
 
-	rows, err := r.pool.Query(ctx, query, params.Rows, params.First)
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list tipoempresa: %w", err)
 	}
@@ -72,7 +90,9 @@ func (r *TipoEmpresaRepository) List(ctx context.Context, params TipoEmpresaList
 	}
 
 	var total int64
-	if err := r.pool.QueryRow(ctx, `SELECT count(*) FROM public.tipoempresa WHERE ativo = true`).Scan(&total); err != nil {
+	countQuery := fmt.Sprintf("SELECT count(*) FROM public.tipoempresa WHERE %s", whereClause)
+	countArgs := args[:len(args)-2]
+	if err := r.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count tipoempresa: %w", err)
 	}
 

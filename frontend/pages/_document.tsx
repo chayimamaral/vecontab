@@ -12,7 +12,7 @@ export default class MyDocument extends Document {
             <Html lang="pt-br">
                 <Head>
                     <link rel="shortcut icon" href='./public/vecontab.ico' />
-                    <link id="theme-css" href={`/themes/vela-orange/theme.css`} rel="stylesheet"></link>
+                    <link id="theme-css" href={`/themes/vela-blue/theme.css`} rel="stylesheet"></link>
                 </Head>
                 <body>
                     <Main />

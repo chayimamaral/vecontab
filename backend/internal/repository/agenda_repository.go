@@ -32,11 +32,11 @@ func (r *AgendaRepository) ListEvents(ctx context.Context, tenantID string) ([]A
 	const query = `
 		SELECT
 			a.id,
-			e.nome,
-			r.descricao,
-			e.rotina_id,
-			a.inicio,
-			a.termino,
+			COALESCE(e.nome, ''),
+			COALESCE(r.descricao, ''),
+			COALESCE(e.rotina_id, ''),
+			a.inicio::text,
+			COALESCE(a.termino::text, a.inicio::text),
 			CASE
 				WHEN CURRENT_DATE > a.termino THEN 'pink'
 				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN '#FFDAB9'
@@ -92,11 +92,11 @@ func (r *AgendaRepository) DetailEvents(ctx context.Context, tenantID, agendaID 
 	const query = `
 		SELECT
 			ai.id,
-			p.descricao,
-			p.id,
+			COALESCE(p.descricao, ''),
+			COALESCE(p.id, ''),
 			ai.agenda_id,
-			ai.inicio,
-			ai.termino,
+			ai.inicio::text,
+			COALESCE(ai.termino::text, ai.inicio::text),
 			CASE
 				WHEN CURRENT_DATE > a.termino THEN 'pink'
 				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN '#FFDAB9'

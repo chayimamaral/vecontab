@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/chayimamaral/vecontab/backendgo/internal/auth"
 	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
@@ -35,13 +36,26 @@ func NewAuthService(users *repository.UserRepository, tokens *auth.TokenService)
 }
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (LoginResponse, error) {
+	input.Email = strings.TrimSpace(input.Email)
 	user, err := s.users.FindByEmail(ctx, input.Email)
 	if err != nil {
 		return LoginResponse{}, errors.New("Email/password/empresa incorretos...")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		return LoginResponse{}, errors.New("Email/password incorretos ...")
+		if user.Password != input.Password {
+			return LoginResponse{}, errors.New("Email/password incorretos ...")
+		}
+
+		// Legacy migration path: old records may still store plaintext password.
+		passwordHash, hashErr := bcrypt.GenerateFromPassword([]byte(input.Password), 8)
+		if hashErr != nil {
+			return LoginResponse{}, hashErr
+		}
+
+		if updateErr := s.users.UpdatePassword(ctx, user.ID, string(passwordHash)); updateErr != nil {
+			return LoginResponse{}, updateErr
+		}
 	}
 
 	if !user.Tenant.Active {

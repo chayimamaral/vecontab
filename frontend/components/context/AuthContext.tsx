@@ -1,6 +1,7 @@
 import { createContext, ReactNode, useEffect, useState } from 'react';
 import { destroyCookie, setCookie, parseCookies } from 'nookies';
 import Router from 'next/router';
+import { AxiosError } from 'axios';
 
 import api from '../api/apiClient'
 
@@ -67,7 +68,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (token) {
       api.get('/api/me').then(response => {
 
-        const { id, nome, email, empresa, tenant } = response.data
+        //const { id, nome, email, empresa, tenant } = response.data
+        const { id, nome, email, empresa, tenant } = response.data?.usuarios?.[0]?.resultado ?? response.data
         setUser({ id, nome, email, tenant })
 
       })
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
 
       const { id, nome, token, empresa } = response.data;
+      
 
       setCookie(undefined, '@vecontab.token', token, {
         maxAge: 60 * 60 * 24 * 30, // Expirar em 1 mês
@@ -106,7 +109,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 
     } catch (err) {
-      throw new Error(err)
+      const axiosErr = err as AxiosError<{ error?: string; message?: string }>;
+      const message =
+        axiosErr.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.message ||
+        'Erro ao autenticar';
+      throw new Error(message)
 
     }
   }

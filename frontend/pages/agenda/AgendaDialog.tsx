@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -11,7 +11,7 @@ import { Checkbox } from 'primereact/checkbox';
 import { Button } from 'primereact/button';
 import { render } from '@fullcalendar/core/preact';
 
-const SecondCalendar = ({ eventData, agenda_id }) => {
+const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
 
   let initialEvents = [
     {
@@ -26,6 +26,9 @@ const SecondCalendar = ({ eventData, agenda_id }) => {
   const [eventDialog, setEventDialog] = useState(false);
   const [clickedEvent, setClickedEvent] = useState<any>(null);
   const [changedEvent, setChangedEvent] = useState({ title: '', start: null, end: null, allDay: null });
+  const calendarRef = useRef<any>(null);
+
+  const focusDate = eventData?.start ? new Date(eventData.start) : new Date();
 
   useEffect(() => {
     const agendaService = AgendaService();
@@ -39,7 +42,23 @@ const SecondCalendar = ({ eventData, agenda_id }) => {
       setIsUpdating(false);
     }
 
-  }, [isUpdating]);
+  }, [agenda_id, isUpdating]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const calendarApi = calendarRef.current?.getApi?.();
+      if (calendarApi) {
+        calendarApi.gotoDate(focusDate);
+        calendarApi.updateSize();
+      }
+    }, 180);
+
+    return () => clearTimeout(timer);
+  }, [focusDate, isOpen, events.length]);
 
   // const handleWeekendsToggle = () => {
   //   setWeekendsVisible(!weekendsVisible);
@@ -116,9 +135,10 @@ const SecondCalendar = ({ eventData, agenda_id }) => {
 
     <div className="card calendar-demo">
       <FullCalendar
+        ref={calendarRef}
         events={events}
         eventClick={eventClick}
-        initialDate={new Date()}
+        initialDate={focusDate}
         initialView="dayGridMonth"
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
         editable

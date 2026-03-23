@@ -21,6 +21,7 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(apiMiddleware.CORS)
 
 	tokenService := auth.NewTokenService(cfg.JWTSecret)
 	authService := service.NewAuthService(repository.NewUserRepository(pool), tokenService)
@@ -104,6 +105,8 @@ func registerRoutes(
 	r.With(requireAuth).Get("/usuariorole", userHandler.UserRole)
 	r.With(requireAuth).Get("/usuariotenant", userHandler.TenantID)
 	r.With(requireAuth, requireAdmin).Post("/usuario", userHandler.Create)
+	r.With(requireAuth, requireAdmin).Put("/usuario", userHandler.Update)
+	r.With(requireAuth, requireAdmin).Delete("/usuario", userHandler.Delete)
 
 	r.With(requireAuth, requireAdmin).Post("/cidade", cidadeHandler.Create)
 	r.With(requireAuth, requireAdmin).Put("/cidade", cidadeHandler.Update)

@@ -1,4 +1,5 @@
 import setupAPIClient from '../../components/api/api';
+import { AxiosError } from 'axios';
 
 export default function AgendaService() {
 
@@ -21,7 +22,13 @@ export default function AgendaService() {
           }
         }
       } catch (err) {
-        throw new Error('Erro ao buscar agendaList', err)
+        const axiosErr = err as AxiosError<{ error?: string; message?: string }>;
+        const message =
+          axiosErr.response?.data?.error ||
+          axiosErr.response?.data?.message ||
+          axiosErr.message ||
+          'Erro ao buscar agendaList';
+        throw new Error(message)
 
       }
     },
@@ -45,7 +52,13 @@ export default function AgendaService() {
           }
         }
       } catch (err) {
-        throw new Error('Erro ao buscar estados')
+        const axiosErr = err as AxiosError<{ error?: string; message?: string }>;
+        const message =
+          axiosErr.response?.data?.error ||
+          axiosErr.response?.data?.message ||
+          axiosErr.message ||
+          'Erro ao buscar detalhes da agenda';
+        throw new Error(message)
 
       }
     },

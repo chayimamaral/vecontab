@@ -8,7 +8,7 @@ export const LayoutProvider = ({ children }: ChildContainerProps) => {
         inputStyle: 'outlined',
         menuMode: 'static',
         colorScheme: 'dark',
-        theme: 'vela-orange',
+        theme: 'vela-blue',
         scale: 12
     });
 

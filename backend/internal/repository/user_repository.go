@@ -96,10 +96,10 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*User, 
 			t.active,
 			t.nome,
 			COALESCE(t.contato, ''),
-			COALESCE(t.plano, '')
+			COALESCE(t.plano::text, '')
 		FROM public.usuario u
 		JOIN public.tenant t ON t.id = u.tenantid
-		WHERE u.email = $1
+		WHERE LOWER(TRIM(u.email)) = LOWER(TRIM($1))
 		LIMIT 1`
 
 	var user User
@@ -286,4 +286,74 @@ func (r *UserRepository) Create(ctx context.Context, nome, email, password, role
 	}
 
 	return usuarios, nil
+}
+
+func (r *UserRepository) Update(ctx context.Context, id, nome, email, role, tenantID string) ([]UserListItem, error) {
+	const query = `
+		UPDATE public.usuario
+		SET nome = $1,
+			email = $2,
+			role = $3,
+			tenantid = $4
+		WHERE id = $5
+		RETURNING id, nome, email, role, tenantid, active`
+
+	rows, err := r.pool.Query(ctx, query, nome, email, role, tenantID, id)
+	if err != nil {
+		return nil, fmt.Errorf("update usuario: %w", err)
+	}
+	defer rows.Close()
+
+	usuarios := make([]UserListItem, 0)
+	for rows.Next() {
+		var idDB, nomeDB, emailDB, roleDB, tenantIDDB string
+		var active bool
+		if err := rows.Scan(&idDB, &nomeDB, &emailDB, &roleDB, &tenantIDDB, &active); err != nil {
+			return nil, fmt.Errorf("scan updated usuario: %w", err)
+		}
+
+		usuarios = append(usuarios, UserListItem{ID: idDB, Nome: nomeDB, Email: emailDB, Role: roleDB, TenantID: tenantIDDB, Active: active})
+	}
+
+	return usuarios, nil
+}
+
+func (r *UserRepository) Delete(ctx context.Context, id string) ([]UserListItem, error) {
+	const query = `
+		UPDATE public.usuario
+		SET active = false
+		WHERE id = $1
+		RETURNING id, nome, email, role, tenantid, active`
+
+	rows, err := r.pool.Query(ctx, query, id)
+	if err != nil {
+		return nil, fmt.Errorf("delete usuario: %w", err)
+	}
+	defer rows.Close()
+
+	usuarios := make([]UserListItem, 0)
+	for rows.Next() {
+		var idDB, nomeDB, emailDB, roleDB, tenantIDDB string
+		var active bool
+		if err := rows.Scan(&idDB, &nomeDB, &emailDB, &roleDB, &tenantIDDB, &active); err != nil {
+			return nil, fmt.Errorf("scan deleted usuario: %w", err)
+		}
+
+		usuarios = append(usuarios, UserListItem{ID: idDB, Nome: nomeDB, Email: emailDB, Role: roleDB, TenantID: tenantIDDB, Active: active})
+	}
+
+	return usuarios, nil
+}
+
+func (r *UserRepository) UpdatePassword(ctx context.Context, userID, passwordHash string) error {
+	const query = `
+		UPDATE public.usuario
+		SET password = $1
+		WHERE id = $2`
+
+	if _, err := r.pool.Exec(ctx, query, passwordHash, userID); err != nil {
+		return fmt.Errorf("update usuario password: %w", err)
+	}
+
+	return nil
 }

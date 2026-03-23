@@ -16,6 +16,7 @@ type UserHandler struct {
 }
 
 type createUserPayload struct {
+	ID       string `json:"id"`
 	Nome     string `json:"nome"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -128,6 +129,99 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Role:     targetRole,
 		TenantID: targetTenantID,
 	})
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
+	var payload createUserPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		return
+	}
+
+	if strings.TrimSpace(payload.ID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "ID e obrigatorio")
+		return
+	}
+
+	if strings.TrimSpace(payload.Nome) == "" || strings.TrimSpace(payload.Email) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Informacoes faltando!")
+		return
+	}
+
+	requesterRole := middleware.Role(r.Context())
+	requesterTenantID := middleware.TenantID(r.Context())
+	if requesterRole != "ADMIN" && requesterRole != "SUPER" {
+		render.WriteError(w, http.StatusForbidden, "Usuario nao autorizado")
+		return
+	}
+
+	targetRole := strings.ToUpper(strings.TrimSpace(payload.Role))
+	if targetRole == "" {
+		targetRole = "USER"
+	}
+
+	if targetRole != "USER" && targetRole != "ADMIN" && targetRole != "SUPER" {
+		render.WriteError(w, http.StatusBadRequest, "Role invalida")
+		return
+	}
+
+	if requesterRole == "ADMIN" && targetRole == "SUPER" {
+		render.WriteError(w, http.StatusForbidden, "Usuario nao autorizado")
+		return
+	}
+
+	targetTenantID := payload.TenantID
+	if requesterRole == "ADMIN" {
+		targetTenantID = requesterTenantID
+	}
+
+	if strings.TrimSpace(targetTenantID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Tenant do usuario nao informado")
+		return
+	}
+
+	response, err := h.service.Update(r.Context(), service.UpdateUserInput{
+		ID:       payload.ID,
+		Nome:     payload.Nome,
+		Email:    payload.Email,
+		Role:     targetRole,
+		TenantID: targetTenantID,
+	})
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.URL.Query().Get("id"))
+	if id == "" {
+		var payload createUserPayload
+		if err := json.NewDecoder(r.Body).Decode(&payload); err == nil {
+			id = strings.TrimSpace(payload.ID)
+		}
+	}
+
+	if id == "" {
+		render.WriteError(w, http.StatusBadRequest, "ID e obrigatorio")
+		return
+	}
+
+	requesterRole := middleware.Role(r.Context())
+	if requesterRole != "ADMIN" && requesterRole != "SUPER" {
+		render.WriteError(w, http.StatusForbidden, "Usuario nao autorizado")
+		return
+	}
+
+	response, err := h.service.Delete(r.Context(), id)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return

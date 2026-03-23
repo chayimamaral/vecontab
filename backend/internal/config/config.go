@@ -16,8 +16,16 @@ type Config struct {
 }
 
 func Load() (Config, error) {
-	_ = godotenv.Load()
-	_ = godotenv.Load("../backend/.env")
+	// Tenta carregar o .env do diretório atual
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Aviso: .env não encontrado no diretório atual, tentando caminho relativo...")
+	}
+	err = godotenv.Load(".env") // Ajuste o caminho se necessário
+	if err != nil {
+		// Se este também falhar, talvez seja um problema real
+		fmt.Printf("Erro ao carregar ../../.env: %v\n", err)
+	}
 
 	cfg := Config{
 		Port:            getEnv("SERVER_PORT", "3333"),

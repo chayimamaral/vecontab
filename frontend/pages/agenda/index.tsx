@@ -140,7 +140,7 @@ const Calendario = ({ dados }) => {
               </div>
 
               <div className="second-calendar-container" style={{ width: '100%', height: '100%' }}>
-                {clickedEvent !== null && <AgendaDialog eventData={clickedEvent} agenda_id={agenda_id} />}
+                {clickedEvent !== null && <AgendaDialog eventData={clickedEvent} agenda_id={agenda_id} isOpen={eventDialog} />}
               </div>
 
               {/* <div className="field">

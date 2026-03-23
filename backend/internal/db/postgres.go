@@ -17,18 +17,35 @@ func NewPostgresPool(ctx context.Context, cfg config.Config) (*pgxpool.Pool, err
 		return nil, fmt.Errorf("parse pg config: %w", err)
 	}
 
-	if cfg.SSLRootCertPath != "" {
+	// if cfg.SSLRootCertPath != "" {
+	// 	certBytes, certErr := os.ReadFile(cfg.SSLRootCertPath)
+	// 	if certErr == nil {
+	// 		rootCAs := x509.NewCertPool()
+	// 		rootCAs.AppendCertsFromPEM(certBytes)
+
+	// 		poolConfig.ConnConfig.TLSConfig = &tls.Config{
+	// 			MinVersion:         tls.VersionTLS12,
+	// 			RootCAs:            rootCAs,
+	// 			InsecureSkipVerify: cfg.SSLInsecure,
+	// 		}
+	// 	}
+	// }
+
+	// Só entra aqui se houver um caminho E se NÃO for para ser inseguro/desabilitado
+	if cfg.SSLRootCertPath != "" && !cfg.SSLInsecure {
 		certBytes, certErr := os.ReadFile(cfg.SSLRootCertPath)
 		if certErr == nil {
 			rootCAs := x509.NewCertPool()
 			rootCAs.AppendCertsFromPEM(certBytes)
 
 			poolConfig.ConnConfig.TLSConfig = &tls.Config{
-				MinVersion:         tls.VersionTLS12,
-				RootCAs:            rootCAs,
-				InsecureSkipVerify: cfg.SSLInsecure,
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    rootCAs,
 			}
 		}
+	} else {
+		// Garante que o TLSConfig seja nulo se sslmode=disable for a intenção
+		poolConfig.ConnConfig.TLSConfig = nil
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)

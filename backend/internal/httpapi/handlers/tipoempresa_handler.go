@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/chayimamaral/vecontab/backendgo/internal/httpapi/render"
 	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
@@ -33,6 +34,7 @@ func (h *TipoEmpresaHandler) List(w http.ResponseWriter, r *http.Request) {
 		Rows:      parseIntTipoEmpresa(r.URL.Query().Get("rows"), 25),
 		SortField: r.URL.Query().Get("sortField"),
 		SortOrder: parseIntTipoEmpresa(r.URL.Query().Get("sortOrder"), 1),
+		Descricao: parseDescricaoFilterTipoEmpresa(r.URL.Query().Get("filters")),
 	}
 
 	response, err := h.service.List(r.Context(), params)
@@ -124,4 +126,23 @@ func parseIntTipoEmpresa(value string, fallback int) int {
 	}
 
 	return parsed
+}
+
+func parseDescricaoFilterTipoEmpresa(raw string) string {
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
+
+	type filtersPayload struct {
+		Descricao struct {
+			Value string `json:"value"`
+		} `json:"descricao"`
+	}
+
+	var payload filtersPayload
+	if err := json.Unmarshal([]byte(raw), &payload); err == nil {
+		return payload.Descricao.Value
+	}
+
+	return ""
 }

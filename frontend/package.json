@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
+    "dev:time": "node scripts/dev-with-time.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

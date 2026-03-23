@@ -1,4 +1,6 @@
 import setupAPIClient from '../../components/api/api';
+import { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
 
 export default function UsuarioService() {
 
@@ -67,9 +69,11 @@ export default function UsuarioService() {
       const apiClient = setupAPIClient(undefined);
       try {
         const response = await apiClient.post('/api/usuario', {
-          params: {
-            ...params
-          }
+          nome: params.nome,
+          email: params.email,
+          password: params.password,
+          role: params.role,
+          tenantId: params.tenantId || params.tenantid,
         })
         const { usuarios, totalRecords } = response.data
         return {
@@ -79,7 +83,13 @@ export default function UsuarioService() {
           }
         }
       } catch (err) {
-        throw new Error('Erro ao criar Usuário')
+        const axiosErr = err as AxiosError<{ error?: string; message?: string }>;
+        const message =
+          axiosErr.response?.data?.error ||
+          axiosErr.response?.data?.message ||
+          axiosErr.message ||
+          'Erro ao criar Usuário';
+        throw new Error(message)
       }
     },
 
@@ -87,9 +97,11 @@ export default function UsuarioService() {
       const apiClient = setupAPIClient(undefined);
       try {
         const response = await apiClient.put('/api/usuario', {
-          params: {
-            ...params
-          }
+          id: params.id,
+          nome: params.nome,
+          email: params.email,
+          role: params.role,
+          tenantId: params.tenantId || params.tenantid,
         })
         const { usuarios, totalRecords } = response.data
         return {
@@ -99,18 +111,20 @@ export default function UsuarioService() {
           }
         }
       } catch (err) {
-        throw new Error('Erro ao atualizar Tipo de Empresa')
+        const axiosErr = err as AxiosError<{ error?: string; message?: string }>;
+        const message =
+          axiosErr.response?.data?.error ||
+          axiosErr.response?.data?.message ||
+          axiosErr.message ||
+          'Erro ao atualizar Usuário';
+        throw new Error(message)
       }
     },
 
     deleteUsuario: async (params) => {
       const apiClient = setupAPIClient(undefined);
       try {
-        const response = await apiClient.put('/api/usuario', {
-          params: {
-            ...params
-          }
-        })
+        const response = await apiClient.delete('/api/usuario', { params: { id: params.id } })
 
         const { usuarios, totalRecords } = response.data
         return {
@@ -120,7 +134,13 @@ export default function UsuarioService() {
           }
         }
       } catch (err) {
-        throw new Error('Erro ao deletar Tipo de Empresa', err)
+        const axiosErr = err as AxiosError<{ error?: string; message?: string }>;
+        const message =
+          axiosErr.response?.data?.error ||
+          axiosErr.response?.data?.message ||
+          axiosErr.message ||
+          'Erro ao deletar Usuário';
+        throw new Error(message)
       }
     }
   }
