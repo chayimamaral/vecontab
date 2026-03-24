@@ -179,4 +179,5 @@ func registerRoutes(
 
 	r.With(requireAuth).Get("/agendalist", agendaHandler.List)
 	r.With(requireAuth).Get("/agendadetalhes", agendaHandler.Detail)
+	r.With(requireAuth).Post("/agenda/concluir-passo", agendaHandler.ConcluirPasso)
 }

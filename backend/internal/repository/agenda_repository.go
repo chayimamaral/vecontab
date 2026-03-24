@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -22,6 +23,12 @@ type AgendaEvent struct {
 	BackgroundColor string `json:"backgroundColor"`
 	TextColor       string `json:"textColor"`
 	BorderColor     string `json:"borderColor"`
+}
+
+type ConcluirPassoResult struct {
+	AgendaID              string `json:"agenda_id"`
+	AgendaItemID          string `json:"agenda_item_id"`
+	TodosPassosConcluidos bool   `json:"todos_passos_concluidos"`
 }
 
 func NewAgendaRepository(pool *pgxpool.Pool) *AgendaRepository {
@@ -148,4 +155,169 @@ func (r *AgendaRepository) DetailEvents(ctx context.Context, tenantID, agendaID 
 	}
 
 	return events, nil
+}
+
+func (r *AgendaRepository) ConcluirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (ConcluirPassoResult, error) {
+	const ownershipQuery = `
+		SELECT EXISTS (
+			SELECT 1
+			FROM public.agendaitens ai
+			JOIN public.agenda a ON a.id = ai.agenda_id
+			WHERE ai.id = $1
+			  AND ai.agenda_id = $2
+			  AND a.tenant_id = $3
+		)`
+
+	var owned bool
+	if err := r.pool.QueryRow(ctx, ownershipQuery, agendaItemID, agendaID, tenantID).Scan(&owned); err != nil {
+		return ConcluirPassoResult{}, fmt.Errorf("validar ownership agenda item: %w", err)
+	}
+	if !owned {
+		return ConcluirPassoResult{}, fmt.Errorf("passo da agenda nao encontrado para este tenant")
+	}
+
+	hasConcluido, err := r.columnExists(ctx, "agendaitens", "concluido")
+	if err != nil {
+		return ConcluirPassoResult{}, err
+	}
+	hasStatus, err := r.columnExists(ctx, "agendaitens", "status")
+	if err != nil {
+		return ConcluirPassoResult{}, err
+	}
+	hasConcluidoEm, err := r.columnExists(ctx, "agendaitens", "concluido_em")
+	if err != nil {
+		return ConcluirPassoResult{}, err
+	}
+	hasTermino, err := r.columnExists(ctx, "agendaitens", "termino")
+	if err != nil {
+		return ConcluirPassoResult{}, err
+	}
+
+	setParts := make([]string, 0, 4)
+	if hasConcluido {
+		setParts = append(setParts, "concluido = true")
+	}
+	if hasStatus {
+		setParts = append(setParts, "status = 'concluido'")
+	}
+	if hasConcluidoEm {
+		setParts = append(setParts, "concluido_em = NOW()")
+	}
+	if len(setParts) == 0 && hasTermino {
+		// Fallback para schemas legados sem campos explicitos de conclusao.
+		setParts = append(setParts, "termino = COALESCE(termino, NOW())")
+	}
+
+	if len(setParts) == 0 {
+		return ConcluirPassoResult{}, fmt.Errorf("schema de agendaitens sem coluna de conclusao suportada")
+	}
+
+	updateQuery := fmt.Sprintf("UPDATE public.agendaitens SET %s WHERE id = $1 AND agenda_id = $2", strings.Join(setParts, ", "))
+	if _, err := r.pool.Exec(ctx, updateQuery, agendaItemID, agendaID); err != nil {
+		return ConcluirPassoResult{}, fmt.Errorf("concluir passo da agenda: %w", err)
+	}
+
+	todosConcluidos, err := r.todosPassosConcluidos(ctx, agendaID)
+	if err != nil {
+		return ConcluirPassoResult{}, err
+	}
+
+	if todosConcluidos {
+		_ = r.marcarAgendaConcluida(ctx, agendaID)
+	}
+
+	return ConcluirPassoResult{
+		AgendaID:              agendaID,
+		AgendaItemID:          agendaItemID,
+		TodosPassosConcluidos: todosConcluidos,
+	}, nil
+}
+
+func (r *AgendaRepository) todosPassosConcluidos(ctx context.Context, agendaID string) (bool, error) {
+	hasConcluido, err := r.columnExists(ctx, "agendaitens", "concluido")
+	if err != nil {
+		return false, err
+	}
+	hasStatus, err := r.columnExists(ctx, "agendaitens", "status")
+	if err != nil {
+		return false, err
+	}
+	hasConcluidoEm, err := r.columnExists(ctx, "agendaitens", "concluido_em")
+	if err != nil {
+		return false, err
+	}
+
+	query := ""
+	switch {
+	case hasConcluido:
+		query = `SELECT count(*) FROM public.agendaitens WHERE agenda_id = $1 AND COALESCE(concluido, false) = false`
+	case hasStatus:
+		query = `SELECT count(*) FROM public.agendaitens WHERE agenda_id = $1 AND lower(COALESCE(status, '')) NOT IN ('concluido', 'concluida', 'dispensado')`
+	case hasConcluidoEm:
+		query = `SELECT count(*) FROM public.agendaitens WHERE agenda_id = $1 AND concluido_em IS NULL`
+	default:
+		return false, nil
+	}
+
+	var pendentes int64
+	if err := r.pool.QueryRow(ctx, query, agendaID).Scan(&pendentes); err != nil {
+		return false, fmt.Errorf("contar passos pendentes da agenda: %w", err)
+	}
+
+	return pendentes == 0, nil
+}
+
+func (r *AgendaRepository) marcarAgendaConcluida(ctx context.Context, agendaID string) error {
+	hasPassosConcluidos, err := r.columnExists(ctx, "agenda", "passos_concluidos")
+	if err != nil {
+		return err
+	}
+	hasConcluida, err := r.columnExists(ctx, "agenda", "concluida")
+	if err != nil {
+		return err
+	}
+	hasStatus, err := r.columnExists(ctx, "agenda", "status")
+	if err != nil {
+		return err
+	}
+
+	setParts := make([]string, 0, 3)
+	if hasPassosConcluidos {
+		setParts = append(setParts, "passos_concluidos = true")
+	}
+	if hasConcluida {
+		setParts = append(setParts, "concluida = true")
+	}
+	if hasStatus {
+		setParts = append(setParts, "status = 'passos_concluidos'")
+	}
+
+	if len(setParts) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf("UPDATE public.agenda SET %s WHERE id = $1", strings.Join(setParts, ", "))
+	if _, err := r.pool.Exec(ctx, query, agendaID); err != nil {
+		return fmt.Errorf("marcar agenda concluida: %w", err)
+	}
+
+	return nil
+}
+
+func (r *AgendaRepository) columnExists(ctx context.Context, tableName, columnName string) (bool, error) {
+	const query = `
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			  AND table_name = $1
+			  AND column_name = $2
+		)`
+
+	var exists bool
+	if err := r.pool.QueryRow(ctx, query, tableName, columnName).Scan(&exists); err != nil {
+		return false, fmt.Errorf("verificar coluna %s.%s: %w", tableName, columnName, err)
+	}
+
+	return exists, nil
 }

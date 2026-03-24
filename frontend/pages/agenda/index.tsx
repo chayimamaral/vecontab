@@ -16,24 +16,24 @@ import { canSSRAuth } from '../../components/utils/canSSRAuth';
 import setupAPIClient from '../../components/api/api';
 import { Calendar } from '@fullcalendar/core'
 
-const Calendario = ({ dados }) => {
+type CalendarioProps = {
+  dados: string;
+};
+
+const Calendario = ({ dados }: CalendarioProps) => {
 
   const tenantid = dados
 
-  let initialEvents = [
-    {
-      title: '', start: null, end: null
-    }];
 
   const [eventDialog, setEventDialog] = useState(false);
   const [clickedEvent, setClickedEvent] = useState<any>(null);
   const [changedEvent, setChangedEvent] = useState({ title: '', start: null, end: null });
-  const [events, setEvents] = useState([initialEvents]);
+  const [events, setEvents] = useState<any[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [rotina_id, setRotina_id] = useState(0);
   const [agenda_id, setAgenda_id] = useState(0);
 
-  const eventClick = (e) => {
+  const eventClick = (e: any) => {
     const { title, start, end } = e.event;
     const rotinaId = e.event._def.extendedProps.rotina_id;
     const agendaId = e.event._def.publicId;
@@ -49,17 +49,25 @@ const Calendario = ({ dados }) => {
     const agendaService = AgendaService();
     const params = {
       tenant_id: tenantid
-    }
+    };
+
+    const carregarEventos = async () => {
+      try {
+        const eventos = await agendaService.getAgendaList(params);
+        setEvents(Array.isArray(eventos) ? eventos : []);
+      } catch (error) {
+        setEvents([]);
+      }
+    };
+
     if (isUpdating) {
-      agendaService.getAgendaList(params)
-        .then(({ data }) => setEvents(data.events))
+      carregarEventos();
       setIsUpdating(false);
     } else {
-      agendaService.getAgendaList(params)
-        .then(({ data }) => setEvents(data.events));
+      carregarEventos();
     }
     //console.log('data no useEffect', events[0]);
-  }, [isUpdating]);
+  }, [isUpdating, tenantid]);
 
   const save = () => {
     alert('salvando no index')
@@ -102,7 +110,7 @@ const Calendario = ({ dados }) => {
             selectMirror
             dayMaxEvents
             locale={'pt-br'}
-            timeZone={"UTF"}
+            timeZone={"UTC"}
             buttonText={{
               today: "Hoje",
               month: "Mês",
@@ -139,7 +147,7 @@ const Calendario = ({ dados }) => {
                 <InputText id="title" value={changedEvent.title} onChange={(e) => setChangedEvent({ ...changedEvent, ...{ title: e.target.value } })} required autoFocus />
               </div>
 
-              <div className="second-calendar-container" style={{ width: '100%', height: '100%' }}>
+              <div className="second-calendar-container">
                 {clickedEvent !== null && <AgendaDialog eventData={clickedEvent} agenda_id={agenda_id} isOpen={eventDialog} />}
               </div>
 

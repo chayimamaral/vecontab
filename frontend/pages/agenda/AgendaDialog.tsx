@@ -9,16 +9,12 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Checkbox } from 'primereact/checkbox';
 import { Button } from 'primereact/button';
+import { Toast } from 'primereact/toast';
 import { render } from '@fullcalendar/core/preact';
 
 const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
 
-  let initialEvents = [
-    {
-      title: '', start: null, end: null, allDay: null
-    }];
-
-  const [events, setEvents] = useState([initialEvents]);
+  const [events, setEvents] = useState<any[]>([]);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentEvents, setCurrentEvents] = useState([]);
@@ -27,6 +23,7 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
   const [clickedEvent, setClickedEvent] = useState<any>(null);
   const [changedEvent, setChangedEvent] = useState({ title: '', start: null, end: null, allDay: null });
   const calendarRef = useRef<any>(null);
+  const toast = useRef<Toast>(null);
 
   const focusDate = eventData?.start ? new Date(eventData.start) : new Date();
 
@@ -34,9 +31,11 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
     const agendaService = AgendaService();
     const params = {
       agenda_id: agenda_id
-    }
+    };
 
-    agendaService.getDetalhes(params).then(({ data }) => setEvents(data.events));
+    agendaService.getDetalhes(params)
+      .then((eventos) => setEvents(Array.isArray(eventos) ? eventos : []))
+      .catch(() => setEvents([]));
 
     if (isUpdating) {
       setIsUpdating(false);
@@ -112,8 +111,41 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
     setChangedEvent({ title, start, end, allDay: null });
   };
 
+  const concluirPasso = async () => {
+    const agendaItemId = clickedEvent?._def?.publicId;
+    if (!agendaItemId || !agenda_id) {
+      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Passo da agenda inválido.', life: 3000 });
+      return;
+    }
+
+    try {
+      const agendaService = AgendaService();
+      const response = await agendaService.concluirPasso({
+        agenda_id: String(agenda_id),
+        agenda_item_id: String(agendaItemId)
+      });
+
+      toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Passo concluído manualmente.', life: 3000 });
+
+      if (response?.data?.todos_passos_concluidos) {
+        toast.current?.show({ severity: 'info', summary: 'Rotina', detail: 'Todos os passos foram concluídos.', life: 4000 });
+      }
+
+      setEventDialog(false);
+      setIsUpdating(true);
+    } catch (error: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Erro',
+        detail: error?.message || 'Erro ao concluir passo.',
+        life: 4000
+      });
+    }
+  };
+
   const footer = (
     <>
+      <Button type="button" label="Concluir Passo" icon="pi pi-check-circle" className="p-button-success p-button-text" onClick={concluirPasso} />
       <Button type="button" label="Save" icon="pi pi-check" className="p-button-text" onClick={onSave} />
       <Button type="button" label="Reset" icon="pi pi-refresh" className="p-button-text" onClick={reset} />
     </>
@@ -121,7 +153,6 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
 
   const eventClick = (e) => {
     const { title, start, end } = e.event;
-    const publicId = e.event._def.publicId;
     setEventDialog(true);
     setClickedEvent(e.event);
     setChangedEvent({ title, start, end, allDay: null });
@@ -134,6 +165,7 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
   return (
 
     <div className="card calendar-demo">
+      <Toast ref={toast} />
       <FullCalendar
         ref={calendarRef}
         events={events}
@@ -146,7 +178,7 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
         selectMirror
         dayMaxEvents
         locale={'pt-br'}
-        timeZone={"UTF"}
+        timeZone={"UTC"}
         buttonText={{
           today: "Hoje",
           month: "Mês",
@@ -178,7 +210,7 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
         contentHeight={750}
 
       />
-      <Dialog visible={eventDialog && !!eventClick} style={{ width: '50%' }} header="Detalhes do Evento" footer={footer} modal closable onHide={() => setEventDialog(false)}>
+      <Dialog visible={eventDialog && !!clickedEvent} style={{ width: '50%' }} header="Detalhes do Evento" footer={footer} modal closable onHide={() => setEventDialog(false)}>
         <div className="p-fluid">
           <div className="field">
             <label htmlFor="title">Title</label>
