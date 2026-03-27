@@ -1,0 +1,13 @@
+.calendarWrapper {
+  position: relative;
+}
+
+.navDropdowns {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 1;
+}

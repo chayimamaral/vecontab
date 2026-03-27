@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Checkbox } from 'primereact/checkbox';
@@ -11,6 +11,7 @@ import { Checkbox } from 'primereact/checkbox';
 import { Calendar as PRCalendar } from 'primereact/calendar';
 //import EventService from '../service/EventService';
 import AgendaService from '../../services/cruds/AgendaService';
+import styles from './agenda.module.css';
 import AgendaDialog from './AgendaDialog';
 import { canSSRAuth } from '../../components/utils/canSSRAuth';
 import setupAPIClient from '../../components/api/api';
@@ -24,6 +25,43 @@ const Calendario = ({ dados }: CalendarioProps) => {
 
   const tenantid = dados
 
+
+  const calendarRef = useRef<any>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
+  const meses = [
+    { label: 'Janeiro', value: 0 }, { label: 'Fevereiro', value: 1 },
+    { label: 'Março', value: 2 }, { label: 'Abril', value: 3 },
+    { label: 'Maio', value: 4 }, { label: 'Junho', value: 5 },
+    { label: 'Julho', value: 6 }, { label: 'Agosto', value: 7 },
+    { label: 'Setembro', value: 8 }, { label: 'Outubro', value: 9 },
+    { label: 'Novembro', value: 10 }, { label: 'Dezembro', value: 11 },
+  ];
+
+  const anoAtual = new Date().getFullYear();
+  const anos = Array.from({ length: 11 }, (_, i) => {
+    const y = anoAtual - 5 + i;
+    return { label: String(y), value: y };
+  });
+
+  const onMesChange = (mes: number) => {
+    setCurrentMonth(mes);
+    calendarRef.current?.getApi()?.gotoDate(new Date(currentYear, mes, 1));
+  };
+
+  const onAnoChange = (ano: number) => {
+    setCurrentYear(ano);
+    calendarRef.current?.getApi()?.gotoDate(new Date(ano, currentMonth, 1));
+  };
+
+  const onDatesSet = (info: any) => {
+    // currentStart pode cair na última semana do mês anterior (grade começa no domingo).
+    // Usar o meio do intervalo ativo garante o mês correto exibido.
+    const mid = new Date((info.view.activeStart.getTime() + info.view.activeEnd.getTime()) / 2);
+    setCurrentMonth(mid.getMonth());
+    setCurrentYear(mid.getFullYear());
+  };
 
   const [eventDialog, setEventDialog] = useState(false);
   const [clickedEvent, setClickedEvent] = useState<any>(null);
@@ -43,6 +81,11 @@ const Calendario = ({ dados }: CalendarioProps) => {
     setClickedEvent(e.event);
     setEventDialog(true);
 
+  };
+
+  const closeEventDialog = () => {
+    setEventDialog(false);
+    setIsUpdating(true);
   };
 
   useEffect(() => {
@@ -69,42 +112,19 @@ const Calendario = ({ dados }: CalendarioProps) => {
     //console.log('data no useEffect', events[0]);
   }, [isUpdating, tenantid]);
 
-  const save = () => {
-    alert('salvando no index')
-    // setEventDialog(false);
-
-    // clickedEvent.setProp('title', changedEvent.title);
-    // clickedEvent.setStart(changedEvent.start);
-    // clickedEvent.setEnd(changedEvent.end);
-    // clickedEvent.setAllDay(changedEvent.allDay);
-
-    // setChangedEvent({ title: '', start: null, end: null, allDay: null });
-  };
-
-  const reset = () => {
-    const { title, start, end } = clickedEvent;
-    setChangedEvent({ title, start, end: null });
-  };
-
-  const footer = (
-    <>
-      <Button type="button" label="Salvar" icon="pi pi-check" className="p-button-text" onClick={save} />
-      <Button type="button" label="Recarregar" icon="pi pi-refresh" className="p-button-text" onClick={reset} />
-    </>
-  );
-
   return (
     <div className="grid">
       <div className="col-12">
-        <div className="card calendar-demo">
+        <div className={`card calendar-demo ${styles.calendarWrapper}`}>
           <FullCalendar
+            ref={calendarRef}
+            datesSet={onDatesSet}
             events={events}
             eventClick={eventClick}
             initialDate={new Date()}
             initialView="dayGridMonth"
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             rerenderDelay={10}
-            //headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }}
             editable
             selectable
             selectMirror
@@ -122,9 +142,7 @@ const Calendario = ({ dados }: CalendarioProps) => {
               nextMonth: 'Próximo mês',
               prevMonth: 'Mês anterior'
             }}
-
             customButtons={{
-
               btnAtualizar: {
                 text: "Atualizar",
                 click: function () {
@@ -134,13 +152,26 @@ const Calendario = ({ dados }: CalendarioProps) => {
             }}
             headerToolbar={{
               left: "dayGridMonth,timeGridWeek,timeGridDay btnAtualizar",
-              center: "title",
+              center: "",
               right: "today prevYear,prev,next,nextYear",
             }}
-
           />
+          <div className={styles.navDropdowns}>
+            <Dropdown
+              value={currentMonth}
+              options={meses}
+              onChange={(e) => onMesChange(e.value)}
+              style={{ width: '10rem' }}
+            />
+            <Dropdown
+              value={currentYear}
+              options={anos}
+              onChange={(e) => onAnoChange(e.value)}
+              style={{ width: '6rem' }}
+            />
+          </div>
 
-          <Dialog visible={eventDialog && !!clickedEvent} style={{ width: '80%', height: '80%' }} header="Detalhes do Evento" footer={footer} modal closable onHide={() => setEventDialog(false)}>
+          <Dialog visible={eventDialog && !!clickedEvent} style={{ width: '80%', height: '80%' }} header="Detalhes do Evento" modal closable onHide={closeEventDialog}>
             <div className="p-fluid">
               <div className="field">
                 <label htmlFor="title">Empresa : Rotina</label>

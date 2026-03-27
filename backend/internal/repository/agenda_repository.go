@@ -45,19 +45,22 @@ func (r *AgendaRepository) ListEvents(ctx context.Context, tenantID string) ([]A
 			a.inicio::text,
 			COALESCE(a.termino::text, a.inicio::text),
 			CASE
-				WHEN CURRENT_DATE > a.termino THEN 'pink'
+				WHEN lower(COALESCE(a.status, '')) IN ('concluido', 'concluida', 'finalizado', 'finalizada', 'passos_concluidos') THEN '#22C55E'
+				WHEN CURRENT_DATE > COALESCE(a.termino, a.inicio) THEN '#FDE2E0'
 				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN '#FFDAB9'
-				WHEN CURRENT_DATE < a.termino THEN '#A0D6B4'
+				WHEN CURRENT_DATE < COALESCE(a.termino, a.inicio) THEN '#A0D6B4'
 				ELSE ''
 			END AS background_color,
 			CASE
-				WHEN CURRENT_DATE > a.termino THEN 'black'
+				WHEN lower(COALESCE(a.status, '')) IN ('concluido', 'concluida', 'finalizado', 'finalizada', 'passos_concluidos') THEN 'white'
+				WHEN CURRENT_DATE > COALESCE(a.termino, a.inicio) THEN 'black'
 				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN 'black'
 				WHEN CURRENT_DATE < a.inicio THEN 'black'
 				ELSE ''
 			END AS text_color,
 			CASE
-				WHEN CURRENT_DATE > a.termino THEN 'pink'
+				WHEN lower(COALESCE(a.status, '')) IN ('concluido', 'concluida', 'finalizado', 'finalizada', 'passos_concluidos') THEN '#16A34A'
+				WHEN CURRENT_DATE > COALESCE(a.termino, a.inicio) THEN '#F8C9C4'
 				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN '#FFDAB9'
 				WHEN CURRENT_DATE < a.inicio THEN '#A0D6B4'
 				ELSE ''
@@ -105,21 +108,24 @@ func (r *AgendaRepository) DetailEvents(ctx context.Context, tenantID, agendaID 
 			ai.inicio::text,
 			COALESCE(ai.termino::text, ai.inicio::text),
 			CASE
-				WHEN CURRENT_DATE > a.termino THEN 'pink'
-				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN '#FFDAB9'
-				WHEN CURRENT_DATE < a.termino THEN '#A0D6B4'
+				WHEN COALESCE(ai.concluido, false) = true THEN '#22C55E'
+				WHEN CURRENT_DATE > COALESCE(ai.termino, ai.inicio, a.termino, a.inicio) THEN '#FDE2E0'
+				WHEN CURRENT_DATE BETWEEN COALESCE(ai.inicio, a.inicio) AND COALESCE(ai.termino, ai.inicio, a.termino, a.inicio) THEN '#FFDAB9'
+				WHEN CURRENT_DATE < COALESCE(ai.termino, ai.inicio, a.termino, a.inicio) THEN '#A0D6B4'
 				ELSE ''
 			END AS background_color,
 			CASE
-				WHEN CURRENT_DATE > a.termino THEN 'black'
-				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN 'black'
-				WHEN CURRENT_DATE < a.inicio THEN 'black'
+				WHEN COALESCE(ai.concluido, false) = true THEN 'white'
+				WHEN CURRENT_DATE > COALESCE(ai.termino, ai.inicio, a.termino, a.inicio) THEN 'black'
+				WHEN CURRENT_DATE BETWEEN COALESCE(ai.inicio, a.inicio) AND COALESCE(ai.termino, ai.inicio, a.termino, a.inicio) THEN 'black'
+				WHEN CURRENT_DATE < COALESCE(ai.inicio, a.inicio) THEN 'black'
 				ELSE ''
 			END AS text_color,
 			CASE
-				WHEN CURRENT_DATE > a.termino THEN 'pink'
-				WHEN CURRENT_DATE BETWEEN a.inicio AND a.termino THEN '#FFDAB9'
-				WHEN CURRENT_DATE < a.inicio THEN '#A0D6B4'
+				WHEN COALESCE(ai.concluido, false) = true THEN '#16A34A'
+				WHEN CURRENT_DATE > COALESCE(ai.termino, ai.inicio, a.termino, a.inicio) THEN '#F8C9C4'
+				WHEN CURRENT_DATE BETWEEN COALESCE(ai.inicio, a.inicio) AND COALESCE(ai.termino, ai.inicio, a.termino, a.inicio) THEN '#FFDAB9'
+				WHEN CURRENT_DATE < COALESCE(ai.inicio, a.inicio) THEN '#A0D6B4'
 				ELSE ''
 			END AS border_color
 		FROM public.agendaitens ai

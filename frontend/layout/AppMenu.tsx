@@ -86,7 +86,18 @@ const AppMenu = () => {
                                 {
                                     label: 'Tipos de Empresas',
                                     icon: 'pi pi-fw pi-table',
-                                    to: '/tipoempresa'
+                                    items: [
+                                        {
+                                            label: 'Cadastro de Tipos de Empresas',
+                                            icon: 'pi pi-fw pi-table',
+                                            to: '/tipoempresa'
+                                        },
+                                        {
+                                            label: 'Compromissos Legais',
+                                            icon: 'pi pi-fw pi-money-bill',
+                                            to: '/compromissos'
+                                        }
+                                    ]
                                 },
                             ],
                         }

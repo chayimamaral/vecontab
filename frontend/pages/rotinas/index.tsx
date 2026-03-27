@@ -24,6 +24,7 @@ import LeftToolbar from '../../components/toolbar/LeftToolbar';
 import RightToolbar from '../../components/toolbar/RightToolbar';
 import SaveCancelDialogFooter from '../../components/toolbar/SaveCancelDialogFooter';
 import { withAuthServerSideProps } from '../../components/utils/crudUtils';
+import { GetServerSidePropsContext } from 'next';
 
 interface LazyTableState {
     totalRecords: number;
@@ -91,6 +92,11 @@ const Rotinas = () => {
         ordem: number;
     }
 
+    interface PickListPassoChangeEvent {
+        source: Passos[];
+        target: Passos[];
+    }
+
     const [rotinas, setRotinas] = useState<Rotinas[]>([]);
     const [expandedRows, setExpandedRows] = useState<DataTableExpandedRows | DataTableValueArray | undefined>(undefined);
     const [municipios, setMunicipios] = useState<MunicipioLite[]>([]);
@@ -123,6 +129,7 @@ const Rotinas = () => {
     const [source, setSource] = useState<Passos[]>([]);
     const [target, setTarget] = useState<Passos[]>([]);
     const [auxRotina, setAuxRotina] = useState<string>('');
+    const [empresaSelecionada, setEmpresaSelecionada] = useState<string>('');
     //const [deletarItem, setDeletarItem] = useState([]);
     const [deletarItem, setDeletarItem] = useState<{ id: string; rotina_id: string; }[]>([]);
 
@@ -194,7 +201,7 @@ const Rotinas = () => {
         })
     }
 
-    function handleClear(e): void {
+    function handleClear(e: React.ChangeEvent<HTMLInputElement>): void {
         if (!e.target.value) {
             setLazyState({ ...lazyState, filters: { descricao: { value: '', matchMode: 'contains' } } });
         }
@@ -202,17 +209,17 @@ const Rotinas = () => {
 
     const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip='Atualizar' className="p-button-text" onClick={loadLazyRotina} />;
 
-    const onPage = (event) => {
+    const onPage = (event: any) => {
         setFirst(event.first);
         setRows(event.rows);
         setCurrentPage(event.page + 1);
-        setSortOrder(event.sortOrder);
-        setSortField(event.sortField);
+        setSortOrder(event.sortOrder ?? 1);
+        setSortField(event.sortField ?? 'descricao');
         setLazyState({ ...lazyState, first: event.first, rows: event.rows, page: event.page + 1, sortField: event.sortField, sortOrder: event.sortOrder });
         setLazyState(event)
     }
 
-    const onPageInputKeyDown = (event, options) => {
+    const onPageInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, options: any) => {
         if (event.key === 'Enter') {
             const page = currentPage;
             if (page < 1 || page > options.totalPages) {
@@ -230,16 +237,16 @@ const Rotinas = () => {
 
     }
 
-    const onPageInputChange = (event) => {
-        setCurrentPage(event.target.value);
+    const onPageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setCurrentPage(Number(event.target.value || 1));
     }
 
 
-    const onSort = (event) => {
+    const onSort = (event: any) => {
         setLazyState(event);
     }
 
-    const onFilter = (event) => {
+    const onFilter = (event: any) => {
         event['first'] = 0;
         setLazyState(event)
     };
@@ -259,7 +266,7 @@ const Rotinas = () => {
         setDeleteRotinaDialog(false);
     };
 
-    function handleBuscaRotina(event, value: string): void {
+    function handleBuscaRotina(event: React.KeyboardEvent<HTMLInputElement>, value: string): void {
         if (event.key === 'Enter') {
             if (value !== '') {
                 setLazyState({ ...lazyState, filters: { descricao: { value: value, matchMode: 'contains' } } });
@@ -269,7 +276,7 @@ const Rotinas = () => {
         }
     }
 
-    const saveRotina = (event) => {
+    const saveRotina = () => {
         setSubmitted(true);
         if (municipio !== null && municipio?.id !== undefined) {
             rotina['cidade_id'] = municipio?.id;
@@ -328,7 +335,7 @@ const Rotinas = () => {
         setDeleteRotinaDialog(true);
     };
 
-    const deleteRotina = (event) => {
+    const deleteRotina = () => {
         setSubmitted(true);
 
         if (rotina?.descricao?.trim()) {
@@ -355,10 +362,13 @@ const Rotinas = () => {
         dt.current?.exportCSV();
     };
 
-    const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, descricao: string) => {
+    const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, descricao: keyof Rotinas) => {
         const val = (e.target && e.target.value) || '';
         let _rotina = { ...rotina };
-        _rotina[`${descricao}`] = val;
+
+        if (descricao === 'descricao') {
+            _rotina.descricao = val;
+        }
 
         setRotina(_rotina);
     };
@@ -387,8 +397,7 @@ const Rotinas = () => {
     const savePassos = async () => {
 
         let _rotina = { ...rotina };
-
-        _rotina['passos'] = target;
+        const rotinaComPassos = { ..._rotina, passos: target };
 
         if (deletarItem.length > 0) {
             rotinaService.removerPassoSelecionado(deletarItem)
@@ -398,10 +407,10 @@ const Rotinas = () => {
         if (target.length > 0) {
             try {
 
-                await rotinaService.salvarPassosSelecionados(_rotina)
+                await rotinaService.salvarPassosSelecionados(rotinaComPassos)
 
             } catch (error) {
-                throw new Error(error)
+                throw new Error('Erro ao salvar passos selecionados')
             } finally {
                 setDeletarItem([])
                 setRotina(emptyRotinas);
@@ -430,6 +439,7 @@ const Rotinas = () => {
 
         let _rotinas = { ...rowData }
         setAuxRotina(_rotinas.id)
+        setEmpresaSelecionada(_rotinas.descricao)
         loadLazyPassosPorCidade(_rotinas);
         loadLazyPassosSelecionados(_rotinas);
         loadLazyRotina();
@@ -456,22 +466,19 @@ const Rotinas = () => {
         return (rowData.rotinaitens!.length > 0)
     };
 
-    const onPassoChange = (e) => {
+    const onPassoChange = (e: PickListPassoChangeEvent) => {
 
         if (e.target) {
-            for (let i = 0; i < e.target.length; i++) {
-                e.target[i].ordem = i
-                e.target[i].rotina_id = auxRotina
-                setTarget(e.target);
-            }
-        } else {
-            setTarget([]);
+            const updatedTarget = e.target.map((item, index) => ({
+                ...item,
+                ordem: index,
+                rotina_id: auxRotina,
+            }));
+            setTarget(updatedTarget);
         }
+
         if (e.source) {
             setSource(e.source);
-
-        } else {
-            setSource([]);
         }
     }
 
@@ -605,21 +612,21 @@ const Rotinas = () => {
 
     const template = {
         layout: 'PrevPageLink PageLinks NextPageLink RowsPerPageDropdown CurrentPageReport',
-        'PrevPageLink': (options) => {
+        'PrevPageLink': (options: any) => {
             return (
                 <button type="button" className={options.className} onClick={options.onClick} disabled={options.disabled}>
                     <span className="p-3">Página anterior</span>
                 </button>
             )
         },
-        'NextPageLink': (options) => {
+        'NextPageLink': (options: any) => {
             return (
                 <button type="button" className={options.className} onClick={options.onClick} disabled={options.disabled}>
                     <span className="p-3">Próxima página</span>
                 </button>
             )
         },
-        'PageLinks': (options) => {
+        'PageLinks': (options: any) => {
             if ((options.view.startPage === options.page && options.view.startPage !== 0) || (options.view.endPage === options.page && options.page + 1 !== options.totalPages)) {
                 const className = classNames(options.className, { 'p-disabled': true });
 
@@ -632,7 +639,7 @@ const Rotinas = () => {
                 </button>
             )
         },
-        'RowsPerPageDropdown': (options) => {
+        'RowsPerPageDropdown': (options: any) => {
             const dropdownOptions = [
                 { label: 10, value: 10 },
                 { label: 20, value: 20 }
@@ -640,7 +647,7 @@ const Rotinas = () => {
 
             return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
         },
-        'CurrentPageReport': (options) => {
+        'CurrentPageReport': (options: any) => {
             return (
                 <span className="mx-3" style={{ color: 'var(--text-color)', userSelect: 'none' }}>
                     Página <InputText className="ml-1" value={currentPage.toString()} tooltip={pageInputTooltip}
@@ -653,9 +660,9 @@ const Rotinas = () => {
     const actionBodyTemplate = (rowData: Rotinas) => {
         return (
             <>
-                <Button icon="pi pi-arrows-h" rounded severity="success" className="mr-2" onClick={() => handleSelectPassos(rowData)} />
-                <Button icon="pi pi-pencil" rounded severity="success" className="mr-2" onClick={() => editRotina(rowData)} />
-                <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteRotina(rowData)} />
+                <Button icon="pi pi-arrows-h" tooltip='Selecionar Passos' rounded severity="success" className="mr-2" onClick={() => handleSelectPassos(rowData)} />
+                <Button icon="pi pi-pencil" tooltip='Editar' rounded severity="success" className="mr-2" onClick={() => editRotina(rowData)} />
+                <Button icon="pi pi-trash" tooltip='Excluir' rounded severity="warning" onClick={() => confirmDeleteRotina(rowData)} />
             </>
         );
     };
@@ -727,12 +734,12 @@ const Rotinas = () => {
                     // rowExpansionTemplate={rowExpansionTemplate}
                     >
                         {/* <Column expander={allowExpansion} style={{ width: '5rem' }} /> */}
-                        <Column field="descricao" header="Descricao" sortable body={descricaoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="descricao" header="Descrição" sortable body={descricaoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="municipio" header="Municipio" sortable body={municipioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
-                    <Dialog visible={passoDialog} style={{ width: '1000px', height: '1000px' }} header="Manutenção de Passos" modal className="p-fluid" footer={passoDialogFooter} onHide={hidePassoDialog}>
+                    <Dialog visible={passoDialog} style={{ width: '1000px', height: '1000px' }} header={`Manutenção de Passos - ${empresaSelecionada}`} modal className="p-fluid" footer={passoDialogFooter} onHide={hidePassoDialog}>
                         <Column expander={allowExpansion} style={{ width: '5rem' }} />
 
                         <div className='card' >
@@ -795,7 +802,7 @@ const Rotinas = () => {
 export default Rotinas;
 
 
-export const getServerSideProps = withAuthServerSideProps(async (ctx) => {
+export const getServerSideProps = withAuthServerSideProps(async (ctx: GetServerSidePropsContext) => {
     // Aqui não é necessário nenhum processamento adicional
 });
 

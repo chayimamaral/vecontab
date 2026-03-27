@@ -15,6 +15,8 @@ import { Dropdown, DropdownChangeEvent } from 'primereact/dropdown';
 import MunicipioService from '../../services/cruds/MunicipioService';
 import EmpresaService from '../../services/cruds/EmpresaService';
 import RotinaService from '../../services/cruds/RotinaService';
+import TipoEmpresaService from '../../services/cruds/TipoEmpresaService';
+import EmpresaAgendaService from '../../services/cruds/EmpresaAgendaService';
 import { em } from '@fullcalendar/core/internal-common';
 import { Chips } from "primereact/chips";
 
@@ -86,6 +88,9 @@ const Empresas = ({ dados }) => {
 
   const [rotinas, setRotinas] = useState<Vec.RotinaLite[]>([]);
   const [rotina, setRotina] = useState<Vec.RotinaLite>(emptyRotina);
+  const [tiposEmpresa, setTiposEmpresa] = useState<Vec.TipoEmpresaLite[]>([]);
+  const [tipoEmpresaSelecionado, setTipoEmpresaSelecionado] = useState<Vec.TipoEmpresaLite | null>(null);
+  const [gerarCompromissosDialog, setGerarCompromissosDialog] = useState(false);
 
   const [empresaDialog, setEmpresaDialog] = useState(false);
   const [deleteEmpresaDialog, setDeleteEmpresaDialog] = useState(false);
@@ -128,10 +133,12 @@ const Empresas = ({ dados }) => {
   useEffect(() => {
     loadLazyMunicipios();
     loadLazyRotinas();
+    loadTiposEmpresa();
     loadLazyEmpresa();
   }, []);
 
   const empresaService = EmpresaService();
+  const empresaAgendaService = EmpresaAgendaService();
 
   const loadLazyEmpresa = () => {
     setLazyState(prevState => ({
@@ -179,6 +186,13 @@ const Empresas = ({ dados }) => {
     rotinaService.getRotinasLite(municipio).then(({ data }) => {
       setRotinas(data?.rotinas);
     })
+  }
+
+  const loadTiposEmpresa = () => {
+    const tipoEmpresaService = TipoEmpresaService();
+    tipoEmpresaService.getTiposEmpresaLite().then(({ data }) => {
+      setTiposEmpresa(data?.tiposEmpresa ?? []);
+    });
   }
 
   const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip='Atualizar' className="p-button-text" onClick={loadLazyEmpresa} />;
@@ -490,15 +504,64 @@ const Empresas = ({ dados }) => {
     }
   }
 
+  function handleConcluirProcesso(empresa: Vec.Empresa): void {
+    if (!empresa?.id) {
+      return;
+    }
+
+    setEmpresa(empresa);
+    setTipoEmpresaSelecionado(null);
+    setGerarCompromissosDialog(true);
+  }
+
+  function confirmarGerarCompromissos(): void {
+    if (!empresa?.id || !tipoEmpresaSelecionado?.id) {
+      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Selecione o tipo de empresa para gerar os compromissos.', life: 3500 });
+      return;
+    }
+
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    empresaAgendaService.gerarAgenda({
+      empresa_id: empresa.id,
+      tipo_empresa_id: tipoEmpresaSelecionado.id,
+      data_inicio: hoje,
+    })
+      .then(({ data }) => {
+        const qtd = data?.itens?.length ?? 0;
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Gerar Compromissos',
+          detail: qtd > 0 ? `${qtd} compromissos gerados com sucesso.` : 'Nenhum compromisso foi gerado.',
+          life: 4000,
+        });
+      })
+      .catch(() => {
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Erro',
+          detail: 'Erro ao gerar compromissos da empresa.',
+          life: 4000,
+        });
+      })
+      .finally(() => {
+        setGerarCompromissosDialog(false);
+        setTipoEmpresaSelecionado(null);
+        loadLazyEmpresa();
+      });
+  }
+
 
   const actionBodyTemplate = (rowData: Vec.Empresa) => {
     const isButtonDisabled = rowData?.iniciado === true;
+    const isConcluirDisabled = rowData?.iniciado !== true || rowData?.passos_concluidos !== true || rowData?.compromissos_gerados === true;
 
     return (
       <>
         <Button icon="pi pi-pencil" tooltip='Alterar' tooltipOptions={{ position: 'left' }} rounded severity="success" className="mr-2" onClick={() => editEmpresa(rowData)} />
         <Button icon="pi pi-trash" tooltip='Excluir' tooltipOptions={{ position: 'left' }} rounded severity="warning" onClick={() => confirmDeleteEmpresa(rowData)} />
         <Button icon="pi pi-eye" tooltip='Iniciar Processo' tooltipOptions={{ position: 'left' }} rounded severity="info" disabled={isButtonDisabled} onClick={() => handleIniciarProcesso(rowData)} className="ml-2" />
+        <Button icon="pi pi-check-circle" tooltip='Gerar Compromissos' tooltipOptions={{ position: 'left' }} rounded severity="help" disabled={isConcluirDisabled} onClick={() => handleConcluirProcesso(rowData)} className="ml-2" />
       </>
     );
   };
@@ -524,6 +587,13 @@ const Empresas = ({ dados }) => {
     <>
       <Button label="Não" icon="pi pi-times" text onClick={hideDeleteEmpresaDialog} />
       <Button label="Sim" icon="pi pi-check" text onClick={deleteEmpresa} />
+    </>
+  );
+
+  const gerarCompromissosDialogFooter = (
+    <>
+      <Button label="Cancelar" icon="pi pi-times" text onClick={() => setGerarCompromissosDialog(false)} />
+      <Button label="Gerar" icon="pi pi-check" text onClick={confirmarGerarCompromissos} />
     </>
   );
 
@@ -646,6 +716,31 @@ const Empresas = ({ dados }) => {
                 </span>
               )}
             </div>
+          </Dialog>
+
+          <Dialog
+            visible={gerarCompromissosDialog}
+            style={{ width: '500px' }}
+            header="Gerar Compromissos"
+            modal
+            className="p-fluid"
+            footer={gerarCompromissosDialogFooter}
+            onHide={() => setGerarCompromissosDialog(false)}
+          >
+            <div className="field">
+              <label htmlFor="tipoempresa">Tipo de Empresa</label>
+              <Dropdown
+                id="tipoempresa"
+                value={tipoEmpresaSelecionado}
+                options={tiposEmpresa}
+                onChange={(e: DropdownChangeEvent) => setTipoEmpresaSelecionado(e.value)}
+                optionLabel='descricao'
+                dataKey='id'
+                placeholder='Selecione um Tipo de Empresa'
+                emptyMessage='Nenhum Tipo de Empresa encontrado'
+              />
+            </div>
+            <small>Os compromissos mensais/anuais serão gerados para a empresa selecionada.</small>
           </Dialog>
 
         </div>

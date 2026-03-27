@@ -43,8 +43,10 @@ type EmpresaListItem struct {
 		ID        string `json:"id"`
 		Descricao string `json:"descricao"`
 	} `json:"rotina"`
-	Cnaes    any  `json:"cnaes"`
-	Iniciado bool `json:"iniciado"`
+	Cnaes              any  `json:"cnaes"`
+	Iniciado           bool `json:"iniciado"`
+	PassosConcluidos   bool `json:"passos_concluidos"`
+	CompromissosGerados bool `json:"compromissos_gerados"`
 }
 
 type EmpresaMutationItem struct {
@@ -98,7 +100,22 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 			r.id,
 			r.descricao,
 			e.cnaes,
-			e.iniciado
+			e.iniciado,
+			COALESCE((
+				SELECT CASE
+					WHEN COUNT(ai.id) = 0 THEN false
+					ELSE BOOL_AND(COALESCE(ai.concluido, false))
+				END
+				FROM public.agenda a
+				LEFT JOIN public.agendaitens ai ON ai.agenda_id = a.id
+				WHERE a.empresa_id = e.id
+				  AND a.tenant_id = e.tenant_id
+			), false) AS passos_concluidos,
+			EXISTS(
+				SELECT 1
+				FROM public.empresa_agenda ea
+				WHERE ea.empresa_id = e.id
+			) AS compromissos_gerados
 		FROM public.empresa e
 		JOIN public.municipio m ON m.id = e.municipio_id
 		JOIN public.rotinas r ON r.id = e.rotina_id
@@ -116,9 +133,9 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 	empresas := make([]EmpresaListItem, 0)
 	for rows.Next() {
 		var id, nome, mid, mnome, rid, rdesc string
-		var iniciado bool
+		var iniciado, passosConcluidos, compromissosGerados bool
 		var cnaes any
-		if err := rows.Scan(&id, &nome, &mid, &mnome, &rid, &rdesc, &cnaes, &iniciado); err != nil {
+		if err := rows.Scan(&id, &nome, &mid, &mnome, &rid, &rdesc, &cnaes, &iniciado, &passosConcluidos, &compromissosGerados); err != nil {
 			return nil, 0, fmt.Errorf("scan empresa: %w", err)
 		}
 
@@ -129,8 +146,10 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 				ID:   mid,
 				Nome: mnome,
 			},
-			Cnaes:    cnaes,
-			Iniciado: iniciado,
+			Cnaes:               cnaes,
+			Iniciado:            iniciado,
+			PassosConcluidos:    passosConcluidos,
+			CompromissosGerados: compromissosGerados,
 		}
 		item.Rotina.ID = rid
 		item.Rotina.Descricao = rdesc

@@ -81,6 +81,8 @@ declare namespace Vec {
         tenantid: '';
         cnaes: string[];
         iniciado: boolean;
+        passos_concluidos?: boolean;
+        compromissos_gerados?: boolean;
     }
 
     type GrupoPasso = {
@@ -142,5 +144,55 @@ declare namespace Vec {
         id?: string;
         subclasse?: string;
         denominacao?: string;
+    }
+
+    type CompromissoRef = {
+        id?: string;
+        nome?: string;
+    }
+
+    type Compromisso = {
+        id?: string;
+        tipo_empresa_id?: string;
+        tipoempresa?: TipoEmpresaLite;
+        natureza?: string;      // FINANCEIRO | NAO_FINANCEIRO
+        descricao?: string;
+        periodicidade?: string;  // MENSAL | ANUAL
+        abrangencia?: string;    // FEDERAL | ESTADUAL | MUNICIPAL | BAIRRO
+        valor?: number;
+        observacao?: string;
+        estado?: CompromissoRef;
+        municipio?: CompromissoRef;
+        bairro?: string;
+    }
+
+    type Obrigacao = {
+        id?: string;
+        tipo_empresa_id?: string;
+        descricao?: string;
+        dia_base?: number;
+        mes_base?: number | null;
+        frequencia?: string;  // MENSAL | ANUAL
+        tipo?: string;        // TRIBUTO | INFORMATIVA
+    }
+
+    type EmpresaAgendaItem = {
+        id?: string;
+        empresa_id?: string;
+        template_id?: string;
+        descricao?: string;
+        data_vencimento?: string;
+        status?: string;       // PENDENTE | PAGO | ATRASADO
+        valor_estimado?: number | null;
+    }
+
+    type EmpresaAgendaAcompanhamentoItem = {
+        empresa_id?: string;
+        empresa_nome?: string;
+        compromisso_id?: string;
+        descricao?: string;
+        data_vencimento?: string;
+        status?: string;
+        tipo?: string;         // TRIBUTO | INFORMATIVA
     }
 }

@@ -131,7 +131,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       Router.push('/auth/login')
 
     } catch (err) {
-      throw new Error(err)
+      const message = err instanceof Error ? err.message : 'Erro ao registrar usuário';
+      throw new Error(message)
     }
   }
 
@@ -143,7 +144,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(undefined)
     } catch (err) {
       //console.log("Erro ao Sair", err)
-      throw new Error(err)
+      const message = err instanceof Error ? err.message : 'Erro ao sair';
+      throw new Error(message)
 
     }
   }

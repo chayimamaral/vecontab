@@ -3,7 +3,7 @@
 import { canSSRAuth } from '../../components/utils/canSSRAuth';
 import setupAPIClient from '../../components/api/api';
 
-export const withAuthServerSideProps = (pageHandler) => {
+export const withAuthServerSideProps = (pageHandler?: unknown) => {
   return canSSRAuth(async (ctx) => {
     try {
       const apiClient = setupAPIClient(ctx);
