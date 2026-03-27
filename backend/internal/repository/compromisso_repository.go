@@ -48,9 +48,14 @@ type CompromissoMutationItem struct {
 type CompromissoListParams struct {
 	First       int
 	Rows        int
+	SortField   string
+	SortOrder   int
 	Descricao   string
 	Abrangencia string // FEDERAL | ESTADUAL | MUNICIPAL | BAIRRO | "" (todos)
 	TipoEmpresa string
+	Natureza    string
+	Periodicidade string
+	Localizacao string
 }
 
 // CompromissoUpsertInput is used for Create and Update.
@@ -100,7 +105,49 @@ func (r *CompromissoRepository) List(ctx context.Context, params CompromissoList
 		argIndex++
 	}
 
+	natureza := strings.ToUpper(strings.TrimSpace(params.Natureza))
+	if natureza != "" && natureza != "TODOS" {
+		if natureza == "NAO_FINANCEIRO" || natureza == "NÃO_FINANCEIRO" {
+			whereParts = append(whereParts, `(c.natureza = 'NAO_FINANCEIRO' OR c.natureza = 'NÃO_FINANCEIRO')`)
+		} else {
+			whereParts = append(whereParts, fmt.Sprintf("UPPER(c.natureza) = $%d", argIndex))
+			args = append(args, natureza)
+			argIndex++
+		}
+	}
+
+	periodicidade := strings.ToUpper(strings.TrimSpace(params.Periodicidade))
+	if periodicidade != "" && periodicidade != "TODOS" {
+		whereParts = append(whereParts, fmt.Sprintf("UPPER(c.periodicidade) = $%d", argIndex))
+		args = append(args, periodicidade)
+		argIndex++
+	}
+
+	if strings.TrimSpace(params.Localizacao) != "" {
+		whereParts = append(whereParts, fmt.Sprintf("(e.nome ILIKE $%d OR mm.nome ILIKE $%d OR mb.nome ILIKE $%d OR cb.bairro ILIKE $%d)", argIndex, argIndex, argIndex, argIndex))
+		args = append(args, "%"+strings.TrimSpace(params.Localizacao)+"%")
+		argIndex++
+	}
+
 	where := strings.Join(whereParts, " AND ")
+
+	allowedSortFields := map[string]string{
+		"descricao":      "c.descricao",
+		"tipoempresa.nome": "te.descricao",
+		"natureza":       "c.natureza",
+		"periodicidade":  "c.periodicidade",
+		"abrangencia":    "c.abrangencia",
+		"valor":          "c.valor",
+	}
+
+	orderBy := "c.descricao ASC"
+	if field, ok := allowedSortFields[params.SortField]; ok {
+		direction := "ASC"
+		if params.SortOrder == -1 {
+			direction = "DESC"
+		}
+		orderBy = fmt.Sprintf("%s %s", field, direction)
+	}
 
 	query := fmt.Sprintf(`
 		SELECT
@@ -119,8 +166,8 @@ func (r *CompromissoRepository) List(ctx context.Context, params CompromissoList
 		LEFT JOIN public.compromisso_bairro    cb ON cb.compromisso_id = c.id
 		LEFT JOIN public.municipio             mb ON mb.id = cb.municipio_id
 		WHERE %s
-		ORDER BY c.descricao ASC
-		LIMIT $%d OFFSET $%d`, where, argIndex, argIndex+1)
+		ORDER BY %s
+		LIMIT $%d OFFSET $%d`, where, orderBy, argIndex, argIndex+1)
 
 	args = append(args, params.Rows, params.First)
 
@@ -177,7 +224,17 @@ func (r *CompromissoRepository) List(ctx context.Context, params CompromissoList
 		return nil, 0, fmt.Errorf("rows error: %w", err)
 	}
 
-	countQuery := fmt.Sprintf(`SELECT count(*) FROM public.compromisso_financeiro c WHERE %s`, where)
+	countQuery := fmt.Sprintf(`
+		SELECT count(DISTINCT c.id)
+		FROM public.compromisso_financeiro c
+		JOIN public.tipoempresa            te ON te.id = c.tipo_empresa_id
+		LEFT JOIN public.compromisso_estado    ce ON ce.compromisso_id = c.id
+		LEFT JOIN public.estado                e  ON e.id  = ce.estado_id
+		LEFT JOIN public.compromisso_municipio cm ON cm.compromisso_id = c.id
+		LEFT JOIN public.municipio             mm ON mm.id = cm.municipio_id
+		LEFT JOIN public.compromisso_bairro    cb ON cb.compromisso_id = c.id
+		LEFT JOIN public.municipio             mb ON mb.id = cb.municipio_id
+		WHERE %s`, where)
 	var total int64
 	if err := r.pool.QueryRow(ctx, countQuery, args[:len(args)-2]...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count compromissos: %w", err)

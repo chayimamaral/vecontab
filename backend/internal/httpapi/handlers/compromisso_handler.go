@@ -39,9 +39,14 @@ func (h *CompromissoHandler) List(w http.ResponseWriter, r *http.Request) {
 	params := repository.CompromissoListParams{
 		First:       parseCompromissoInt(r.URL.Query().Get("first"), 0),
 		Rows:        parseCompromissoInt(r.URL.Query().Get("rows"), 25),
+		SortField:   strings.TrimSpace(r.URL.Query().Get("sortField")),
+		SortOrder:   parseCompromissoInt(r.URL.Query().Get("sortOrder"), 1),
 		Descricao:   parseCompromissoFilterDescricao(r.URL.Query().Get("filters")),
 		Abrangencia: parseCompromissoAbrangencia(r),
 		TipoEmpresa: strings.TrimSpace(r.URL.Query().Get("tipo_empresa_id")),
+		Natureza:    parseCompromissoCodeParam(r, "natureza"),
+		Periodicidade: parseCompromissoCodeParam(r, "periodicidade"),
+		Localizacao: strings.TrimSpace(r.URL.Query().Get("localizacao")),
 	}
 
 	response, err := h.service.List(r.Context(), params)
@@ -222,6 +227,28 @@ func parseCompromissoAbrangencia(r *http.Request) string {
 		return obj.Code
 	}
 	return raw
+}
+
+// parseCompromissoCodeParam reads generic code-like filters from query params.
+// Supports: key.code, key[code], key (raw string / JSON object with code).
+func parseCompromissoCodeParam(r *http.Request, key string) string {
+	if v := strings.TrimSpace(r.URL.Query().Get(key + ".code")); v != "" {
+		return strings.ToUpper(v)
+	}
+	if v := strings.TrimSpace(r.URL.Query().Get(key + "[code]")); v != "" {
+		return strings.ToUpper(v)
+	}
+	raw := strings.TrimSpace(r.URL.Query().Get(key))
+	if raw == "" {
+		return ""
+	}
+	var obj struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+		return strings.ToUpper(strings.TrimSpace(obj.Code))
+	}
+	return strings.ToUpper(raw)
 }
 
 // compromissoCodeFromAny extracts a code string from either a {code,name} object or a plain string.

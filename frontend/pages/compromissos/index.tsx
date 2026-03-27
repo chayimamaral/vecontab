@@ -56,6 +56,10 @@ interface LazyTableState {
   sortOrder?: number | null;
   filters: DataTableFilterMeta;
   abrangencia: AbrangenciaOpcao;
+  tipo_empresa_id?: string;
+  natureza?: string;
+  periodicidade?: string;
+  localizacao?: string;
 }
 
 interface PageEvent {
@@ -69,6 +73,11 @@ interface PageInputOptions {
   rows: number;
   totalPages: number;
 }
+
+const tipoEmpresaFiltroTodos: TipoEmpresaRef = {
+  id: '',
+  descricao: 'Todos os tipos',
+};
 
 const abrangencias: AbrangenciaOpcao[] = [
   { name: 'Todos', code: 'TODOS' },
@@ -87,6 +96,9 @@ const naturezas: AbrangenciaOpcao[] = [
   { name: 'Financeiro', code: 'FINANCEIRO' },
   { name: 'Não Financeiro', code: 'NAO_FINANCEIRO' },
 ];
+
+const naturezaFiltroTodas: AbrangenciaOpcao = { name: 'Todas Naturezas', code: 'TODOS' };
+const periodicidadeFiltroTodas: AbrangenciaOpcao = { name: 'Todas Periodicidades', code: 'TODOS' };
 
 const emptyCompromisso: Compromisso = {
   id: '',
@@ -132,6 +144,10 @@ const CompromissosFinanceiros = () => {
 
   // Filter in header (list view)
   const [filterAbrangencia, setFilterAbrangencia] = useState<AbrangenciaOpcao>(abrangencias[0]); // TODOS
+  const [filterTipoEmpresa, setFilterTipoEmpresa] = useState<TipoEmpresaRef>(tipoEmpresaFiltroTodos);
+  const [filterNatureza, setFilterNatureza] = useState<AbrangenciaOpcao>(naturezaFiltroTodas);
+  const [filterPeriodicidade, setFilterPeriodicidade] = useState<AbrangenciaOpcao>(periodicidadeFiltroTodas);
+  const [filterLocalizacao, setFilterLocalizacao] = useState('');
 
   const toast = useRef<Toast>(null);
 
@@ -143,9 +159,48 @@ const CompromissosFinanceiros = () => {
     sortOrder: 1,
     filters: { descricao: { value: '', matchMode: 'contains' } },
     abrangencia: abrangencias[0],
+    tipo_empresa_id: '',
+    natureza: '',
+    periodicidade: '',
+    localizacao: '',
   });
 
   const compromissoService = CompromissoService();
+
+  const getSortValue = (item: Compromisso, field?: string): string | number => {
+    switch (field) {
+      case 'descricao':
+        return (item.descricao ?? '').toLowerCase();
+      case 'tipoempresa.nome':
+        return (item.tipoempresa?.nome ?? '').toLowerCase();
+      case 'natureza':
+        return (item.natureza ?? '').toLowerCase();
+      case 'periodicidade':
+        return (item.periodicidade ?? '').toLowerCase();
+      case 'abrangencia':
+        return (item.abrangencia ?? '').toLowerCase();
+      case 'valor':
+        return item.valor ?? 0;
+      default:
+        return (item.descricao ?? '').toLowerCase();
+    }
+  };
+
+  const sortCompromissosLocal = (items: Compromisso[]): Compromisso[] => {
+    const field = lazyState.sortField ?? 'descricao';
+    const order = lazyState.sortOrder === -1 ? -1 : 1;
+
+    return [...items].sort((a, b) => {
+      const left = getSortValue(a, field);
+      const right = getSortValue(b, field);
+
+      if (typeof left === 'number' && typeof right === 'number') {
+        return (left - right) * order;
+      }
+
+      return String(left).localeCompare(String(right), 'pt-BR', { sensitivity: 'base' }) * order;
+    });
+  };
 
   useEffect(() => {
     loadCompromissos();
@@ -160,7 +215,7 @@ const CompromissosFinanceiros = () => {
     compromissoService
       .getCompromissos({ lazyEvent: JSON.stringify(lazyState) })
       .then(({ data }) => {
-        setCompromissos(data.compromissos ?? []);
+        setCompromissos(sortCompromissosLocal(data.compromissos ?? []));
         setTotalRecords(data.totalRecords ?? 0);
       })
       .catch(() => {
@@ -198,6 +253,16 @@ const CompromissosFinanceiros = () => {
     setRows(nextRows);
     setCurrentPage(nextPage + 1);
     setLazyState((prev) => ({ ...prev, ...event, first: nextFirst, rows: nextRows, page: nextPage }));
+  };
+
+  const onSort = (event: DataTableStateEvent) => {
+    setLazyState((prev) => ({
+      ...prev,
+      sortField: event.sortField ?? 'descricao',
+      sortOrder: event.sortOrder ?? 1,
+      first: 0,
+      page: 0,
+    }));
   };
 
   const onPageInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, options: PageInputOptions) => {
@@ -376,6 +441,55 @@ const CompromissosFinanceiros = () => {
     setLazyState((prev) => ({ ...prev, abrangencia: selected, first: 0 }));
   };
 
+  const handleFilterTipoEmpresaChange = (selected: TipoEmpresaRef) => {
+    setFilterTipoEmpresa(selected);
+    setLazyState((prev) => ({
+      ...prev,
+      tipo_empresa_id: selected?.id ?? '',
+      first: 0,
+    }));
+  };
+
+  const handleFilterNaturezaChange = (selected: AbrangenciaOpcao) => {
+    setFilterNatureza(selected);
+    setLazyState((prev) => ({
+      ...prev,
+      natureza: selected?.code === 'TODOS' ? '' : selected?.code ?? '',
+      first: 0,
+    }));
+  };
+
+  const handleFilterPeriodicidadeChange = (selected: AbrangenciaOpcao) => {
+    setFilterPeriodicidade(selected);
+    setLazyState((prev) => ({
+      ...prev,
+      periodicidade: selected?.code === 'TODOS' ? '' : selected?.code ?? '',
+      first: 0,
+    }));
+  };
+
+  const handleFilterLocalizacao = (event: React.KeyboardEvent<HTMLInputElement>, value: string) => {
+    if (event.key === 'Enter') {
+      setLazyState((prev) => ({
+        ...prev,
+        localizacao: value,
+        first: 0,
+      }));
+    }
+  };
+
+  const handleFilterLocalizacaoClear = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setFilterLocalizacao(value);
+    if (!value) {
+      setLazyState((prev) => ({
+        ...prev,
+        localizacao: '',
+        first: 0,
+      }));
+    }
+  };
+
   const handleSearch = (event: React.KeyboardEvent<HTMLInputElement>, value: string) => {
     if (event.key === 'Enter') {
       setLazyState((prev) => ({
@@ -477,14 +591,45 @@ const CompromissosFinanceiros = () => {
           className="w-full md:w-14rem"
         />
       </div>
+      <div className="flex justify-content-center">
+        <Dropdown
+          value={filterTipoEmpresa}
+          onChange={(e) => handleFilterTipoEmpresaChange(e.value)}
+          options={[tipoEmpresaFiltroTodos, ...tiposEmpresa]}
+          optionLabel="descricao"
+          dataKey="id"
+          className="w-full md:w-16rem"
+          placeholder="Tipo de Empresa"
+          filter
+        />
+      </div>
+      <div className="flex justify-content-center">
+        <Dropdown
+          value={filterNatureza}
+          onChange={(e) => handleFilterNaturezaChange(e.value)}
+          options={[naturezaFiltroTodas, ...naturezas]}
+          optionLabel="name"
+          className="w-full md:w-14rem"
+        />
+      </div>
+      <div className="flex justify-content-center">
+        <Dropdown
+          value={filterPeriodicidade}
+          onChange={(e) => handleFilterPeriodicidadeChange(e.value)}
+          options={[periodicidadeFiltroTodas, ...periodicidades]}
+          optionLabel="name"
+          className="w-full md:w-14rem"
+        />
+      </div>
       <span className="block mt-2 md:mt-0 p-input-icon-left">
-        <i className="pi pi-search" />
+        <i className="pi pi-map-marker" />
         <InputText
           type="search"
-          onKeyDown={(e) => handleSearch(e, e.currentTarget.value)}
-          onChange={handleSearchClear}
-          placeholder="Procurar..."
-          tooltip="Digite e tecle Enter"
+          value={filterLocalizacao}
+          onKeyDown={(e) => handleFilterLocalizacao(e, e.currentTarget.value)}
+          onChange={handleFilterLocalizacaoClear}
+          placeholder="Localização (Enter)"
+          tooltip="Digite estado, município ou bairro e tecle Enter"
           tooltipOptions={{ position: 'left' }}
         />
       </span>
@@ -515,17 +660,20 @@ const CompromissosFinanceiros = () => {
               filterDisplay="row"
               first={lazyState.first}
               onPage={onPage}
+              onSort={onSort}
+              sortField={lazyState.sortField}
+              sortOrder={(lazyState.sortOrder ?? 1) as 1 | 0 | -1 | null}
               loading={loading}
               totalRecords={totalRecords}
               paginatorLeft={paginatorLeft}
             >
-              <Column field="descricao" header="Descrição" headerStyle={{ minWidth: '16rem' }} />
-              <Column field="tipoempresa.nome" header="Tipo de Empresa" headerStyle={{ minWidth: '14rem' }} />
-              <Column field="natureza" header="Natureza" body={naturezaBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
-              <Column field="periodicidade" header="Periodicidade" body={periodicidadeBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
-              <Column field="abrangencia" header="Abrangência" body={abrangenciaBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
+              <Column field="descricao" header="Descrição" sortable headerStyle={{ minWidth: '16rem' }} />
+              <Column field="tipoempresa.nome" header="Tipo de Empresa" sortable headerStyle={{ minWidth: '14rem' }} />
+              <Column field="natureza" header="Natureza" sortable body={naturezaBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
+              <Column field="periodicidade" header="Periodicidade" sortable body={periodicidadeBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
+              <Column field="abrangencia" header="Abrangência" sortable body={abrangenciaBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
               <Column header="Localização" body={localizacaoBodyTemplate} headerStyle={{ minWidth: '14rem' }} />
-              <Column field="valor" header="Valor" body={valorBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
+              <Column field="valor" header="Valor" sortable body={valorBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
               <Column body={actionBodyTemplate} headerStyle={{ minWidth: '8rem' }} />
             </DataTable>
 
