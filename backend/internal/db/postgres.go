@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chayimamaral/mare/backend/internal/config"
+	"github.com/chayimamaral/vecontab/backend/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

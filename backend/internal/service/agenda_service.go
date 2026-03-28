@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/chayimamaral/mare/backend/internal/repository"
+	"github.com/chayimamaral/vecontab/backend/internal/repository"
 )
 
 // AgendaRepository descreve o acesso a dados da agenda (calendário de rotinas).

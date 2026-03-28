@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chayimamaral/mare/backend/internal/repository"
+	"github.com/chayimamaral/vecontab/backend/internal/repository"
 )
 
 type EmpresaAgendaService struct {

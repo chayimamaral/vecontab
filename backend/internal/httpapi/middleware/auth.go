@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/chayimamaral/mare/backend/internal/auth"
+	"github.com/chayimamaral/vecontab/backend/internal/auth"
 )
 
 type contextKey string

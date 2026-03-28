@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/chayimamaral/mare/backend/internal/httpapi/render"
-	"github.com/chayimamaral/mare/backend/internal/service"
+	"github.com/chayimamaral/vecontab/backend/internal/httpapi/render"
+	"github.com/chayimamaral/vecontab/backend/internal/service"
 )
 
 type NodeHandler struct {

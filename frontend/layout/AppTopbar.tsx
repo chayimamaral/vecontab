@@ -32,9 +32,9 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
                 {/*}
              <img src={`/layout/images/logo-${layoutConfig.colorScheme !== 'light' ? 'white' : 'dark'}.svg`} width="47.22px" height={'35px'} alt="logo" />
     */}
-                <img src="/mare.svg" width="47.22px" height={'35px'} alt="MARE logo" />
+                <img src="/vecontab.svg" width="47.22px" height={'35px'} alt="Vecontab logo" />
 
-                <span>MARE</span>
+                <span>Vecontab</span>
             </Link>
 
             <button ref={menubuttonRef} type="button" className="p-link layout-menu-button layout-topbar-button" onClick={onMenuToggle} aria-label="Menu">

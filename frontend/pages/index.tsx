@@ -26,7 +26,7 @@ type DashboardTableFilters = {
 };
 
 // v2: não persistir filtros globais/coluna (escondiam empresas na TreeTable).
-const TABLE_STATE_STORAGE_KEY = 'mare.dashboard.treetable.state.v2';
+const TABLE_STATE_STORAGE_KEY = 'vecontab.dashboard.treetable.state.v2';
 
 const INITIAL_FILTERS: DashboardTableFilters = {
     nome: { value: '', matchMode: 'contains' },

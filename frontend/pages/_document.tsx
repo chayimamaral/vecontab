@@ -11,7 +11,7 @@ export default class MyDocument extends Document {
         return (
             <Html lang="pt-br">
                 <Head>
-                    <link rel="shortcut icon" href='/mare.ico' />
+                    <link rel="shortcut icon" href='/vecontab.ico' />
                     <link id="theme-css" href={`/themes/vela-blue/theme.css`} rel="stylesheet"></link>
                 </Head>
                 <body>

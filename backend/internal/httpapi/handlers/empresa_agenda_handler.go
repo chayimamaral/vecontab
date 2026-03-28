@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chayimamaral/mare/backend/internal/httpapi/middleware"
-	"github.com/chayimamaral/mare/backend/internal/httpapi/render"
-	"github.com/chayimamaral/mare/backend/internal/service"
+	"github.com/chayimamaral/vecontab/backend/internal/httpapi/middleware"
+	"github.com/chayimamaral/vecontab/backend/internal/httpapi/render"
+	"github.com/chayimamaral/vecontab/backend/internal/service"
 )
 
 type EmpresaAgendaHandler struct {

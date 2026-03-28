@@ -1,13 +1,13 @@
-# MARE - Sistema de Gestão de Contabilidade
+# Vecontab - Sistema de Gestão de Contabilidade
 
-MARE é uma aplicação Full Stack para gestão de empresas e contabilidade, construída com um backend robusto em Go e um frontend moderno em Next.js/React.
+Vecontab é uma aplicação Full Stack para gestão de empresas e contabilidade, construída com um backend robusto em Go e um frontend moderno em Next.js/React.
 
 ## 🏗️ Arquitetura
 
 O projeto está dividido em dois componentes principais:
 
 ```
-mare/
+vecontab/
 ├── backend/          # API REST em Go
 ├── frontend/         # Interface em Next.js + React
 └── README.md         # Este arquivo
@@ -142,7 +142,7 @@ A aplicação utiliza JWT (JSON Web Token) para autenticação:
 
 ```bash
 cd backend
-go build -o mare ./cmd/api/main.go
+go build -o vecontab ./cmd/api/main.go
 ```
 
 ### Frontend

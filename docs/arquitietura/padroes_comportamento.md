@@ -1,4 +1,4 @@
-# [STD-0] Padrões de Comportamento Global - MARE
+# [STD-0] Padrões de Comportamento Global - Vecontab
 
 ## Regras de Negócio Globais (RN)
 

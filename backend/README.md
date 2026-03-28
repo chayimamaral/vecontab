@@ -1,6 +1,6 @@
-# MARE Backend - API REST em Go
+# Vecontab Backend - API REST em Go
 
-API REST robusta para o sistema MARE de gestão de contabilidade. Backend construído em Go com PostgreSQL, autenticação JWT e suporte multi-tenant.
+API REST robusta para o sistema Vecontab de gestão de contabilidade. Backend construído em Go com PostgreSQL, autenticação JWT e suporte multi-tenant.
 
 ## 📋 Índice
 
@@ -90,10 +90,10 @@ go mod tidy
 
 ```bash
 # Criar banco de dados
-psql -U postgres -c "CREATE DATABASE mare;"
+psql -U postgres -c "CREATE DATABASE vecontab;"
 
 # Restaurar schema (se houver backup)
-# psql -U postgres -d mare -f bkp_vecontab.sql
+# psql -U postgres -d vecontab -f bkp_vecontab.sql
 ```
 
 ### 3. Variáveis de Ambiente
@@ -102,7 +102,7 @@ Criar arquivo `.env` na raiz do backend:
 
 ```bash
 SERVER_PORT=3333
-PG_URL=postgres://user:password@localhost:5432/mare
+PG_URL=postgres://user:password@localhost:5432/vecontab
 JWT_SECRET=sua_chave_secreta_super_segura_aqui
 ```
 
@@ -119,8 +119,8 @@ API estará em http://localhost:3333
 ### Build para Produção
 
 ```bash
-go build -o mare ./cmd/api/main.go
-./mare
+go build -o vecontab ./cmd/api/main.go
+./vecontab
 ```
 
 ### Com Nginx (Reverse Proxy)

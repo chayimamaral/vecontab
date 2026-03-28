@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/chayimamaral/mare/backend/internal/httpapi/render"
-	"github.com/chayimamaral/mare/backend/internal/service"
+	"github.com/chayimamaral/vecontab/backend/internal/httpapi/render"
+	"github.com/chayimamaral/vecontab/backend/internal/service"
 )
 
 type AuthHandler struct {

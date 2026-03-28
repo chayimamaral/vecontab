@@ -1,4 +1,4 @@
-# MARE - Vecontab Backend | Resumo de Finalização
+# Vecontab Backend | Resumo de Finalização
 
 **Data:** 19 de março de 2026  
 **Status:** ✅ CONCLUÍDO  
@@ -8,7 +8,7 @@
 
 ## 📋 Resumo Executivo
 
-Completada a segunda onda de tipagem e hardening do backend MARE (Módulo de Agendamentos e Registros Empresariais), migrando de Node.js/TypeScript para Go com total compatibilidade funcional.
+Completada a segunda onda de tipagem e hardening do backend Vecontab (Módulo de Agendamentos e Registros Empresariais), migrando de Node.js/TypeScript para Go com total compatibilidade funcional.
 
 ### Métricas Finais
 
@@ -77,7 +77,7 @@ Completada a segunda onda de tipagem e hardening do backend MARE (Módulo de Age
 - ✅ `gofmt` aplicado a todos os arquivos modificados
 - ✅ `go build ./...` executado e validado (exit code 0)
 - ✅ README.md atualizado com lista de módulos tipados
-- ✅ Especificação Funcional MARE gerada em docx
+- ✅ Especificação Funcional Vecontab gerada em docx
 
 ---
 
@@ -174,7 +174,7 @@ PostgreSQL
 
 ## 📄 Documentação Gerada
 
-### Arquivo: `Especificacao_Funcional_MARE_Vecontab_Backend.docx`
+### Arquivo: `Especificacao_Funcional_Vecontab_Backend.docx`
 - **Tamanho:** 621 KB
 - **Conteúdo:**
   - ✅ Capa com branding
@@ -236,7 +236,7 @@ Sessão Atual (2ª Onda):
   ✅ Geração de Especificação Funcional
 
 RESULTADO FINAL:
-  ✨ MARE 1.0 Estável em Go ✨
+  ✨ Vecontab 1.0 Estável em Go ✨
   🎯 Pronto para produção
 ```
 
@@ -286,7 +286,7 @@ Levantamento para enriquecer cadastros e reduzir digitação operacional no sist
 
 ## 💼 Evolução Planejada: Conclusão de Passos, Cobranças e Agenda Financeira
 
-Seção criada para guiar a próxima fase funcional do MARE e evitar perda de contexto no time.
+Seção criada para guiar a próxima fase funcional do Vecontab e evitar perda de contexto no time.
 
 ### 1) Conclusão de Passos e Rotinas (Operacional)
 

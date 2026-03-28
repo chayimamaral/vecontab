@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/chayimamaral/mare/backend/internal/config"
-	"github.com/chayimamaral/mare/backend/internal/db"
-	"github.com/chayimamaral/mare/backend/internal/httpapi"
+	"github.com/chayimamaral/vecontab/backend/internal/config"
+	"github.com/chayimamaral/vecontab/backend/internal/db"
+	"github.com/chayimamaral/vecontab/backend/internal/httpapi"
 )
 
 func main() {
