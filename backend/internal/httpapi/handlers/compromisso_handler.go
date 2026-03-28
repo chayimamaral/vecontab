@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/httpapi/render"
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
-	"github.com/chayimamaral/vecontab/backendgo/internal/service"
+	"github.com/chayimamaral/mare/backend/internal/httpapi/render"
+	"github.com/chayimamaral/mare/backend/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/service"
 )
 
 type CompromissoHandler struct {
@@ -37,16 +37,16 @@ func NewCompromissoHandler(service *service.CompromissoService) *CompromissoHand
 
 func (h *CompromissoHandler) List(w http.ResponseWriter, r *http.Request) {
 	params := repository.CompromissoListParams{
-		First:       parseCompromissoInt(r.URL.Query().Get("first"), 0),
-		Rows:        parseCompromissoInt(r.URL.Query().Get("rows"), 25),
-		SortField:   strings.TrimSpace(r.URL.Query().Get("sortField")),
-		SortOrder:   parseCompromissoInt(r.URL.Query().Get("sortOrder"), 1),
-		Descricao:   parseCompromissoFilterDescricao(r.URL.Query().Get("filters")),
-		Abrangencia: parseCompromissoAbrangencia(r),
-		TipoEmpresa: strings.TrimSpace(r.URL.Query().Get("tipo_empresa_id")),
-		Natureza:    parseCompromissoCodeParam(r, "natureza"),
+		First:         parseCompromissoInt(r.URL.Query().Get("first"), 0),
+		Rows:          parseCompromissoInt(r.URL.Query().Get("rows"), 25),
+		SortField:     strings.TrimSpace(r.URL.Query().Get("sortField")),
+		SortOrder:     parseCompromissoInt(r.URL.Query().Get("sortOrder"), 1),
+		Descricao:     parseCompromissoFilterDescricao(r.URL.Query().Get("filters")),
+		Abrangencia:   parseCompromissoAbrangencia(r),
+		TipoEmpresa:   strings.TrimSpace(r.URL.Query().Get("tipo_empresa_id")),
+		Natureza:      parseCompromissoCodeParam(r, "natureza"),
 		Periodicidade: parseCompromissoCodeParam(r, "periodicidade"),
-		Localizacao: strings.TrimSpace(r.URL.Query().Get("localizacao")),
+		Localizacao:   strings.TrimSpace(r.URL.Query().Get("localizacao")),
 	}
 
 	response, err := h.service.List(r.Context(), params)

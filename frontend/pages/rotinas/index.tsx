@@ -117,7 +117,6 @@ const Rotinas = () => {
 
     const [loading, setLoading] = useState<boolean>(false);
     const [first, setFirst] = useState(0);
-    const [rows, setRows] = useState(20);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortOrder, setSortOrder] = useState(1);
     const [sortField, setSortField] = useState('descricao');
@@ -134,10 +133,10 @@ const Rotinas = () => {
     const [deletarItem, setDeletarItem] = useState<{ id: string; rotina_id: string; }[]>([]);
 
     const [lazyState, setLazyState] = useState<LazyTableState>({
-        totalRecords: totalRecords,
-        first: first,
-        rows: rows,
-        page: currentPage,
+        totalRecords: 0,
+        first: 0,
+        rows: 20,
+        page: 1,
         sortField: '',
         sortOrder: 1,
         filters: {
@@ -147,7 +146,7 @@ const Rotinas = () => {
 
     useEffect(() => {
         loadLazyMunicipios();
-        loadLazyRotina();
+        fetchRotinasList(lazyState);
     }, [lazyState]);
 
     useEffect(() => {
@@ -155,18 +154,20 @@ const Rotinas = () => {
 
     const rotinaService = RotinaService();
 
-    const loadLazyRotina = async () => {
+    const fetchRotinasList = async (st: LazyTableState) => {
         try {
-            const { data } = await rotinaService.getRotinas({ lazyEvent: JSON.stringify(lazyState) })
+            setLoading(true);
+            const { data } = await rotinaService.getRotinas({ lazyEvent: JSON.stringify(st) });
             setRotinas(data.rotinas);
             setTotalRecords(data.totalRecords);
         } catch (error) {
             toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar os Rotinas', life: 3000 });
+        } finally {
+            setLoading(false);
         }
-        finally {
-            setLoading(false)
-        }
-    }
+    };
+
+    const loadLazyRotina = async () => fetchRotinasList(lazyState);
 
     const loadLazyMunicipios = () => {
         const municipioService = MunicipioService();
@@ -211,12 +212,21 @@ const Rotinas = () => {
 
     const onPage = (event: any) => {
         setFirst(event.first);
-        setRows(event.rows);
         setCurrentPage(event.page + 1);
         setSortOrder(event.sortOrder ?? 1);
         setSortField(event.sortField ?? 'descricao');
-        setLazyState({ ...lazyState, first: event.first, rows: event.rows, page: event.page + 1, sortField: event.sortField, sortOrder: event.sortOrder });
-        setLazyState(event)
+        setLazyState((prev) => {
+            const nextRows = typeof event.rows === 'number' && event.rows > 0 ? event.rows : prev.rows;
+            return {
+                ...prev,
+                first: event.first,
+                rows: nextRows,
+                page: event.page + 1,
+                sortField: event.sortField ?? prev.sortField,
+                sortOrder: event.sortOrder ?? prev.sortOrder,
+                filters: event.filters ?? prev.filters,
+            };
+        });
     }
 
     const onPageInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, options: any) => {
@@ -228,10 +238,14 @@ const Rotinas = () => {
             else {
                 const first = currentPage ? options.rows * (page - 1) : 0;
 
-                setFirst(options.first);
-                setRows(options.rows);
+                setFirst(first);
                 setCurrentPage(page);
-                setLazyState({ ...lazyState, first: first, rows: options.rows, page: currentPage });
+                setLazyState((prev) => ({
+                    ...prev,
+                    first,
+                    rows: options.rows,
+                    page,
+                }));
             }
         }
 
@@ -243,16 +257,42 @@ const Rotinas = () => {
 
 
     const onSort = (event: any) => {
-        setLazyState(event);
-    }
+        setLazyState((prev) => ({
+            ...prev,
+            first: 0,
+            page: 1,
+            rows: typeof event.rows === 'number' && event.rows > 0 ? event.rows : prev.rows,
+            sortField: event.sortField ?? prev.sortField,
+            sortOrder: event.sortOrder ?? prev.sortOrder,
+            filters: event.filters ?? prev.filters,
+        }));
+        setFirst(0);
+        setCurrentPage(1);
+        if (event.sortField != null && event.sortField !== '') {
+            setSortField(event.sortField);
+        }
+        if (event.sortOrder != null) {
+            setSortOrder(event.sortOrder);
+        }
+    };
 
     const onFilter = (event: any) => {
-        event['first'] = 0;
-        setLazyState(event)
+        setLazyState((prev) => ({
+            ...prev,
+            first: 0,
+            page: 1,
+            rows: typeof event.rows === 'number' && event.rows > 0 ? event.rows : prev.rows,
+            sortField: event.sortField ?? prev.sortField,
+            sortOrder: event.sortOrder ?? prev.sortOrder,
+            filters: event.filters ?? prev.filters,
+        }));
+        setFirst(0);
+        setCurrentPage(1);
     };
 
     const handleCreate = () => {
         setRotina(emptyRotinas);
+        setMunicipio(undefined);
         setSubmitted(false);
         setRotinaDialog(true);
     };
@@ -278,48 +318,55 @@ const Rotinas = () => {
 
     const saveRotina = () => {
         setSubmitted(true);
-        if (municipio !== null && municipio?.id !== undefined) {
-            rotina['cidade_id'] = municipio?.id;
-        }//rotina['cidade_id'] = municipio?.id;
+        if (!rotina?.descricao?.trim()) {
+            setSubmitted(false);
+            return;
+        }
+        if (!municipio?.id) {
+            toast.current?.show({
+                severity: 'warn',
+                summary: 'Município obrigatório',
+                detail: 'Selecione o município da rotina (necessário para listar e vincular passos).',
+                life: 5000,
+            });
+            setSubmitted(false);
+            return;
+        }
+        rotina['cidade_id'] = municipio.id;
 
-        if (rotina?.descricao?.trim()) {
-            let _rotina = { ...rotina };
-            //console.table(_rotina);
+        let _rotina = { ...rotina };
 
-            if (rotina.id) {
-                rotinaService.updateRotina(_rotina)
-                    .then(() => {
-                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Rotina Atualizado', life: 3000 });
-                    })
-                    .catch((error) => {
-                        toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao atualizar o rotina', life: 3000 });
-                    })
-                    .finally(() => {
-                        //setLoading(false);
-                        setRotinaDialog(false);
-                        setRotina(emptyRotinas);
-                        setSource([]);
-                        loadLazyRotina();
-                    });
-            } else {
-                rotinaService.createRotina(_rotina)
-                    .then((response) => {
-                        if (response && response.data) {
-                            setRotinas(response.data.rotinas);
-                            setTotalRecords(response.data.totalRecords);
-                        }
-                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Rotina Criado', life: 3000 });
-                    })
-                    .catch((error) => {
-                        toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao criar o rotina', life: 3000 });
-                    })
-                    .finally(() => {
-                        //setLoading(false);
-                        setRotinaDialog(false);
-                        setRotina(emptyRotinas);
-                        loadLazyRotina();
-                    });
-            }
+        if (rotina.id) {
+            rotinaService.updateRotina(_rotina)
+                .then(() => {
+                    toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Rotina Atualizado', life: 3000 });
+                })
+                .catch((error) => {
+                    toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao atualizar o rotina', life: 3000 });
+                })
+                .finally(() => {
+                    setRotinaDialog(false);
+                    setRotina(emptyRotinas);
+                    setMunicipio(undefined);
+                    setSource([]);
+                    fetchRotinasList(lazyState);
+                });
+        } else {
+            rotinaService.createRotina(_rotina)
+                .then(() => {
+                    toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Rotina Criado', life: 3000 });
+                })
+                .catch((error) => {
+                    toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao criar o rotina', life: 3000 });
+                })
+                .finally(() => {
+                    setRotinaDialog(false);
+                    setRotina(emptyRotinas);
+                    setMunicipio(undefined);
+                    setFirst(0);
+                    setCurrentPage(1);
+                    setLazyState((prev) => ({ ...prev, first: 0, page: 1 }));
+                });
         }
         setSubmitted(false);
     };
@@ -641,11 +688,20 @@ const Rotinas = () => {
         },
         'RowsPerPageDropdown': (options: any) => {
             const dropdownOptions = [
-                { label: 10, value: 10 },
-                { label: 20, value: 20 }
+                { label: '10', value: 10 },
+                { label: '20', value: 20 },
+                { label: '30', value: 30 },
             ];
 
-            return <Dropdown value={options.value} options={dropdownOptions} onChange={options.onChange} />;
+            return (
+                <Dropdown
+                    value={options.value}
+                    options={dropdownOptions}
+                    optionLabel="label"
+                    optionValue="value"
+                    onChange={options.onChange}
+                />
+            );
         },
         'CurrentPageReport': (options: any) => {
             return (
@@ -706,7 +762,7 @@ const Rotinas = () => {
                         lazy
                         dataKey="id"
                         paginator
-                        rows={rows}
+                        rows={lazyState.rows}
                         rowsPerPageOptions={[10, 20, 30]}
                         className="datatable-responsive"
                         paginatorTemplate={template}
@@ -719,9 +775,8 @@ const Rotinas = () => {
                         first={lazyState.first}
                         onPage={onPage}
                         onSort={onSort}
-                        sortField={lazyState.sortField}
-                        //atenção para o padrão abaixo...sempre tem que ser assim senão não funcionayk
-                        sortOrder={(lazyState.sortOrder === 1) ? 1 : -1}
+                        sortField={lazyState.sortField || undefined}
+                        sortOrder={lazyState.sortOrder === -1 ? -1 : 1}
                         onFilter={onFilter}
                         loading={loading}
                         totalRecords={totalRecords}

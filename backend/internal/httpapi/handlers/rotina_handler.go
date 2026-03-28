@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/httpapi/render"
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
-	"github.com/chayimamaral/vecontab/backendgo/internal/service"
+	"github.com/chayimamaral/mare/backend/internal/httpapi/render"
+	"github.com/chayimamaral/mare/backend/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/service"
 )
 
 type RotinaHandler struct {
@@ -32,9 +32,10 @@ func NewRotinaHandler(service *service.RotinaService) *RotinaHandler {
 }
 
 func (h *RotinaHandler) List(w http.ResponseWriter, r *http.Request) {
+	first, rows := rotinaListPaging(r.URL.Query().Get("first"), r.URL.Query().Get("rows"))
 	params := repository.RotinaListParams{
-		First:     parseIntRotina(r.URL.Query().Get("first"), 0),
-		Rows:      parseIntRotina(r.URL.Query().Get("rows"), 25),
+		First:     first,
+		Rows:      rows,
 		SortField: r.URL.Query().Get("sortField"),
 		SortOrder: parseIntRotina(r.URL.Query().Get("sortOrder"), 1),
 		Descricao: parseDescricaoFilterRotina(r.URL.Query().Get("filters")),
@@ -49,9 +50,10 @@ func (h *RotinaHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RotinaHandler) ListRotinas(w http.ResponseWriter, r *http.Request) {
+	first, rows := rotinaListPaging(r.URL.Query().Get("first"), r.URL.Query().Get("rows"))
 	params := repository.RotinaListParams{
-		First:     parseIntRotina(r.URL.Query().Get("first"), 0),
-		Rows:      parseIntRotina(r.URL.Query().Get("rows"), 25),
+		First:     first,
+		Rows:      rows,
 		SortField: r.URL.Query().Get("sortField"),
 		SortOrder: parseIntRotina(r.URL.Query().Get("sortOrder"), 1),
 		Descricao: parseDescricaoFilterRotina(r.URL.Query().Get("filters")),
@@ -85,6 +87,10 @@ func (h *RotinaHandler) Create(w http.ResponseWriter, r *http.Request) {
 		render.WriteError(w, http.StatusBadRequest, "Favor informar a descricao da Rotina!")
 		return
 	}
+	if strings.TrimSpace(payload.Params.CidadeID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o município da rotina!")
+		return
+	}
 
 	response, err := h.service.Create(r.Context(), service.RotinaInput{
 		Descricao: payload.Params.Descricao,
@@ -106,6 +112,10 @@ func (h *RotinaHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.TrimSpace(payload.Params.Descricao) == "" {
 		render.WriteError(w, http.StatusBadRequest, "Favor informar todos os dados!")
+		return
+	}
+	if strings.TrimSpace(payload.Params.CidadeID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o município da rotina!")
 		return
 	}
 
@@ -302,6 +312,18 @@ func (h *RotinaHandler) RemoveSelectedItens(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func rotinaListPaging(firstRaw, rowsRaw string) (first int, rows int) {
+	first = parseIntRotina(firstRaw, 0)
+	if first < 0 {
+		first = 0
+	}
+	rows = parseIntRotina(rowsRaw, 25)
+	if rows <= 0 {
+		rows = 25
+	}
+	return first, rows
 }
 
 func parseIntRotina(value string, fallback int) int {

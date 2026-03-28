@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/httpapi/render"
+	"github.com/chayimamaral/mare/backend/internal/httpapi/render"
 )
 
 func NotImplemented(route string) http.HandlerFunc {

@@ -1,4 +1,4 @@
-module github.com/chayimamaral/vecontab/backendgo
+module github.com/chayimamaral/mare/backend
 
 go 1.26.0
 

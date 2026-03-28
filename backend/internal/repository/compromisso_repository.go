@@ -46,16 +46,16 @@ type CompromissoMutationItem struct {
 
 // CompromissoListParams holds query parameters for List.
 type CompromissoListParams struct {
-	First       int
-	Rows        int
-	SortField   string
-	SortOrder   int
-	Descricao   string
-	Abrangencia string // FEDERAL | ESTADUAL | MUNICIPAL | BAIRRO | "" (todos)
-	TipoEmpresa string
-	Natureza    string
+	First         int
+	Rows          int
+	SortField     string
+	SortOrder     int
+	Descricao     string
+	Abrangencia   string // FEDERAL | ESTADUAL | MUNICIPAL | BAIRRO | "" (todos)
+	TipoEmpresa   string
+	Natureza      string
 	Periodicidade string
-	Localizacao string
+	Localizacao   string
 }
 
 // CompromissoUpsertInput is used for Create and Update.
@@ -132,12 +132,12 @@ func (r *CompromissoRepository) List(ctx context.Context, params CompromissoList
 	where := strings.Join(whereParts, " AND ")
 
 	allowedSortFields := map[string]string{
-		"descricao":      "c.descricao",
+		"descricao":        "c.descricao",
 		"tipoempresa.nome": "te.descricao",
-		"natureza":       "c.natureza",
-		"periodicidade":  "c.periodicidade",
-		"abrangencia":    "c.abrangencia",
-		"valor":          "c.valor",
+		"natureza":         "c.natureza",
+		"periodicidade":    "c.periodicidade",
+		"abrangencia":      "c.abrangencia",
+		"valor":            "c.valor",
 	}
 
 	orderBy := "c.descricao ASC"

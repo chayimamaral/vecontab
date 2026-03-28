@@ -98,27 +98,28 @@ func (r *RotinaRepository) List(ctx context.Context, params RotinaListParams) ([
 		argIndex++
 	}
 
-	orderBy := "r.descricao ASC"
+	// PrimeReact: sortOrder 1 = ascendente, -1 = descendente. Desempate estável para paginação.
+	orderBy := "r.descricao ASC, r.id ASC"
 	switch params.SortField {
 	case "municipio":
 		if params.SortOrder == -1 {
-			orderBy = "m.nome ASC"
+			orderBy = "m.nome DESC NULLS LAST, r.id ASC"
 		} else {
-			orderBy = "m.nome DESC"
+			orderBy = "m.nome ASC NULLS LAST, r.id ASC"
 		}
 	case "descricao":
 		if params.SortOrder == -1 {
-			orderBy = "r.descricao ASC"
+			orderBy = "r.descricao DESC, r.id ASC"
 		} else {
-			orderBy = "r.descricao DESC"
+			orderBy = "r.descricao ASC, r.id ASC"
 		}
 	}
 
 	query := fmt.Sprintf(`
-SELECT r.id, r.descricao, r.municipio_id, m.id, m.nome, e.sigla
+SELECT r.id, r.descricao, r.municipio_id, COALESCE(m.id::text, ''), COALESCE(m.nome, ''), COALESCE(e.sigla, '')
 FROM public.rotinas r
-JOIN public.municipio m ON m.id = r.municipio_id
-JOIN public.estado e ON e.id = m.ufid
+LEFT JOIN public.municipio m ON m.id = r.municipio_id
+LEFT JOIN public.estado e ON e.id = m.ufid
 WHERE %s
 ORDER BY %s
 LIMIT $%d OFFSET $%d`, strings.Join(whereParts, " AND "), orderBy, argIndex, argIndex+1)
@@ -143,7 +144,7 @@ LIMIT $%d OFFSET $%d`, strings.Join(whereParts, " AND "), orderBy, argIndex, arg
 			MunicipioID: municipioID,
 			Municipio: RotinaMunicipioRef{
 				ID:   mid,
-				Nome: mnome + " / " + sigla,
+				Nome: rotinaMunicipioExibicao(mnome, sigla),
 			},
 		})
 	}
@@ -168,43 +169,55 @@ func (r *RotinaRepository) ListWithItens(ctx context.Context, params RotinaListP
 		argIndex++
 	}
 
+	// PrimeReact: sortOrder 1 = ascendente, -1 = descendente
 	orderBy := "r.descricao ASC"
+	outerOrderBy := "rp.descricao ASC, ri.ordem ASC NULLS LAST"
 	switch params.SortField {
 	case "municipio":
 		if params.SortOrder == -1 {
-			orderBy = "m.nome ASC"
+			orderBy = "m.nome DESC NULLS LAST"
+			outerOrderBy = "rp.m_nome DESC, ri.ordem ASC NULLS LAST"
 		} else {
-			orderBy = "m.nome DESC"
+			orderBy = "m.nome ASC NULLS LAST"
+			outerOrderBy = "rp.m_nome ASC, ri.ordem ASC NULLS LAST"
 		}
 	case "descricao":
 		if params.SortOrder == -1 {
-			orderBy = "r.descricao ASC"
-		} else {
 			orderBy = "r.descricao DESC"
+			outerOrderBy = "rp.descricao DESC, ri.ordem ASC NULLS LAST"
+		} else {
+			orderBy = "r.descricao ASC"
+			outerOrderBy = "rp.descricao ASC, ri.ordem ASC NULLS LAST"
 		}
 	}
 
+	// Paginar por rotina: JOIN com passos multiplica linhas; LIMIT/OFFSET devem aplicar só às rotinas.
 	query := fmt.Sprintf(`
+WITH rotinas_page AS (
+	SELECT r.id, r.descricao, r.municipio_id, COALESCE(m.id::text, '') AS m_id, COALESCE(m.nome, '') AS m_nome, COALESCE(e.sigla, '') AS e_sigla
+	FROM public.rotinas r
+	LEFT JOIN public.municipio m ON m.id = r.municipio_id
+	LEFT JOIN public.estado e ON e.id = m.ufid
+	WHERE %s
+	ORDER BY %s
+	LIMIT $%d OFFSET $%d
+)
 SELECT
-r.id,
-r.descricao,
-r.municipio_id,
-m.id,
-m.nome,
-e.sigla,
-p.id,
-p.descricao,
-p.tempoestimado,
-COALESCE(l.link, '')
-FROM public.rotinas r
-JOIN public.municipio m ON m.id = r.municipio_id
-JOIN public.estado e ON e.id = m.ufid
-LEFT JOIN public.rotinaitens ri ON ri.rotina_id = r.id
+	rp.id,
+	rp.descricao,
+	rp.municipio_id,
+	rp.m_id,
+	rp.m_nome,
+	rp.e_sigla,
+	p.id,
+	p.descricao,
+	p.tempoestimado,
+	COALESCE(l.link, '')
+FROM rotinas_page rp
+LEFT JOIN public.rotinaitens ri ON ri.rotina_id = rp.id
 LEFT JOIN public.passos p ON p.id = ri.passo_id
 LEFT JOIN public.linkpassos l ON l.passo_id = p.id
-WHERE %s
-ORDER BY %s
-LIMIT $%d OFFSET $%d`, strings.Join(whereParts, " AND "), orderBy, argIndex, argIndex+1)
+ORDER BY %s`, strings.Join(whereParts, " AND "), orderBy, argIndex, argIndex+1, outerOrderBy)
 	args = append(args, params.Rows, params.First)
 
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -232,7 +245,7 @@ LIMIT $%d OFFSET $%d`, strings.Join(whereParts, " AND "), orderBy, argIndex, arg
 				MunicipioID: municipioID,
 				Municipio: RotinaMunicipioRef{
 					ID:   mid,
-					Nome: mnome + " / " + sigla,
+					Nome: rotinaMunicipioExibicao(mnome, sigla),
 				},
 				RotinaItens: make([]RotinaPassoItem, 0),
 			}
@@ -646,6 +659,18 @@ func (r *RotinaRepository) RemoveSelectedItens(ctx context.Context, selections [
 	}
 
 	return nil
+}
+
+func rotinaMunicipioExibicao(nomeMunicipio, siglaUF string) string {
+	n := strings.TrimSpace(nomeMunicipio)
+	s := strings.TrimSpace(siglaUF)
+	if n == "" {
+		return "Sem município"
+	}
+	if s == "" {
+		return n
+	}
+	return n + " / " + s
 }
 
 func valueOrEmpty(v *string) string {

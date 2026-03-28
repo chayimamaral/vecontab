@@ -72,7 +72,7 @@ backend/
 
 ## 🔧 Requisitos
 
-- **Go:** 1.18+ (verificar com `go version`)
+- **Go:** 1.26+ (verificar com `go version`)
 - **PostgreSQL:** 12+
 - **Nginx:** (opcional, para reverse proxy em produção)
 
@@ -146,27 +146,28 @@ nginx -c ./nginx.conf
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/api/usuarios` | Listar usuários (com lazy loading) |
-| POST | `/api/usuarios` | Criar usuário (ADMIN only) |
-| PUT | `/api/usuarios/:id` | Atualizar usuário |
-| DELETE | `/api/usuarios/:id` | Deletar usuário |
+| POST | `/api/usuario` | Criar usuário (ADMIN/SUPER) |
+| PUT | `/api/usuario` | Atualizar usuário |
+| DELETE | `/api/usuario` | Deletar usuário |
 
 ### 🏢 Empresas
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | GET | `/api/empresas` | Listar empresas (lazy loading) |
-| GET | `/api/empresas/:id` | Obter empresa |
-| POST | `/api/empresas` | Criar empresa |
-| PUT | `/api/empresas/:id` | Atualizar empresa |
-| DELETE | `/api/empresas/:id` | Deletar empresa |
-| GET | `/api/validacnae` | Validar CNAE |
+| POST | `/api/empresa` | Criar empresa |
+| PUT | `/api/updateempresa` | Atualizar empresa |
+| PUT | `/api/deleteempresa` | Deletar empresa (soft delete) |
+| PUT | `/api/iniciarprocesso` | Iniciar processo da empresa |
+| POST | `/api/validacnae` | Validar CNAE |
 
 ### 📅 Agenda
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/api/agenda` | Listar eventos |
-| GET | `/api/agendadetalhes/:id` | Detalhes do evento |
+| GET | `/api/agendalist` | Listar eventos |
+| GET | `/api/agendadetalhes` | Detalhes do evento |
+| POST | `/api/agenda/concluir-passo` | Concluir passo da agenda |
 
 ### 📋 Rotinas & Passos
 
@@ -180,9 +181,9 @@ nginx -c ./nginx.conf
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| GET | `/api/registro` | Listar registros |
-| POST | `/api/registro` | Criar registro |
-| PUT | `/api/registro/:id` | Atualizar registro |
+| POST | `/api/registro` | Criar registro (público) |
+| GET | `/api/registro` | Detalhar registro |
+| PUT | `/api/registro` | Atualizar registro |
 
 ### 📍 Localidades
 
@@ -198,6 +199,23 @@ nginx -c ./nginx.conf
 |--------|------|-----------|
 | GET | `/api/tiposempresa` | Tipos de empresa |
 | GET | `/api/cnaes` | Listar CNAEs |
+
+### 📌 Compromissos, Obrigações e Empresa Agenda
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/api/compromissos` | Listar compromissos (filtros + sort server-side) |
+| POST | `/api/compromisso` | Criar compromisso |
+| PUT | `/api/compromisso` | Atualizar compromisso |
+| PUT | `/api/deletecompromisso` | Deletar compromisso |
+| GET | `/api/obrigacoes` | Listar obrigações |
+| POST | `/api/obrigacao` | Criar obrigação |
+| PUT | `/api/obrigacao` | Atualizar obrigação |
+| PUT | `/api/deleteobrigacao` | Deletar obrigação |
+| GET | `/api/empresaagenda` | Listar agenda por empresa |
+| GET | `/api/empresaagenda/acompanhamento` | Dashboard de acompanhamento |
+| POST | `/api/empresaagenda/gerar` | Gerar agenda da empresa |
+| PUT | `/api/empresaagenda/status` | Atualizar status do item da agenda |
 
 ## 🔐 Autenticação
 
@@ -373,11 +391,27 @@ API retorna erro 400 para queries sem resultados. Considere retornar array vazio
 go run ./cmd/api 2>&1 | tee app.log
 ```
 
-### Verificar healthcheck
+### Verificar endpoint de saúde
 
 ```bash
-curl http://localhost:3333/healthcheck || echo "Down"
+curl http://localhost:3333/healthz || echo "Down"
 ```
+
+## 🗃️ Migrations
+
+Arquivos SQL em `backend/migrations`:
+
+- `001_compromisso_financeiro.sql`
+- `002_tipoempresa_obrigacao_empresa_agenda.sql`
+- `003_compromisso_tipoempresa_natureza.sql`
+- `004_seed_mei_compromissos_obrigacoes.sql`
+- `005_seed_mei_compromissos_abrangencia_local.sql`
+
+### Seeds MEI (004 e 005)
+
+- A migration `004` cria templates e compromissos/obrigações para MEI.
+- A migration `005` complementa com abrangência local (`ESTADUAL`, `MUNICIPAL`, `BAIRRO`).
+- Ambas são idempotentes e podem ser reaplicadas com segurança.
 
 ## 🔄 Estratégia de Migração (Legacy)
 
@@ -391,7 +425,6 @@ Transição do Node.js/TypeScript:
 ## 📞 Informações Adicionais
 
 Consulte [README principal](../README.md) para visão geral do projeto.
-4. validar o frontend contra o backend Go antes de desligar o Node
 
 ## Arquitetura
 
@@ -517,7 +550,7 @@ Legenda:
 
 ### Tenant e usuario
 
-- `POST /tenant`: `PUBLICO`
+- `POST /tenant`: `SUPER` (com JWT)
 - `GET /tenant`: `AUTH`
 - `PUT /tenant`: `ADMIN/SUPER`
 - `GET /tenants`: `AUTH` (retorno depende do role)

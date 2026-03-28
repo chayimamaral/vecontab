@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/auth"
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/auth"
+	"github.com/chayimamaral/mare/backend/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
 

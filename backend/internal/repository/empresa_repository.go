@@ -43,9 +43,9 @@ type EmpresaListItem struct {
 		ID        string `json:"id"`
 		Descricao string `json:"descricao"`
 	} `json:"rotina"`
-	Cnaes              any  `json:"cnaes"`
-	Iniciado           bool `json:"iniciado"`
-	PassosConcluidos   bool `json:"passos_concluidos"`
+	Cnaes               any  `json:"cnaes"`
+	Iniciado            bool `json:"iniciado"`
+	PassosConcluidos    bool `json:"passos_concluidos"`
 	CompromissosGerados bool `json:"compromissos_gerados"`
 }
 

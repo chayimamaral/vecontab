@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/repository"
 )
 
 type RotinaService struct {
@@ -49,12 +49,24 @@ func (s *RotinaService) List(ctx context.Context, params repository.RotinaListPa
 	return RotinaListResponse{Rotinas: rotinas, TotalRecords: total}, nil
 }
 
+// ListRotinas atende a grade /listrotinas: usa a mesma consulta paginada de List (uma linha por rotina).
+// ListWithItens fazia JOIN com passos e era mais complexa; a tela carrega passos via endpoints dedicados.
 func (s *RotinaService) ListRotinas(ctx context.Context, params repository.RotinaListParams) (RotinaListResponse, error) {
-	rotinas, total, err := s.repo.ListWithItens(ctx, params)
+	rotinas, total, err := s.repo.List(ctx, params)
 	if err != nil {
 		return RotinaListResponse{}, err
 	}
-	return RotinaListResponse{Rotinas: rotinas, TotalRecords: total}, nil
+	out := make([]repository.RotinaWithItensItem, 0, len(rotinas))
+	for _, r := range rotinas {
+		out = append(out, repository.RotinaWithItensItem{
+			ID:          r.ID,
+			Descricao:   r.Descricao,
+			MunicipioID: r.MunicipioID,
+			Municipio:   r.Municipio,
+			RotinaItens: []repository.RotinaPassoItem{},
+		})
+	}
+	return RotinaListResponse{Rotinas: out, TotalRecords: total}, nil
 }
 
 func (s *RotinaService) ListLite(ctx context.Context, municipioID string) (RotinaListResponse, error) {

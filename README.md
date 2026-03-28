@@ -16,6 +16,7 @@ mare/
 ## 🚀 Stack Tecnológico
 
 ### Backend
+
 - **Linguagem:** Go
 - **Banco de Dados:** PostgreSQL
 - **Servidor HTTP:** integrado em Go
@@ -25,13 +26,15 @@ mare/
 #### Backend Go - Tecnologias e Diretrizes
 
 **Tecnologias utilizadas no backend:**
+
 - **Go Modules (`go.mod`)** para versionamento e reprodutibilidade de dependências
-- **`database/sql` + driver PostgreSQL** para acesso ao banco com pooling
+- **`pgx/v5` (`pgxpool`)** para acesso ao PostgreSQL com pooling
 - **JWT** para autenticação e autorização baseada em claims
 - **Middlewares HTTP** para autenticação, CORS e tratamento transversal de requisições
 - **Nginx** como reverse proxy em cenários de produção
 
 **Melhores práticas aplicadas no backend:**
+
 - **Arquitetura em camadas** (`handler -> service -> repository`) para separar transporte HTTP, regra de negócio e persistência
 - **Separação por domínio** em módulos (`agenda`, `empresa`, `usuario`, `registro`, etc.) para facilitar manutenção e evolução
 - **Multi-tenant por token**: isolamento de dados por tenant usando informações do JWT
@@ -40,6 +43,7 @@ mare/
 - **Tratamento padronizado de respostas de API** para consistência entre endpoints
 
 **Diretrizes e convenções Go respeitadas:**
+
 - **Organização idiomática de projeto** com `cmd/` (entrypoint) e `internal/` (domínio da aplicação)
 - **Pacotes pequenos e com responsabilidade clara** (`auth`, `db`, `httpapi`, `repository`, `service`)
 - **Nomes simples e idiomáticos** para funções, tipos e pacotes
@@ -49,20 +53,21 @@ mare/
 
 #### Checklist de Conformidade (Fluxo Usuário x Tenant)
 
-- [x] API exige autenticação JWT para listar usuários (`GET /usuarios`)
-- [x] API exige role ADMIN/SUPER para criar/alterar/excluir usuários (`POST/PUT/DELETE /usuario`)
-- [x] ADMIN não pode criar usuário SUPER
-- [x] ADMIN fica preso ao próprio tenant ao criar/editar usuário
-- [x] SUPER pode informar `tenantId` no payload para criar/editar usuário em outro tenant
-- [x] Listagem de tenants para SUPER disponível (`GET /tenants`)
-- [x] Frontend de usuários expõe fluxo de SUPER para escolher tenant do novo usuário
-- [x] Frontend de usuários exibe ação Criar para role SUPER
-- [x] Endpoint de criação de tenant está protegido por autenticação/role (`POST /tenant` exige SUPER)
-- [x] Update/Delete de usuário valida escopo de tenant no backend antes de persistir por `id`
+- [X] API exige autenticação JWT para listar usuários (`GET /usuarios`)
+- [X] API exige role ADMIN/SUPER para criar/alterar/excluir usuários (`POST/PUT/DELETE /usuario`)
+- [X] ADMIN não pode criar usuário SUPER
+- [X] ADMIN fica preso ao próprio tenant ao criar/editar usuário
+- [X] SUPER pode informar `tenantId` no payload para criar/editar usuário em outro tenant
+- [X] Listagem de tenants para SUPER disponível (`GET /tenants`)
+- [X] Frontend de usuários expõe fluxo de SUPER para escolher tenant do novo usuário
+- [X] Frontend de usuários exibe ação Criar para role SUPER
+- [X] Endpoint de criação de tenant está protegido por autenticação/role (`POST /tenant` exige SUPER)
+- [X] Update/Delete de usuário valida escopo de tenant no backend antes de persistir por `id`
 
 Observação: hoje o backend já suporta o vínculo de usuário com tenant por payload para SUPER, mas a tela de usuários está orientada ao fluxo de ADMIN do próprio tenant.
 
 ### Frontend
+
 - **Framework:** Next.js 16.2.1
 - **Biblioteca UI:** React 18.3.1
 - **Linguagem:** TypeScript
@@ -85,15 +90,17 @@ Observação: hoje o backend já suporta o vínculo de usuário com tenant por p
 
 ```bash
 cd backend
-go run cmd/api/main.go
+go run ./cmd/api
 # API estará disponível em http://localhost:3333
 ```
 
 **Dependências:**
+
 - Go (versão recente)
 - PostgreSQL
 
 **Variáveis de Ambiente:**
+
 - `PG_URL` - String de conexão PostgreSQL
 - `JWT_SECRET` - Chave secreta para JWT
 
@@ -107,10 +114,12 @@ npm run dev
 ```
 
 **Dependências:**
+
 - Node.js 22.x
 - npm 11.x
 
 **Requisitos:**
+
 - Backend rodando em http://localhost:3333
 
 ## 📚 Documentação Detalhada
@@ -147,15 +156,18 @@ npm start
 ## 🐛 Troubleshooting
 
 ### Frontend não conecta ao Backend
+
 - Verificar se backend está rodando em `localhost:3333`
 - Verificar CORS headers
 - Verificar token JWT válido
 
 ### Erro "no rows in result set"
+
 - Backend retorna 400 para queries vazias
 - Frontend trata este erro graciosamente
 
 ### Página de usuários não carrega
+
 - Verificar `/api/registro` retorna dados ou erro tratado
 - Verificar autenticação do usuário
 
@@ -174,5 +186,6 @@ npm start
 ## 📞 Suporte
 
 Para mais informações, consulte a documentação específica de cada módulo:
+
 - [Backend](./backend/README.md)
 - [Frontend](./frontend/README.md)

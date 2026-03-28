@@ -28,7 +28,8 @@ type EmpresaAgendaAcompanhamentoItem struct {
 	Descricao      string `json:"descricao"`
 	DataVencimento string `json:"data_vencimento"`
 	Status         string `json:"status"`
-	Tipo           string `json:"tipo"`
+	Tipo           string `json:"tipo"`               // TRIBUTO | INFORMATIVA (template)
+	Classificacao  string `json:"classificacao"`      // FINANCEIRO | NAO_FINANCEIRO | vazio se sem instância
 }
 
 type EmpresaAgendaRepository struct {
@@ -78,7 +79,7 @@ func (r *EmpresaAgendaRepository) UpdateStatus(ctx context.Context, id, status s
 }
 
 func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context, tenantID string) ([]EmpresaAgendaAcompanhamentoItem, error) {
-	const query = `
+	const queryAgenda = `
 		SELECT
 			e.id,
 			e.nome,
@@ -86,7 +87,12 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 			COALESCE(ea.descricao, ''),
 			COALESCE(ea.data_vencimento::text, ''),
 			COALESCE(ea.status, ''),
-			COALESCE(teo.tipo, '')
+			COALESCE(teo.tipo, ''),
+			CASE
+				WHEN ea.id IS NULL THEN ''
+				WHEN UPPER(COALESCE(teo.tipo, '')) = 'TRIBUTO' THEN 'FINANCEIRO'
+				ELSE 'NAO_FINANCEIRO'
+			END
 		FROM public.empresa e
 		LEFT JOIN public.empresa_agenda ea ON ea.empresa_id = e.id
 		LEFT JOIN public.tipoempresa_obrigacao teo ON teo.id = ea.template_id
@@ -94,9 +100,50 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 		  AND e.tenant_id = $1
 		ORDER BY e.nome ASC, ea.data_vencimento ASC NULLS LAST, ea.descricao ASC`
 
-	rows, err := r.pool.Query(ctx, query, tenantID)
+	items, err := scanAcompanhamentoRows(ctx, r.pool, queryAgenda, tenantID)
 	if err != nil {
-		return nil, fmt.Errorf("list acompanhamento empresa_agenda: %w", err)
+		return nil, err
+	}
+
+	// Cadastro legal (compromisso_financeiro) por tipo da empresa — exige tipo_empresa_id na empresa.
+	const queryCatalog = `
+		SELECT
+			e.id,
+			e.nome,
+			c.id::text,
+			c.descricao,
+			'',
+			'PENDENTE',
+			'',
+			CASE
+				WHEN UPPER(COALESCE(c.natureza, '')) = 'FINANCEIRO' THEN 'FINANCEIRO'
+				ELSE 'NAO_FINANCEIRO'
+			END
+		FROM public.empresa e
+		INNER JOIN public.compromisso_financeiro c
+			ON c.tipo_empresa_id = e.tipo_empresa_id AND c.ativo = true
+		WHERE e.ativo = true
+		  AND e.tenant_id = $1
+		  AND e.tipo_empresa_id IS NOT NULL
+		  AND trim(e.tipo_empresa_id) <> ''
+		  AND NOT EXISTS (
+		  	SELECT 1 FROM public.empresa_agenda ea
+		  	WHERE ea.empresa_id = e.id AND ea.descricao = c.descricao
+		  )
+		ORDER BY e.nome ASC, c.descricao ASC`
+
+	catalog, err := scanAcompanhamentoRows(ctx, r.pool, queryCatalog, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("list acompanhamento catalogo compromissos: %w", err)
+	}
+
+	return append(items, catalog...), nil
+}
+
+func scanAcompanhamentoRows(ctx context.Context, pool *pgxpool.Pool, query string, tenantID string) ([]EmpresaAgendaAcompanhamentoItem, error) {
+	rows, err := pool.Query(ctx, query, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("list acompanhamento: %w", err)
 	}
 	defer rows.Close()
 
@@ -111,13 +158,12 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 			&item.DataVencimento,
 			&item.Status,
 			&item.Tipo,
+			&item.Classificacao,
 		); err != nil {
-			return nil, fmt.Errorf("scan acompanhamento empresa_agenda: %w", err)
+			return nil, fmt.Errorf("scan acompanhamento: %w", err)
 		}
-
 		items = append(items, item)
 	}
-
 	return items, nil
 }
 
@@ -156,16 +202,26 @@ func (r *EmpresaAgendaRepository) GerarAgenda(ctx context.Context, empresaID, ti
 	}
 	tmplRows.Close()
 
-	if len(templates) == 0 {
-		return nil, nil
-	}
-
-	// 2) Transação atômica
+	// 2) Transação: persiste tipo na empresa e regenera instâncias da agenda
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
+	if _, err = tx.Exec(ctx,
+		`UPDATE public.empresa SET tipo_empresa_id = $1 WHERE id = $2`,
+		tipoEmpresaID, empresaID,
+	); err != nil {
+		return nil, fmt.Errorf("atualizar tipo_empresa da empresa: %w", err)
+	}
+
+	if len(templates) == 0 {
+		if err := tx.Commit(ctx); err != nil {
+			return nil, fmt.Errorf("commit tx: %w", err)
+		}
+		return nil, nil
+	}
 
 	// Limpar agenda anterior desta empresa (para permitir re-geração)
 	_, err = tx.Exec(ctx, `DELETE FROM public.empresa_agenda WHERE empresa_id = $1`, empresaID)

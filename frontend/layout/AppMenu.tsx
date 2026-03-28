@@ -120,43 +120,13 @@ const AppMenu = () => {
                             label: 'Usuários',
                             icon: 'pi pi-fw pi-users',
                             to: '/usuarios'
-                        },
-                        {
-                            label: 'Error',
-                            icon: 'pi pi-fw pi-times-circle',
-                            to: '/auth/error'
-                        },
-                        {
-                            label: 'Access Denied',
-                            icon: 'pi pi-fw pi-lock',
-                            to: '/auth/access'
                         }
                     ]
-                },
-                {
-                    label: 'Landing',
-                    icon: 'pi pi-fw pi-globe',
-                    to: '/pages/landing'
                 },
                 {
                     label: 'Sobre',
                     icon: 'pi pi-fw pi-pencil',
                     to: '/pages/landing'
-                },
-                {
-                    label: 'Disponivel 2',
-                    icon: 'pi pi-fw pi-calendar',
-                    to: '/pages/empty'
-                },
-                {
-                    label: 'Disponivel 3',
-                    icon: 'pi pi-fw pi-exclamation-circle',
-                    to: '/pages/empty'
-                },
-                {
-                    label: 'Empty',
-                    icon: 'pi pi-fw pi-circle-off',
-                    to: '/pages/empty',
                 }
             ]
         },

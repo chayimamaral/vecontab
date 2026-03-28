@@ -151,10 +151,10 @@ npm run build
 npm start
 ```
 
-### Ver bundle size
+### Qualidade de código
 
 ```bash
-npm run analyze
+npm run lint
 ```
 
 ## 🎯 Features Principais
@@ -254,7 +254,7 @@ npm install
 # Limpar token e fazer login novamente
 localStorage.clear()
 # Verificar se backend está rodando
-curl http://localhost:3333/healthcheck
+curl http://localhost:3333/healthz
 ```
 
 ### TypeScript errors
@@ -324,8 +324,6 @@ npm run dev       # Iniciar dev server
 npm run build     # Build para produção
 npm start         # Rodar build em produção
 npm run lint      # Verificar linting
-npm run type-check # Type checking
-npm run analyze   # Analisar bundle size
 ```
 
 ## 📞 Contato

@@ -89,7 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
 
       const { id, nome, token, empresa } = response.data;
-      
+
 
       setCookie(undefined, '@vecontab.token', token, {
         maxAge: 60 * 60 * 24 * 30, // Expirar em 1 mês

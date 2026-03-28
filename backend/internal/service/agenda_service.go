@@ -3,11 +3,19 @@ package service
 import (
 	"context"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/repository"
 )
 
+// AgendaRepository descreve o acesso a dados da agenda (calendário de rotinas).
+// *repository.AgendaRepository satisfaz esta interface.
+type AgendaRepository interface {
+	ListEvents(ctx context.Context, tenantID string) ([]repository.AgendaEvent, error)
+	DetailEvents(ctx context.Context, tenantID, agendaID string) ([]repository.AgendaEvent, error)
+	ConcluirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
+}
+
 type AgendaService struct {
-	repo *repository.AgendaRepository
+	repo AgendaRepository
 }
 
 type AgendaResponse struct {
@@ -20,7 +28,7 @@ type AgendaConcluirPassoResponse struct {
 	TodosPassosConcluidos bool   `json:"todos_passos_concluidos"`
 }
 
-func NewAgendaService(repo *repository.AgendaRepository) *AgendaService {
+func NewAgendaService(repo AgendaRepository) *AgendaService {
 	return &AgendaService{repo: repo}
 }
 

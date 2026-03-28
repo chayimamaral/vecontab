@@ -193,6 +193,7 @@ declare namespace Vec {
         descricao?: string;
         data_vencimento?: string;
         status?: string;
-        tipo?: string;         // TRIBUTO | INFORMATIVA
+        tipo?: string;         // TRIBUTO | INFORMATIVA (template)
+        classificacao?: string; // FINANCEIRO | NAO_FINANCEIRO (derivado do template)
     }
 }

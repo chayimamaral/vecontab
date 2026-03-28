@@ -633,6 +633,17 @@ const CompromissosFinanceiros = () => {
           tooltipOptions={{ position: 'left' }}
         />
       </span>
+      <span className="block mt-2 md:mt-0 p-input-icon-left">
+        <i className="pi pi-search" />
+        <InputText
+          type="search"
+          onKeyDown={(e) => handleSearch(e, e.currentTarget.value)}
+          onChange={handleSearchClear}
+          placeholder="Procurar..."
+          tooltip="Digite e tecle Enter"
+          tooltipOptions={{ position: 'left' }}
+        />
+      </span>
     </div>
   );
 

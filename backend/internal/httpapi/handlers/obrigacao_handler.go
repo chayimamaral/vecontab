@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/httpapi/render"
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
-	"github.com/chayimamaral/vecontab/backendgo/internal/service"
+	"github.com/chayimamaral/mare/backend/internal/httpapi/render"
+	"github.com/chayimamaral/mare/backend/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/service"
 )
 
 type ObrigacaoHandler struct {

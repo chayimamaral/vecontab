@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/repository"
 )
 
 type TenantService struct {

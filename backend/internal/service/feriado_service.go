@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/chayimamaral/vecontab/backendgo/internal/repository"
+	"github.com/chayimamaral/mare/backend/internal/repository"
 )
 
 type FeriadoService struct {
