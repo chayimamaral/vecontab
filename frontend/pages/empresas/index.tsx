@@ -11,13 +11,11 @@ import { canSSRAuth } from '../../components/utils/canSSRAuth';
 import setupAPIClient from '../../components/api/api';
 import { Vec } from '../../types/types';
 
-import { Dropdown, DropdownChangeEvent } from 'primereact/dropdown';
+import { Dropdown } from 'primereact/dropdown';
 import MunicipioService from '../../services/cruds/MunicipioService';
 import EmpresaService from '../../services/cruds/EmpresaService';
 import RotinaService from '../../services/cruds/RotinaService';
-import TipoEmpresaService from '../../services/cruds/TipoEmpresaService';
-import EmpresaAgendaService from '../../services/cruds/EmpresaAgendaService';
-import { em } from '@fullcalendar/core/internal-common';
+import EmpresaCompromissoService from '../../services/cruds/EmpresaCompromissoService';
 import { Chips } from "primereact/chips";
 
 type ChipsChangeEvent<T> = {
@@ -64,10 +62,15 @@ const Empresas = ({ dados }) => {
       id: '',
       descricao: ''
     },
+    tipo_empresa: {
+      id: '',
+      descricao: ''
+    },
     uf: '',
     cep: '',
     tenantid: '',
     cnaes: [],
+    bairro: '',
     iniciado: false
   };
 
@@ -88,9 +91,8 @@ const Empresas = ({ dados }) => {
 
   const [rotinas, setRotinas] = useState<Vec.RotinaLite[]>([]);
   const [rotina, setRotina] = useState<Vec.RotinaLite>(emptyRotina);
-  const [tiposEmpresa, setTiposEmpresa] = useState<Vec.TipoEmpresaLite[]>([]);
-  const [tipoEmpresaSelecionado, setTipoEmpresaSelecionado] = useState<Vec.TipoEmpresaLite | null>(null);
   const [gerarCompromissosDialog, setGerarCompromissosDialog] = useState(false);
+  const [dataBaseGeracao, setDataBaseGeracao] = useState(() => new Date().toISOString().slice(0, 10));
 
   const [empresaDialog, setEmpresaDialog] = useState(false);
   const [deleteEmpresaDialog, setDeleteEmpresaDialog] = useState(false);
@@ -125,20 +127,21 @@ const Empresas = ({ dados }) => {
   });
 
   useEffect(() => {
-    if (municipio) {
-      loadLazyRotinas();
+    const mid = municipio?.id?.trim?.() ?? '';
+    if (mid) {
+      loadLazyRotinasForMunicipio(municipio);
+    } else {
+      setRotinas([]);
     }
   }, [municipio]);
 
   useEffect(() => {
     loadLazyMunicipios();
-    loadLazyRotinas();
-    loadTiposEmpresa();
     loadLazyEmpresa();
   }, []);
 
   const empresaService = EmpresaService();
-  const empresaAgendaService = EmpresaAgendaService();
+  const empresaCompromissoService = EmpresaCompromissoService();
 
   const loadLazyEmpresa = () => {
     setLazyState(prevState => ({
@@ -180,20 +183,18 @@ const Empresas = ({ dados }) => {
     })
   }
 
-  const loadLazyRotinas = () => {
+  /** Sempre passe o município explícito: evita race com setState (req. com id vazio sobrescrevendo a lista). */
+  const loadLazyRotinasForMunicipio = (m: Vec.MunicipioLite) => {
     const rotinaService = RotinaService();
-
-    rotinaService.getRotinasLite(municipio).then(({ data }) => {
-      setRotinas(data?.rotinas);
-    })
-  }
-
-  const loadTiposEmpresa = () => {
-    const tipoEmpresaService = TipoEmpresaService();
-    tipoEmpresaService.getTiposEmpresaLite().then(({ data }) => {
-      setTiposEmpresa(data?.tiposEmpresa ?? []);
+    const id = m?.id?.trim?.() ?? '';
+    if (!id) {
+      setRotinas([]);
+      return;
+    }
+    rotinaService.getRotinasLite({ id }).then(({ data }) => {
+      setRotinas(data?.rotinas ?? []);
     });
-  }
+  };
 
   const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip='Atualizar' className="p-button-text" onClick={loadLazyEmpresa} />;
 
@@ -242,6 +243,8 @@ const Empresas = ({ dados }) => {
 
   const openNew = () => {
     setEmpresa(emptyEmpresa);
+    setMunicipio(emptyMunicipio);
+    setRotina(emptyRotina);
     setSubmitted(false);
     setEmpresaDialog(true);
   };
@@ -272,8 +275,21 @@ const Empresas = ({ dados }) => {
   }
 
   function onRotinaChange(selectedValue: Vec.RotinaLite) {
-    empresa.rotina = selectedValue;
     setRotina(selectedValue);
+    setEmpresa((prev) => ({
+      ...prev,
+      rotina: {
+        id: selectedValue?.id ?? '',
+        descricao: selectedValue?.descricao ?? '',
+      },
+      tipo_empresa:
+        selectedValue?.tipo_empresa?.id != null && selectedValue.tipo_empresa.id !== ''
+          ? {
+              id: selectedValue.tipo_empresa.id,
+              descricao: selectedValue.tipo_empresa.descricao ?? '',
+            }
+          : { id: '', descricao: '' },
+    }));
   }
 
   const saveEmpresa = (event: any) => {
@@ -334,7 +350,12 @@ const Empresas = ({ dados }) => {
   const editEmpresa = (empresa: Vec.Empresa) => {
     setMunicipio(empresa.municipio)
     setRotina(empresa.rotina)
-    setEmpresa({ ...empresa, municipio: empresa.municipio, rotina: empresa.rotina });
+    setEmpresa({
+      ...empresa,
+      municipio: empresa.municipio,
+      rotina: empresa.rotina,
+      bairro: empresa.bairro ?? '',
+    });
     setEmpresaDialog(true);
   };
 
@@ -375,11 +396,15 @@ const Empresas = ({ dados }) => {
   };
 
   function onMunicipioChange(selectedValue: Vec.MunicipioLite) {
-    empresa.municipio = selectedValue;
-
-    setMunicipio(empresa.municipio);
-
-    loadLazyRotinas();
+    setMunicipio(selectedValue);
+    setRotina(emptyRotina);
+    setEmpresa((prev) => ({
+      ...prev,
+      municipio: selectedValue ?? { id: '', nome: '' },
+      rotina: { id: '', descricao: '' },
+      tipo_empresa: { id: '', descricao: '' },
+    }));
+    loadLazyRotinasForMunicipio(selectedValue ?? { id: '', nome: '' });
   }
 
   async function validaCnae(cnae: string): Promise<boolean> {
@@ -427,6 +452,15 @@ const Empresas = ({ dados }) => {
       <>
         <span className="p-column-title">Rotina</span>
         {rowData.rotina?.descricao}
+      </>
+    );
+  };
+
+  const tipoEmpresaBodyTemplate = (rowData: Vec.Empresa) => {
+    return (
+      <>
+        <span className="p-column-title">Tipo de Empresa</span>
+        {rowData.tipo_empresa?.descricao ?? '—'}
       </>
     );
   };
@@ -510,22 +544,21 @@ const Empresas = ({ dados }) => {
     }
 
     setEmpresa(empresa);
-    setTipoEmpresaSelecionado(null);
+    setDataBaseGeracao(new Date().toISOString().slice(0, 10));
     setGerarCompromissosDialog(true);
   }
 
   function confirmarGerarCompromissos(): void {
-    if (!empresa?.id || !tipoEmpresaSelecionado?.id) {
-      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Selecione o tipo de empresa para gerar os compromissos.', life: 3500 });
+    if (!empresa?.id) {
+      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Empresa inválida.', life: 3500 });
       return;
     }
 
-    const hoje = new Date().toISOString().slice(0, 10);
+    const inicio = (dataBaseGeracao || '').trim() || new Date().toISOString().slice(0, 10);
 
-    empresaAgendaService.gerarAgenda({
+    empresaCompromissoService.gerar({
       empresa_id: empresa.id,
-      tipo_empresa_id: tipoEmpresaSelecionado.id,
-      data_inicio: hoje,
+      data_inicio: inicio,
     })
       .then(({ data }) => {
         const qtd = data?.itens?.length ?? 0;
@@ -546,7 +579,6 @@ const Empresas = ({ dados }) => {
       })
       .finally(() => {
         setGerarCompromissosDialog(false);
-        setTipoEmpresaSelecionado(null);
         loadLazyEmpresa();
       });
   }
@@ -593,7 +625,13 @@ const Empresas = ({ dados }) => {
   const gerarCompromissosDialogFooter = (
     <>
       <Button label="Cancelar" icon="pi pi-times" text onClick={() => setGerarCompromissosDialog(false)} />
-      <Button label="Gerar" icon="pi pi-check" text onClick={confirmarGerarCompromissos} />
+      <Button
+        label="Gerar"
+        icon="pi pi-check"
+        text
+        disabled={!empresa?.tipo_empresa?.id}
+        onClick={confirmarGerarCompromissos}
+      />
     </>
   );
 
@@ -648,6 +686,7 @@ const Empresas = ({ dados }) => {
             <Column field="nome" header="Nome" sortable body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
             <Column field="municipio" header="Municipio" body={municipioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
             <Column field="rotina" header="Rotina" body={rotinaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+            <Column field="tipo_empresa" header="Tipo de Empresa" body={tipoEmpresaBodyTemplate} headerStyle={{ minWidth: '12rem' }}></Column>
             <Column body={actionBodyTemplate} header="Ações" headerStyle={{ minWidth: '10rem' }}></Column>
           </DataTable>
 
@@ -692,6 +731,17 @@ const Empresas = ({ dados }) => {
                 {submitted && !empresa.rotina && <small className="p-invalid">Rotina é obrigatório.</small>}
               </span>
             </div>
+            <div className="field">
+              <label htmlFor="bairro_">Bairro</label>
+              <InputText
+                id="bairro_"
+                value={empresa.bairro ?? ''}
+                type="text"
+                onChange={(e) => onInputChange(e, 'bairro')}
+                disabled={empresa?.iniciado === true}
+                placeholder="Obrigatório para compromissos por bairro (quando cadastrados)"
+              />
+            </div>
             <div className="p-fluid field">
               <label htmlFor="ddtag">CNAE's</label>
               <Chips
@@ -727,20 +777,21 @@ const Empresas = ({ dados }) => {
             footer={gerarCompromissosDialogFooter}
             onHide={() => setGerarCompromissosDialog(false)}
           >
+            <p className="m-0 mb-2 text-600">
+              Serão criados os compromissos legais (cadastro por tipo de empresa) aplicáveis ao município/UF/bairro desta empresa, com vencimentos ajustados a dias úteis e feriados.
+              {!empresa?.tipo_empresa?.id?.trim() && ' Cadastre o tipo na rotina antes de gerar.'}
+            </p>
             <div className="field">
-              <label htmlFor="tipoempresa">Tipo de Empresa</label>
-              <Dropdown
-                id="tipoempresa"
-                value={tipoEmpresaSelecionado}
-                options={tiposEmpresa}
-                onChange={(e: DropdownChangeEvent) => setTipoEmpresaSelecionado(e.value)}
-                optionLabel='descricao'
-                dataKey='id'
-                placeholder='Selecione um Tipo de Empresa'
-                emptyMessage='Nenhum Tipo de Empresa encontrado'
+              <label htmlFor="dataBaseGeracao">Data base da geração</label>
+              <input
+                id="dataBaseGeracao"
+                type="date"
+                className="p-inputtext p-component w-full"
+                value={dataBaseGeracao}
+                onChange={(e) => setDataBaseGeracao(e.target.value)}
               />
+              <small className="block mt-1">Vencimentos mensais/anuais consideram fins de semana e feriados (ajuste automático).</small>
             </div>
-            <small>Os compromissos mensais/anuais serão gerados para a empresa selecionada.</small>
           </Dialog>
 
         </div>

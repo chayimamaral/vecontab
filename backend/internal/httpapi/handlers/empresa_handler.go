@@ -27,7 +27,8 @@ type empresaEnvelope struct {
 		Rotina   struct {
 			ID string `json:"id"`
 		} `json:"rotina"`
-		Cnaes any `json:"cnaes"`
+		Cnaes  any    `json:"cnaes"`
+		Bairro string `json:"bairro"`
 	} `json:"params"`
 }
 
@@ -73,6 +74,7 @@ func (h *EmpresaHandler) Create(w http.ResponseWriter, r *http.Request) {
 		TenantID:    tenantID,
 		RotinaID:    payload.Params.Rotina.ID,
 		Cnaes:       payload.Params.Cnaes,
+		Bairro:      payload.Params.Bairro,
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
@@ -101,6 +103,7 @@ func (h *EmpresaHandler) Update(w http.ResponseWriter, r *http.Request) {
 		TenantID:    middleware.TenantID(r.Context()),
 		RotinaID:    payload.Params.Rotina.ID,
 		Cnaes:       payload.Params.Cnaes,
+		Bairro:      payload.Params.Bairro,
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())

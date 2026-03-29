@@ -17,13 +17,14 @@ type RotinaHandler struct {
 
 type rotinaEnvelope struct {
 	Params struct {
-		ID            string `json:"id"`
-		Descricao     string `json:"descricao"`
-		CidadeID      string `json:"cidade_id"`
-		Link          string `json:"link"`
-		TempoEstimado int    `json:"tempoestimado"`
-		RotinaID      string `json:"rotina_id"`
-		Passos        any    `json:"passos"`
+		ID             string `json:"id"`
+		Descricao      string `json:"descricao"`
+		CidadeID       string `json:"cidade_id"`
+		TipoEmpresaID  string `json:"tipo_empresa_id"`
+		Link           string `json:"link"`
+		TempoEstimado  int    `json:"tempoestimado"`
+		RotinaID       string `json:"rotina_id"`
+		Passos         any    `json:"passos"`
 	} `json:"params"`
 }
 
@@ -91,11 +92,16 @@ func (h *RotinaHandler) Create(w http.ResponseWriter, r *http.Request) {
 		render.WriteError(w, http.StatusBadRequest, "Favor informar o município da rotina!")
 		return
 	}
+	if strings.TrimSpace(payload.Params.TipoEmpresaID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o tipo de empresa da rotina!")
+		return
+	}
 
 	response, err := h.service.Create(r.Context(), service.RotinaInput{
-		Descricao: payload.Params.Descricao,
-		CidadeID:  payload.Params.CidadeID,
-		Link:      payload.Params.Link,
+		Descricao:     payload.Params.Descricao,
+		CidadeID:      payload.Params.CidadeID,
+		TipoEmpresaID: payload.Params.TipoEmpresaID,
+		Link:          payload.Params.Link,
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
@@ -118,12 +124,17 @@ func (h *RotinaHandler) Update(w http.ResponseWriter, r *http.Request) {
 		render.WriteError(w, http.StatusBadRequest, "Favor informar o município da rotina!")
 		return
 	}
+	if strings.TrimSpace(payload.Params.TipoEmpresaID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o tipo de empresa da rotina!")
+		return
+	}
 
 	response, err := h.service.Update(r.Context(), service.RotinaInput{
-		ID:        payload.Params.ID,
-		Descricao: payload.Params.Descricao,
-		CidadeID:  payload.Params.CidadeID,
-		Link:      payload.Params.Link,
+		ID:            payload.Params.ID,
+		Descricao:     payload.Params.Descricao,
+		CidadeID:      payload.Params.CidadeID,
+		TipoEmpresaID: payload.Params.TipoEmpresaID,
+		Link:          payload.Params.Link,
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())

@@ -27,6 +27,7 @@ type EmpresaInput struct {
 	TenantID    string `json:"tenantid"`
 	RotinaID    string `json:"rotina_id"`
 	Cnaes       any    `json:"cnaes"`
+	Bairro      string `json:"bairro"`
 }
 
 func NewEmpresaService(repo *repository.EmpresaRepository) *EmpresaService {
@@ -49,6 +50,7 @@ func (s *EmpresaService) Create(ctx context.Context, input EmpresaInput) (Empres
 		TenantID:    input.TenantID,
 		RotinaID:    input.RotinaID,
 		Cnaes:       input.Cnaes,
+		Bairro:      input.Bairro,
 	})
 	if err != nil {
 		return EmpresaMutationResponse{}, err
@@ -65,6 +67,7 @@ func (s *EmpresaService) Update(ctx context.Context, input EmpresaInput) (Empres
 		TenantID:    input.TenantID,
 		RotinaID:    input.RotinaID,
 		Cnaes:       input.Cnaes,
+		Bairro:      input.Bairro,
 	})
 	if err != nil {
 		return EmpresaMutationResponse{}, err

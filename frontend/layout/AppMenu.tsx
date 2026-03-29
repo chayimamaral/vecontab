@@ -16,6 +16,11 @@ const AppMenu = () => {
             items: [
                 { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
                 {
+                    label: 'Compromissos das Empresas',
+                    icon: 'pi pi-fw pi-list',
+                    to: '/compromissos-empresas'
+                },
+                {
                     label: 'Agenda',
                     icon: 'pi pi-fw pi-calendar',
                     to: '/agenda'

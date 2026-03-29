@@ -73,9 +73,10 @@ declare namespace Vec {
         endereco: '';
         numero: '';
         complemento: '';
-        bairro: '';
+        bairro?: string;
         municipio: MunicipioLite;
         rotina: RotinaLite;
+        tipo_empresa?: TipoEmpresaLite;
         uf: '';
         cep: '';
         tenantid: '';
@@ -112,6 +113,8 @@ declare namespace Vec {
     type RotinaLite = {
         id?: string;
         descricao?: string;
+        tipo_empresa_id?: string;
+        tipo_empresa?: TipoEmpresaLite;
     }
 
     type RotinaItem = {
@@ -195,5 +198,7 @@ declare namespace Vec {
         status?: string;
         tipo?: string;         // TRIBUTO | INFORMATIVA (template)
         classificacao?: string; // FINANCEIRO | NAO_FINANCEIRO (derivado do template)
+        agenda_item_id?: string;
+        valor_estimado?: number | null;
     }
 }

@@ -69,8 +69,8 @@ func (h *EmpresaAgendaHandler) Gerar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := payload.Params
-	if p.EmpresaID == "" || p.TipoEmpresaID == "" {
-		render.WriteError(w, http.StatusBadRequest, "empresa_id e tipo_empresa_id sao obrigatorios")
+	if p.EmpresaID == "" {
+		render.WriteError(w, http.StatusBadRequest, "empresa_id e obrigatorio")
 		return
 	}
 
@@ -114,15 +114,56 @@ func (h *EmpresaAgendaHandler) UpdateStatus(w http.ResponseWriter, r *http.Reque
 	}
 
 	status := strings.ToUpper(p.Status)
-	if status != "PENDENTE" && status != "PAGO" && status != "ATRASADO" {
-		render.WriteError(w, http.StatusBadRequest, "status invalido (PENDENTE|PAGO|ATRASADO)")
+	if status != "PENDENTE" && status != "PAGO" && status != "ATRASADO" && status != "CONCLUIDO" {
+		render.WriteError(w, http.StatusBadRequest, "status invalido (PENDENTE|PAGO|ATRASADO|CONCLUIDO)")
 		return
 	}
 
-	if err := h.service.UpdateStatus(r.Context(), p.ID, status); err != nil {
+	tenantID := middleware.TenantID(r.Context())
+	if strings.TrimSpace(tenantID) == "" {
+		render.WriteError(w, http.StatusUnauthorized, "tenant nao identificado")
+		return
+	}
+
+	if err := h.service.UpdateStatus(r.Context(), tenantID, p.ID, status); err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	render.WriteJSON(w, http.StatusOK, map[string]string{"message": "status atualizado"})
+}
+
+type updateItemEnvelope struct {
+	Params struct {
+		ID              string   `json:"id"`
+		DataVencimento  *string  `json:"data_vencimento"`
+		ValorEstimado   *float64 `json:"valor_estimado"`
+	} `json:"params"`
+}
+
+func (h *EmpresaAgendaHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.TenantID(r.Context())
+	if strings.TrimSpace(tenantID) == "" {
+		render.WriteError(w, http.StatusUnauthorized, "tenant nao identificado")
+		return
+	}
+
+	var payload updateItemEnvelope
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		return
+	}
+
+	p := payload.Params
+	if strings.TrimSpace(p.ID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "id e obrigatorio")
+		return
+	}
+
+	if err := h.service.UpdateItem(r.Context(), tenantID, p.ID, p.DataVencimento, p.ValorEstimado); err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	render.WriteJSON(w, http.StatusOK, map[string]string{"message": "item atualizado"})
 }

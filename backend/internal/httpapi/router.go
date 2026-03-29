@@ -8,6 +8,7 @@ import (
 	"github.com/chayimamaral/vecontab/backend/internal/httpapi/handlers"
 	apiMiddleware "github.com/chayimamaral/vecontab/backend/internal/httpapi/middleware"
 	"github.com/chayimamaral/vecontab/backend/internal/httpapi/render"
+	"github.com/chayimamaral/vecontab/backend/internal/publicapi"
 	"github.com/chayimamaral/vecontab/backend/internal/repository"
 	"github.com/chayimamaral/vecontab/backend/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -32,8 +33,10 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	tipoEmpresaService := service.NewTipoEmpresaService(repository.NewTipoEmpresaRepository(pool))
 	passoService := service.NewPassoService(repository.NewPassoRepository(pool))
 	grupoPassosService := service.NewGrupoPassosService(repository.NewGrupoPassosRepository(pool))
-	feriadoService := service.NewFeriadoService(repository.NewFeriadoRepository(pool))
-	empresaService := service.NewEmpresaService(repository.NewEmpresaRepository(pool))
+	empresaRepo := repository.NewEmpresaRepository(pool)
+	feriadoRepo := repository.NewFeriadoRepository(pool)
+	feriadoService := service.NewFeriadoService(feriadoRepo)
+	empresaService := service.NewEmpresaService(empresaRepo)
 	cnaeService := service.NewCnaeService(repository.NewCnaeRepository(pool))
 	agendaService := service.NewAgendaService(repository.NewAgendaRepository(pool))
 	rotinaService := service.NewRotinaService(repository.NewRotinaRepository(pool))
@@ -43,8 +46,13 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	obrigacaoService := service.NewObrigacaoService(repository.NewObrigacaoRepository(pool))
 	empresaAgendaService := service.NewEmpresaAgendaService(
 		repository.NewEmpresaAgendaRepository(pool),
-		repository.NewFeriadoRepository(pool),
-		repository.NewEmpresaRepository(pool),
+		feriadoRepo,
+		empresaRepo,
+	)
+	empresaCompromissoService := service.NewEmpresaCompromissoService(
+		repository.NewEmpresaCompromissoRepository(pool),
+		feriadoRepo,
+		empresaRepo,
 	)
 
 	authHandler := handlers.NewAuthHandler(authService)
@@ -65,6 +73,7 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	compromissoHandler := handlers.NewCompromissoHandler(compromissoService)
 	obrigacaoHandler := handlers.NewObrigacaoHandler(obrigacaoService)
 	empresaAgendaHandler := handlers.NewEmpresaAgendaHandler(empresaAgendaService)
+	empresaCompromissoHandler := handlers.NewEmpresaCompromissoHandler(empresaCompromissoService)
 	requireAuth := apiMiddleware.RequireAuth(tokenService)
 	requireAdmin := apiMiddleware.RequireAnyRole("ADMIN", "SUPER")
 	requireSuper := apiMiddleware.RequireAnyRole("SUPER")
@@ -73,10 +82,12 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 		render.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, compromissoHandler, obrigacaoHandler, empresaAgendaHandler, requireAuth, requireAdmin, requireSuper)
+	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, compromissoHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, requireAuth, requireAdmin, requireSuper)
 	r.Route("/api", func(api chi.Router) {
-		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, compromissoHandler, obrigacaoHandler, empresaAgendaHandler, requireAuth, requireAdmin, requireSuper)
+		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, compromissoHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, requireAuth, requireAdmin, requireSuper)
 	})
+
+	r.Mount("/v1/public", publicapi.NewRouter(cfg, pool))
 
 	return r
 }
@@ -101,6 +112,7 @@ func registerRoutes(
 	compromissoHandler *handlers.CompromissoHandler,
 	obrigacaoHandler *handlers.ObrigacaoHandler,
 	empresaAgendaHandler *handlers.EmpresaAgendaHandler,
+	empresaCompromissoHandler *handlers.EmpresaCompromissoHandler,
 	requireAuth func(http.Handler) http.Handler,
 	requireAdmin func(http.Handler) http.Handler,
 	requireSuper func(http.Handler) http.Handler,
@@ -207,5 +219,11 @@ func registerRoutes(
 	r.With(requireAuth).Get("/empresaagenda", empresaAgendaHandler.List)
 	r.With(requireAuth).Get("/empresaagenda/acompanhamento", empresaAgendaHandler.Acompanhamento)
 	r.With(requireAuth, requireAdmin).Post("/empresaagenda/gerar", empresaAgendaHandler.Gerar)
-	r.With(requireAuth, requireAdmin).Put("/empresaagenda/status", empresaAgendaHandler.UpdateStatus)
+	r.With(requireAuth).Put("/empresaagenda/status", empresaAgendaHandler.UpdateStatus)
+	r.With(requireAuth).Put("/empresaagenda/item", empresaAgendaHandler.UpdateItem)
+
+	r.With(requireAuth).Get("/empresacompromissos/acompanhamento", empresaCompromissoHandler.Acompanhamento)
+	r.With(requireAuth, requireAdmin).Post("/empresacompromissos/gerar", empresaCompromissoHandler.Gerar)
+	r.With(requireAuth).Put("/empresacompromissos/status", empresaCompromissoHandler.UpdateStatus)
+	r.With(requireAuth).Put("/empresacompromissos/item", empresaCompromissoHandler.UpdateItem)
 }

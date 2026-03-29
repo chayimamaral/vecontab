@@ -2,10 +2,14 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -22,14 +26,16 @@ type EmpresaAgendaItem struct {
 }
 
 type EmpresaAgendaAcompanhamentoItem struct {
-	EmpresaID      string `json:"empresa_id"`
-	EmpresaNome    string `json:"empresa_nome"`
-	CompromissoID  string `json:"compromisso_id"`
-	Descricao      string `json:"descricao"`
-	DataVencimento string `json:"data_vencimento"`
-	Status         string `json:"status"`
-	Tipo           string `json:"tipo"`               // TRIBUTO | INFORMATIVA (template)
-	Classificacao  string `json:"classificacao"`      // FINANCEIRO | NAO_FINANCEIRO | vazio se sem instância
+	EmpresaID       string   `json:"empresa_id"`
+	EmpresaNome     string   `json:"empresa_nome"`
+	CompromissoID   string   `json:"compromisso_id"`
+	Descricao       string   `json:"descricao"`
+	DataVencimento  string   `json:"data_vencimento"`
+	Status          string   `json:"status"`
+	Tipo            string   `json:"tipo"`            // TRIBUTO | INFORMATIVA (template)
+	Classificacao   string   `json:"classificacao"`   // FINANCEIRO | NAO_FINANCEIRO | vazio se sem instância
+	AgendaItemID    string   `json:"agenda_item_id"`  // UUID em empresa_agenda; vazio = só catálogo (não editável)
+	ValorEstimado   *float64 `json:"valor_estimado"`  // nil se sem valor
 }
 
 type EmpresaAgendaRepository struct {
@@ -67,13 +73,77 @@ func (r *EmpresaAgendaRepository) ListByEmpresa(ctx context.Context, empresaID s
 	return items, nil
 }
 
-// ── Atualizar status de um item ──────────────────────────────────────────────
+// ── Atualizar status de um item (escopo tenant) ─────────────────────────────
 
-func (r *EmpresaAgendaRepository) UpdateStatus(ctx context.Context, id, status string) error {
-	const query = `UPDATE public.empresa_agenda SET status = $1, atualizado_em = NOW() WHERE id = $2`
-	_, err := r.pool.Exec(ctx, query, status, id)
+func (r *EmpresaAgendaRepository) UpdateStatusForTenant(ctx context.Context, tenantID, id, status string) error {
+	ct, err := r.pool.Exec(ctx, `
+		UPDATE public.empresa_agenda ea
+		SET status = $1, atualizado_em = NOW()
+		FROM public.empresa e
+		WHERE ea.id = $2::uuid AND ea.empresa_id = e.id AND e.tenant_id = $3`,
+		status, id, tenantID)
 	if err != nil {
 		return fmt.Errorf("update status empresa_agenda: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return fmt.Errorf("item nao encontrado neste tenant")
+	}
+	return nil
+}
+
+// UpdateItem atualiza vencimento e/ou valor de uma linha de empresa_agenda do tenant.
+func (r *EmpresaAgendaRepository) UpdateItem(ctx context.Context, tenantID, agendaItemID string, dataVencimento *string, valorEstimado *float64) error {
+	agendaItemID = strings.TrimSpace(agendaItemID)
+	if agendaItemID == "" {
+		return fmt.Errorf("id obrigatorio")
+	}
+	hasDate := dataVencimento != nil && strings.TrimSpace(*dataVencimento) != ""
+	if !hasDate && valorEstimado == nil {
+		return fmt.Errorf("informe data_vencimento e/ou valor_estimado")
+	}
+
+	var rowsAff int64
+	var err error
+	switch {
+	case hasDate && valorEstimado != nil:
+		ct, e := r.pool.Exec(ctx, `
+			UPDATE public.empresa_agenda ea
+			SET data_vencimento = $1::date, valor_estimado = $2, atualizado_em = NOW()
+			FROM public.empresa e
+			WHERE ea.id = $3::uuid AND ea.empresa_id = e.id AND e.tenant_id = $4`,
+			strings.TrimSpace(*dataVencimento), *valorEstimado, agendaItemID, tenantID)
+		err = e
+		if err == nil {
+			rowsAff = ct.RowsAffected()
+		}
+	case hasDate:
+		ct, e := r.pool.Exec(ctx, `
+			UPDATE public.empresa_agenda ea
+			SET data_vencimento = $1::date, atualizado_em = NOW()
+			FROM public.empresa e
+			WHERE ea.id = $2::uuid AND ea.empresa_id = e.id AND e.tenant_id = $3`,
+			strings.TrimSpace(*dataVencimento), agendaItemID, tenantID)
+		err = e
+		if err == nil {
+			rowsAff = ct.RowsAffected()
+		}
+	default:
+		ct, e := r.pool.Exec(ctx, `
+			UPDATE public.empresa_agenda ea
+			SET valor_estimado = $1, atualizado_em = NOW()
+			FROM public.empresa e
+			WHERE ea.id = $2::uuid AND ea.empresa_id = e.id AND e.tenant_id = $3`,
+			*valorEstimado, agendaItemID, tenantID)
+		err = e
+		if err == nil {
+			rowsAff = ct.RowsAffected()
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("update empresa_agenda: %w", err)
+	}
+	if rowsAff == 0 {
+		return fmt.Errorf("item nao encontrado neste tenant")
 	}
 	return nil
 }
@@ -92,7 +162,9 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 				WHEN ea.id IS NULL THEN ''
 				WHEN UPPER(COALESCE(teo.tipo, '')) = 'TRIBUTO' THEN 'FINANCEIRO'
 				ELSE 'NAO_FINANCEIRO'
-			END
+			END,
+			CASE WHEN ea.id IS NOT NULL THEN ea.id::text ELSE '' END,
+			ea.valor_estimado
 		FROM public.empresa e
 		LEFT JOIN public.empresa_agenda ea ON ea.empresa_id = e.id
 		LEFT JOIN public.tipoempresa_obrigacao teo ON teo.id = ea.template_id
@@ -105,7 +177,7 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 		return nil, err
 	}
 
-	// Cadastro legal (compromisso_financeiro) por tipo da empresa — exige tipo_empresa_id na empresa.
+	// Cadastro legal (compromisso_financeiro) pelo tipo de empresa da rotina vinculada à empresa.
 	const queryCatalog = `
 		SELECT
 			e.id,
@@ -118,14 +190,18 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 			CASE
 				WHEN UPPER(COALESCE(c.natureza, '')) = 'FINANCEIRO' THEN 'FINANCEIRO'
 				ELSE 'NAO_FINANCEIRO'
-			END
+			END,
+			'',
+			NULL::numeric
 		FROM public.empresa e
+		INNER JOIN public.rotinas r ON r.id = e.rotina_id
 		INNER JOIN public.compromisso_financeiro c
-			ON c.tipo_empresa_id = e.tipo_empresa_id AND c.ativo = true
+			ON c.tipo_empresa_id = r.tipo_empresa_id AND c.ativo = true
 		WHERE e.ativo = true
 		  AND e.tenant_id = $1
-		  AND e.tipo_empresa_id IS NOT NULL
-		  AND trim(e.tipo_empresa_id) <> ''
+		  AND r.ativo = true
+		  AND r.tipo_empresa_id IS NOT NULL
+		  AND trim(r.tipo_empresa_id) <> ''
 		  AND NOT EXISTS (
 		  	SELECT 1 FROM public.empresa_agenda ea
 		  	WHERE ea.empresa_id = e.id AND ea.descricao = c.descricao
@@ -134,6 +210,11 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 
 	catalog, err := scanAcompanhamentoRows(ctx, r.pool, queryCatalog, tenantID)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "42703" {
+			// Colunas de migração (ex.: rotinas.tipo_empresa_id, compromisso_financeiro.natureza) ainda ausentes: retorna só agenda gerada.
+			return items, nil
+		}
 		return nil, fmt.Errorf("list acompanhamento catalogo compromissos: %w", err)
 	}
 
@@ -150,6 +231,7 @@ func scanAcompanhamentoRows(ctx context.Context, pool *pgxpool.Pool, query strin
 	items := make([]EmpresaAgendaAcompanhamentoItem, 0)
 	for rows.Next() {
 		var item EmpresaAgendaAcompanhamentoItem
+		var nf sql.NullFloat64
 		if err := rows.Scan(
 			&item.EmpresaID,
 			&item.EmpresaNome,
@@ -159,10 +241,19 @@ func scanAcompanhamentoRows(ctx context.Context, pool *pgxpool.Pool, query strin
 			&item.Status,
 			&item.Tipo,
 			&item.Classificacao,
+			&item.AgendaItemID,
+			&nf,
 		); err != nil {
 			return nil, fmt.Errorf("scan acompanhamento: %w", err)
 		}
+		if nf.Valid {
+			v := nf.Float64
+			item.ValorEstimado = &v
+		}
 		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("list acompanhamento: %w", err)
 	}
 	return items, nil
 }

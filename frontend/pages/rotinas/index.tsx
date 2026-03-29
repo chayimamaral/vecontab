@@ -20,6 +20,7 @@ import { RadioButton, RadioButtonChangeEvent } from 'primereact/radiobutton';
 import RotinaService from '../../services/cruds/RotinaService';
 import MunicipioService from '../../services/cruds/MunicipioService';
 import PassoService from '../../services/cruds/PassoService';
+import TipoEmpresaService from '../../services/cruds/TipoEmpresaService';
 import LeftToolbar from '../../components/toolbar/LeftToolbar';
 import RightToolbar from '../../components/toolbar/RightToolbar';
 import SaveCancelDialogFooter from '../../components/toolbar/SaveCancelDialogFooter';
@@ -42,9 +43,14 @@ const Rotinas = () => {
         id: '',
         descricao: '',
         cidade_id: '',
+        tipo_empresa_id: '',
         municipio: {
             id: '',
             nome: '',
+        },
+        tipo_empresa: {
+            id: '',
+            descricao: '',
         },
         rotinaitens: [{
             id: '',
@@ -71,9 +77,14 @@ const Rotinas = () => {
         id: string;
         descricao: string;
         cidade_id: string;
+        tipo_empresa_id?: string;
         municipio: {
             id: string;
             nome: string;
+        };
+        tipo_empresa?: {
+            id: string;
+            descricao: string;
         };
         rotinaitens: RotinaItems[];
     }
@@ -101,6 +112,8 @@ const Rotinas = () => {
     const [expandedRows, setExpandedRows] = useState<DataTableExpandedRows | DataTableValueArray | undefined>(undefined);
     const [municipios, setMunicipios] = useState<MunicipioLite[]>([]);
     const [municipio, setMunicipio] = useState<MunicipioLite>();
+    const [tiposEmpresa, setTiposEmpresa] = useState<Vec.TipoEmpresaLite[]>([]);
+    const [tipoEmpresa, setTipoEmpresa] = useState<Vec.TipoEmpresaLite | undefined>(undefined);
 
     const [rotinaDialog, setRotinaDialog] = useState(false);
     const [deleteRotinaDialog, setDeleteRotinaDialog] = useState(false);
@@ -146,6 +159,10 @@ const Rotinas = () => {
 
     useEffect(() => {
         loadLazyMunicipios();
+        loadTiposEmpresa();
+    }, []);
+
+    useEffect(() => {
         fetchRotinasList(lazyState);
     }, [lazyState]);
 
@@ -175,6 +192,13 @@ const Rotinas = () => {
             setMunicipios(data?.municipios);
         })
     }
+
+    const loadTiposEmpresa = () => {
+        const tipoEmpresaService = TipoEmpresaService();
+        tipoEmpresaService.getTiposEmpresaLite().then(({ data }) => {
+            setTiposEmpresa(data?.tiposEmpresa ?? []);
+        });
+    };
 
     const loadLazyPassosPorCidade = async (rotinas: Rotinas) => {
         try {
@@ -293,12 +317,14 @@ const Rotinas = () => {
     const handleCreate = () => {
         setRotina(emptyRotinas);
         setMunicipio(undefined);
+        setTipoEmpresa(undefined);
         setSubmitted(false);
         setRotinaDialog(true);
     };
 
     const hideDialog = () => {
         setSubmitted(false);
+        setTipoEmpresa(undefined);
         setRotinaDialog(false);
     };
 
@@ -332,9 +358,19 @@ const Rotinas = () => {
             setSubmitted(false);
             return;
         }
+        if (!tipoEmpresa?.id) {
+            toast.current?.show({
+                severity: 'warn',
+                summary: 'Tipo de empresa obrigatório',
+                detail: 'Selecione o tipo de empresa vinculado a esta rotina.',
+                life: 5000,
+            });
+            setSubmitted(false);
+            return;
+        }
         rotina['cidade_id'] = municipio.id;
 
-        let _rotina = { ...rotina };
+        let _rotina = { ...rotina, tipo_empresa_id: tipoEmpresa.id };
 
         if (rotina.id) {
             rotinaService.updateRotina(_rotina)
@@ -348,6 +384,7 @@ const Rotinas = () => {
                     setRotinaDialog(false);
                     setRotina(emptyRotinas);
                     setMunicipio(undefined);
+                    setTipoEmpresa(undefined);
                     setSource([]);
                     fetchRotinasList(lazyState);
                 });
@@ -363,6 +400,7 @@ const Rotinas = () => {
                     setRotinaDialog(false);
                     setRotina(emptyRotinas);
                     setMunicipio(undefined);
+                    setTipoEmpresa(undefined);
                     setFirst(0);
                     setCurrentPage(1);
                     setLazyState((prev) => ({ ...prev, first: 0, page: 1 }));
@@ -373,6 +411,11 @@ const Rotinas = () => {
 
     const editRotina = (rotina: Rotinas) => {
         setMunicipio(rotina.municipio)
+        setTipoEmpresa(
+            rotina.tipo_empresa?.id
+                ? { id: rotina.tipo_empresa.id, descricao: rotina.tipo_empresa.descricao ?? '' }
+                : undefined
+        );
         setRotina({ ...rotina });
         setRotinaDialog(true);
     };
@@ -657,6 +700,15 @@ const Rotinas = () => {
         );
     };
 
+    const tipoEmpresaBodyTemplate = (rowData: Rotinas) => {
+        return (
+            <>
+                <span className="p-column-title">Tipo de Empresa</span>
+                {rowData.tipo_empresa?.descricao ?? '—'}
+            </>
+        );
+    };
+
     const template = {
         layout: 'PrevPageLink PageLinks NextPageLink RowsPerPageDropdown CurrentPageReport',
         'PrevPageLink': (options: any) => {
@@ -791,6 +843,7 @@ const Rotinas = () => {
                         {/* <Column expander={allowExpansion} style={{ width: '5rem' }} /> */}
                         <Column field="descricao" header="Descrição" sortable body={descricaoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="municipio" header="Municipio" sortable body={municipioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="tipo_empresa" header="Tipo de Empresa" body={tipoEmpresaBodyTemplate} headerStyle={{ minWidth: '12rem' }}></Column>
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
@@ -833,6 +886,22 @@ const Rotinas = () => {
                             <span className="p-float-label">
                                 <Dropdown id="dropdownCidade" options={municipios} value={municipio} onChange={(e) => setMunicipio(e.value)} optionLabel="nome"></Dropdown>
                             </span>
+                        </div>
+                        <div className="field">
+                            <label htmlFor="dropdownTipoEmpresa">Tipo de Empresa</label>
+                            <Dropdown
+                                id="dropdownTipoEmpresa"
+                                options={tiposEmpresa}
+                                value={tipoEmpresa}
+                                onChange={(e) => setTipoEmpresa(e.value)}
+                                optionLabel="descricao"
+                                dataKey="id"
+                                placeholder="Selecione o tipo de empresa"
+                                emptyMessage="Nenhum tipo encontrado"
+                                filter
+                                filterBy="descricao"
+                                showClear
+                            />
                         </div>
 
                     </Dialog>

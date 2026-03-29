@@ -1,6 +1,5 @@
 import setupAPIClient from '../../components/api/api';
 
-/** Normaliza resposta da API (snake_case ou camelCase intermitente). */
 function normalizeAcompanhamentoItem(raw: Record<string, unknown>) {
   const s = (k: string, ...alts: string[]) => {
     const v = raw[k] ?? alts.map((a) => raw[a]).find((x) => x != null);
@@ -28,11 +27,9 @@ function normalizeAcompanhamentoItem(raw: Record<string, unknown>) {
   };
 }
 
-type GerarAgendaParams = {
+type GerarParams = {
   empresa_id: string;
   data_inicio: string;
-  /** Opcional: se omitido, o backend usa o tipo cadastrado na rotina vinculada à empresa. */
-  tipo_empresa_id?: string;
 };
 
 type UpdateStatusParams = {
@@ -40,31 +37,17 @@ type UpdateStatusParams = {
   status: string;
 };
 
-type UpdateAgendaItemParams = {
+type UpdateItemParams = {
   id: string;
   data_vencimento?: string;
-  valor_estimado?: number;
+  valor?: number;
 };
 
-export default function EmpresaAgendaService() {
+export default function EmpresaCompromissoService() {
   return {
-
-    getAgenda: async (empresaId: string) => {
-      try {
-        const apiClient = setupAPIClient(undefined);
-        const response = await apiClient.get('/api/empresaagenda', {
-          params: { empresa_id: empresaId },
-        });
-        const { itens } = response.data;
-        return { data: { itens } };
-      } catch (err) {
-        throw new Error('Erro ao buscar agenda da empresa');
-      }
-    },
-
     getAcompanhamento: async () => {
       const apiClient = setupAPIClient(undefined);
-      const response = await apiClient.get('/api/empresaagenda/acompanhamento');
+      const response = await apiClient.get('/api/empresacompromissos/acompanhamento');
       const payload = response?.data;
       const rawItens =
         payload != null &&
@@ -78,29 +61,21 @@ export default function EmpresaAgendaService() {
       return { data: { itens } };
     },
 
-    gerarAgenda: async (params: GerarAgendaParams) => {
-      try {
-        const apiClient = setupAPIClient(undefined);
-        const response = await apiClient.post('/api/empresaagenda/gerar', { params });
-        return { data: response.data };
-      } catch (err) {
-        throw new Error('Erro ao gerar agenda da empresa');
-      }
+    gerar: async (params: GerarParams) => {
+      const apiClient = setupAPIClient(undefined);
+      const response = await apiClient.post('/api/empresacompromissos/gerar', { params });
+      return { data: response.data };
     },
 
     updateStatus: async (params: UpdateStatusParams) => {
-      try {
-        const apiClient = setupAPIClient(undefined);
-        const response = await apiClient.put('/api/empresaagenda/status', { params });
-        return { data: response.data };
-      } catch (err) {
-        throw new Error('Erro ao atualizar status da agenda');
-      }
+      const apiClient = setupAPIClient(undefined);
+      const response = await apiClient.put('/api/empresacompromissos/status', { params });
+      return { data: response.data };
     },
 
-    updateAgendaItem: async (params: UpdateAgendaItemParams) => {
+    updateItem: async (params: UpdateItemParams) => {
       const apiClient = setupAPIClient(undefined);
-      const response = await apiClient.put('/api/empresaagenda/item', { params });
+      const response = await apiClient.put('/api/empresacompromissos/item', { params });
       return { data: response.data };
     },
   };

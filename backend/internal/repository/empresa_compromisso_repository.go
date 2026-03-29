@@ -1,0 +1,362 @@
+package repository
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type EmpresaCompromissoItem struct {
+	ID                      string   `json:"id"`
+	Descricao               string   `json:"descricao"`
+	Valor                   *float64 `json:"valor,omitempty"`
+	Vencimento              string   `json:"vencimento"`
+	Observacao              string   `json:"observacao,omitempty"`
+	Status                  string   `json:"status"`
+	EmpresaID               string   `json:"empresa_id"`
+	CompromissoFinanceiroID string   `json:"compromisso_financeiro_id"`
+}
+
+// EmpresaCompromissoAcompanhamentoItem alinha com o dashboard (mesmos nomes JSON).
+type EmpresaCompromissoAcompanhamentoItem struct {
+	EmpresaID       string   `json:"empresa_id"`
+	EmpresaNome     string   `json:"empresa_nome"`
+	CompromissoID   string   `json:"compromisso_id"`
+	Descricao       string   `json:"descricao"`
+	DataVencimento  string   `json:"data_vencimento"`
+	Status          string   `json:"status"`
+	Tipo            string   `json:"tipo"`
+	Classificacao   string   `json:"classificacao"`
+	AgendaItemID    string   `json:"agenda_item_id"`
+	ValorEstimado   *float64 `json:"valor_estimado"`
+}
+
+type empresaGeracaoContext struct {
+	EmpresaID     string
+	TenantID      string
+	MunicipioID   string
+	EstadoID      string
+	Bairro        string
+	TipoEmpresaID string
+}
+
+type compromissoTemplateRow struct {
+	ID            string
+	Descricao     string
+	Periodicidade string
+	Valor         sql.NullFloat64
+	Observacao    sql.NullString
+	Natureza      string
+}
+
+type EmpresaCompromissoRepository struct {
+	pool *pgxpool.Pool
+}
+
+func NewEmpresaCompromissoRepository(pool *pgxpool.Pool) *EmpresaCompromissoRepository {
+	return &EmpresaCompromissoRepository{pool: pool}
+}
+
+func (r *EmpresaCompromissoRepository) loadGeracaoContext(ctx context.Context, empresaID, tenantID string) (empresaGeracaoContext, error) {
+	var out empresaGeracaoContext
+	err := r.pool.QueryRow(ctx, `
+		SELECT e.id, e.tenant_id, e.municipio_id, m.ufid, COALESCE(NULLIF(TRIM(e.bairro), ''), ''),
+		       COALESCE(NULLIF(TRIM(r.tipo_empresa_id), ''), '')
+		FROM public.empresa e
+		INNER JOIN public.municipio m ON m.id = e.municipio_id
+		INNER JOIN public.rotinas r ON r.id = e.rotina_id AND r.ativo = true
+		WHERE e.id = $1 AND e.tenant_id = $2 AND e.ativo = true`,
+		empresaID, tenantID,
+	).Scan(&out.EmpresaID, &out.TenantID, &out.MunicipioID, &out.EstadoID, &out.Bairro, &out.TipoEmpresaID)
+	if err != nil {
+		return empresaGeracaoContext{}, fmt.Errorf("empresa nao encontrada neste tenant: %w", err)
+	}
+	if out.TipoEmpresaID == "" {
+		return empresaGeracaoContext{}, fmt.Errorf("cadastre o tipo de empresa na rotina desta empresa antes de gerar compromissos")
+	}
+	return out, nil
+}
+
+func (r *EmpresaCompromissoRepository) countByEmpresaTx(ctx context.Context, tx pgx.Tx, empresaID string) (int64, error) {
+	var n int64
+	err := tx.QueryRow(ctx, `SELECT count(*) FROM public.empresa_compromissos WHERE empresa_id = $1`, empresaID).Scan(&n)
+	return n, err
+}
+
+func (r *EmpresaCompromissoRepository) listTemplatesForEmpresaTx(ctx context.Context, tx pgx.Tx, tipoEmpresaID, municipioID, bairro string) ([]compromissoTemplateRow, error) {
+	const q = `
+		SELECT c.id, c.descricao, c.periodicidade, c.valor, c.observacao, COALESCE(c.natureza, '')
+		FROM public.compromisso_financeiro c
+		WHERE c.ativo = true AND c.tipo_empresa_id = $1
+		  AND (
+			c.abrangencia = 'FEDERAL'
+			OR (
+				c.abrangencia = 'ESTADUAL' AND EXISTS (
+					SELECT 1 FROM public.compromisso_estado ce
+					INNER JOIN public.municipio m ON m.ufid = ce.estado_id
+					WHERE ce.compromisso_id = c.id AND m.id = $2
+				)
+			)
+			OR (
+				c.abrangencia = 'MUNICIPAL' AND EXISTS (
+					SELECT 1 FROM public.compromisso_municipio cm
+					WHERE cm.compromisso_id = c.id AND cm.municipio_id = $2
+				)
+			)
+			OR (
+				c.abrangencia = 'BAIRRO' AND EXISTS (
+					SELECT 1 FROM public.compromisso_bairro cb
+					WHERE cb.compromisso_id = c.id AND cb.municipio_id = $2
+					  AND (
+						cb.bairro IS NULL OR TRIM(cb.bairro) = ''
+						OR LOWER(TRIM(cb.bairro)) = LOWER(TRIM(COALESCE($3::text, '')))
+					  )
+				)
+			)
+		  )
+		ORDER BY c.descricao ASC`
+
+	rows, err := tx.Query(ctx, q, tipoEmpresaID, municipioID, bairroArg(bairro))
+	if err != nil {
+		return nil, fmt.Errorf("listar compromissos aplicaveis: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]compromissoTemplateRow, 0)
+	for rows.Next() {
+		var row compromissoTemplateRow
+		if err := rows.Scan(&row.ID, &row.Descricao, &row.Periodicidade, &row.Valor, &row.Observacao, &row.Natureza); err != nil {
+			return nil, fmt.Errorf("scan compromisso template: %w", err)
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+func bairroArg(s string) any {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	return strings.TrimSpace(s)
+}
+
+// GerarCompromissos cria linhas em empresa_compromissos (idempotente: falha se já existir).
+func (r *EmpresaCompromissoRepository) GerarCompromissos(ctx context.Context, empresaID, tenantID string, dataInicio time.Time, feriados map[string]bool) ([]EmpresaCompromissoItem, error) {
+	ctxEmp, err := r.loadGeracaoContext(ctx, empresaID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	n, err := r.countByEmpresaTx(ctx, tx, empresaID)
+	if err != nil {
+		return nil, err
+	}
+	if n > 0 {
+		return nil, fmt.Errorf("compromissos ja gerados para esta empresa")
+	}
+
+	templates, err := r.listTemplatesForEmpresaTx(ctx, tx, ctxEmp.TipoEmpresaID, ctxEmp.MunicipioID, ctxEmp.Bairro)
+	if err != nil {
+		return nil, err
+	}
+
+	const ins = `
+		INSERT INTO public.empresa_compromissos (descricao, valor, vencimento, observacao, status, empresa_id, compromisso_financeiro_id)
+		VALUES ($1, $2, $3::timestamptz, $4, 'pendente', $5, $6::uuid)
+		RETURNING id, descricao, valor, vencimento::text, COALESCE(observacao, ''), status, empresa_id, compromisso_financeiro_id::text`
+
+	items := make([]EmpresaCompromissoItem, 0)
+
+	for _, t := range templates {
+		per := strings.ToUpper(strings.TrimSpace(t.Periodicidade))
+		nat := strings.ToUpper(strings.TrimSpace(t.Natureza))
+		var valorIns *float64
+		if nat == "FINANCEIRO" && t.Valor.Valid {
+			v := t.Valor.Float64
+			valorIns = &v
+		}
+
+		obs := ""
+		if t.Observacao.Valid {
+			obs = t.Observacao.String
+		}
+
+		switch per {
+		case "MENSAL":
+			for i := 0; i < 12; i++ {
+				dt := addMonthsSameDay(dataInicio, i)
+				dt = ajustarVencimento(dt, feriados)
+				var row EmpresaCompromissoItem
+				err := tx.QueryRow(ctx, ins, t.Descricao, valorIns, dt.Format(time.RFC3339), obs, empresaID, t.ID).Scan(
+					&row.ID, &row.Descricao, &row.Valor, &row.Vencimento, &row.Observacao, &row.Status, &row.EmpresaID, &row.CompromissoFinanceiroID,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("insert compromisso mensal: %w", err)
+				}
+				items = append(items, row)
+			}
+		case "ANUAL":
+			dt := dataInicio.AddDate(1, 0, 0)
+			dt = ajustarVencimento(dt, feriados)
+			var row EmpresaCompromissoItem
+			err := tx.QueryRow(ctx, ins, t.Descricao, valorIns, dt.Format(time.RFC3339), obs, empresaID, t.ID).Scan(
+				&row.ID, &row.Descricao, &row.Valor, &row.Vencimento, &row.Observacao, &row.Status, &row.EmpresaID, &row.CompromissoFinanceiroID,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("insert compromisso anual: %w", err)
+			}
+			items = append(items, row)
+		default:
+			return nil, fmt.Errorf("periodicidade nao suportada: %s", t.Periodicidade)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit tx: %w", err)
+	}
+
+	return items, nil
+}
+
+func addMonthsSameDay(t time.Time, months int) time.Time {
+	year, month, day := t.Date()
+	loc := t.Location()
+	first := time.Date(year, month+time.Month(months), 1, 0, 0, 0, 0, loc)
+	lastDay := time.Date(first.Year(), first.Month()+1, 0, 0, 0, 0, 0, loc).Day()
+	d := day
+	if d > lastDay {
+		d = lastDay
+	}
+	return time.Date(first.Year(), first.Month(), d, 0, 0, 0, 0, loc)
+}
+
+func (r *EmpresaCompromissoRepository) ListAcompanhamentoByTenant(ctx context.Context, tenantID string) ([]EmpresaCompromissoAcompanhamentoItem, error) {
+	const q = `
+		SELECT
+			e.id,
+			e.nome,
+			ec.id::text,
+			ec.descricao,
+			ec.vencimento::date::text,
+			ec.status,
+			'',
+			CASE
+				WHEN UPPER(COALESCE(cf.natureza, '')) = 'FINANCEIRO' THEN 'FINANCEIRO'
+				ELSE 'NAO_FINANCEIRO'
+			END,
+			ec.id::text,
+			ec.valor
+		FROM public.empresa_compromissos ec
+		INNER JOIN public.empresa e ON e.id = ec.empresa_id
+		INNER JOIN public.compromisso_financeiro cf ON cf.id = ec.compromisso_financeiro_id
+		WHERE e.ativo = true AND e.tenant_id = $1
+		ORDER BY e.nome ASC, ec.vencimento ASC, ec.descricao ASC`
+
+	rows, err := r.pool.Query(ctx, q, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("list acompanhamento empresa compromissos: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]EmpresaCompromissoAcompanhamentoItem, 0)
+	for rows.Next() {
+		var it EmpresaCompromissoAcompanhamentoItem
+		var nf sql.NullFloat64
+		if err := rows.Scan(&it.EmpresaID, &it.EmpresaNome, &it.CompromissoID, &it.Descricao, &it.DataVencimento, &it.Status, &it.Tipo, &it.Classificacao, &it.AgendaItemID, &nf); err != nil {
+			return nil, fmt.Errorf("scan: %w", err)
+		}
+		if nf.Valid {
+			v := nf.Float64
+			it.ValorEstimado = &v
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
+func (r *EmpresaCompromissoRepository) UpdateStatusForTenant(ctx context.Context, tenantID, id, status string) error {
+	status = strings.ToLower(strings.TrimSpace(status))
+	if status != "pendente" && status != "concluido" {
+		return fmt.Errorf("status invalido (pendente|concluido)")
+	}
+	ct, err := r.pool.Exec(ctx, `
+		UPDATE public.empresa_compromissos ec
+		SET status = $1, atualizado_em = NOW()
+		FROM public.empresa e
+		WHERE ec.id = $2::uuid AND ec.empresa_id = e.id AND e.tenant_id = $3`,
+		status, id, tenantID)
+	if err != nil {
+		return fmt.Errorf("update status: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return fmt.Errorf("item nao encontrado neste tenant")
+	}
+	return nil
+}
+
+func (r *EmpresaCompromissoRepository) UpdateItem(ctx context.Context, tenantID, itemID string, dataVencimento *string, valor *float64) error {
+	itemID = strings.TrimSpace(itemID)
+	if itemID == "" {
+		return fmt.Errorf("id obrigatorio")
+	}
+	hasDate := dataVencimento != nil && strings.TrimSpace(*dataVencimento) != ""
+	if !hasDate && valor == nil {
+		return fmt.Errorf("informe data_vencimento e/ou valor")
+	}
+
+	var rowsAff int64
+	var err error
+	switch {
+	case hasDate && valor != nil:
+		ct, e := r.pool.Exec(ctx, `
+			UPDATE public.empresa_compromissos ec
+			SET vencimento = $1::date, valor = $2, atualizado_em = NOW()
+			FROM public.empresa e
+			WHERE ec.id = $3::uuid AND ec.empresa_id = e.id AND e.tenant_id = $4`,
+			strings.TrimSpace(*dataVencimento), *valor, itemID, tenantID)
+		err = e
+		if err == nil {
+			rowsAff = ct.RowsAffected()
+		}
+	case hasDate:
+		ct, e := r.pool.Exec(ctx, `
+			UPDATE public.empresa_compromissos ec
+			SET vencimento = $1::date, atualizado_em = NOW()
+			FROM public.empresa e
+			WHERE ec.id = $2::uuid AND ec.empresa_id = e.id AND e.tenant_id = $3`,
+			strings.TrimSpace(*dataVencimento), itemID, tenantID)
+		err = e
+		if err == nil {
+			rowsAff = ct.RowsAffected()
+		}
+	default:
+		ct, e := r.pool.Exec(ctx, `
+			UPDATE public.empresa_compromissos ec
+			SET valor = $1, atualizado_em = NOW()
+			FROM public.empresa e
+			WHERE ec.id = $2::uuid AND ec.empresa_id = e.id AND e.tenant_id = $3`,
+			*valor, itemID, tenantID)
+		err = e
+		if err == nil {
+			rowsAff = ct.RowsAffected()
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("update empresa compromisso: %w", err)
+	}
+	if rowsAff == 0 {
+		return fmt.Errorf("item nao encontrado neste tenant")
+	}
+	return nil
+}

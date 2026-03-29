@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/chayimamaral/vecontab/backend/internal/repository"
@@ -47,8 +48,12 @@ func (s *EmpresaAgendaService) ListByEmpresa(ctx context.Context, empresaID stri
 	return EmpresaAgendaListResponse{Itens: items}, nil
 }
 
-func (s *EmpresaAgendaService) UpdateStatus(ctx context.Context, id, status string) error {
-	return s.agendaRepo.UpdateStatus(ctx, id, status)
+func (s *EmpresaAgendaService) UpdateStatus(ctx context.Context, tenantID, id, status string) error {
+	return s.agendaRepo.UpdateStatusForTenant(ctx, tenantID, id, status)
+}
+
+func (s *EmpresaAgendaService) UpdateItem(ctx context.Context, tenantID, agendaItemID string, dataVencimento *string, valorEstimado *float64) error {
+	return s.agendaRepo.UpdateItem(ctx, tenantID, agendaItemID, dataVencimento, valorEstimado)
 }
 
 func (s *EmpresaAgendaService) AcompanhamentoByTenant(ctx context.Context, tenantID string) (EmpresaAgendaAcompanhamentoResponse, error) {
@@ -64,13 +69,22 @@ func (s *EmpresaAgendaService) AcompanhamentoByTenant(ctx context.Context, tenan
 // Busca todos os feriados (fixos, variáveis, municipais e estaduais) e monta
 // um mapa de datas para que ajustarVencimento possa postergar vencimentos.
 func (s *EmpresaAgendaService) GerarAgenda(ctx context.Context, empresaID, tipoEmpresaID string, dataInicio time.Time) (EmpresaAgendaGerarResponse, error) {
+	tid := strings.TrimSpace(tipoEmpresaID)
+	if tid == "" {
+		var err error
+		tid, err = s.empresaRepo.TipoEmpresaIDFromRotina(ctx, empresaID)
+		if err != nil {
+			return EmpresaAgendaGerarResponse{}, err
+		}
+	}
+
 	// Construir mapa de feriados a partir do banco
 	feriados, err := s.buildFeriadosMap(ctx, dataInicio)
 	if err != nil {
 		return EmpresaAgendaGerarResponse{}, fmt.Errorf("build feriados map: %w", err)
 	}
 
-	items, err := s.agendaRepo.GerarAgenda(ctx, empresaID, tipoEmpresaID, dataInicio, feriados)
+	items, err := s.agendaRepo.GerarAgenda(ctx, empresaID, tid, dataInicio, feriados)
 	if err != nil {
 		return EmpresaAgendaGerarResponse{}, err
 	}

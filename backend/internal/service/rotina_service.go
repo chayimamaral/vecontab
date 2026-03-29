@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/chayimamaral/vecontab/backend/internal/repository"
 )
@@ -30,11 +31,12 @@ type RotinaSuccessResponse struct {
 }
 
 type RotinaInput struct {
-	ID            string `json:"id"`
-	Descricao     string `json:"descricao"`
-	CidadeID      string `json:"cidade_id"`
-	Link          string `json:"link"`
-	TempoEstimado int    `json:"tempoestimado"`
+	ID             string `json:"id"`
+	Descricao      string `json:"descricao"`
+	CidadeID       string `json:"cidade_id"`
+	TipoEmpresaID  string `json:"tipo_empresa_id"`
+	Link           string `json:"link"`
+	TempoEstimado  int    `json:"tempoestimado"`
 }
 
 func NewRotinaService(repo *repository.RotinaRepository) *RotinaService {
@@ -59,11 +61,13 @@ func (s *RotinaService) ListRotinas(ctx context.Context, params repository.Rotin
 	out := make([]repository.RotinaWithItensItem, 0, len(rotinas))
 	for _, r := range rotinas {
 		out = append(out, repository.RotinaWithItensItem{
-			ID:          r.ID,
-			Descricao:   r.Descricao,
-			MunicipioID: r.MunicipioID,
-			Municipio:   r.Municipio,
-			RotinaItens: []repository.RotinaPassoItem{},
+			ID:            r.ID,
+			Descricao:     r.Descricao,
+			MunicipioID:   r.MunicipioID,
+			Municipio:     r.Municipio,
+			TipoEmpresaID: r.TipoEmpresaID,
+			TipoEmpresa:   r.TipoEmpresa,
+			RotinaItens:   []repository.RotinaPassoItem{},
 		})
 	}
 	return RotinaListResponse{Rotinas: out, TotalRecords: total}, nil
@@ -79,9 +83,10 @@ func (s *RotinaService) ListLite(ctx context.Context, municipioID string) (Rotin
 
 func (s *RotinaService) Create(ctx context.Context, input RotinaInput) (RotinaListResponse, error) {
 	rotinas, total, err := s.repo.Create(ctx, repository.RotinaInput{
-		Descricao:   input.Descricao,
-		MunicipioID: input.CidadeID,
-		Link:        input.Link,
+		Descricao:      input.Descricao,
+		MunicipioID:    input.CidadeID,
+		TipoEmpresaID:  strings.TrimSpace(input.TipoEmpresaID),
+		Link:           input.Link,
 	})
 	if err != nil {
 		return RotinaListResponse{}, err
@@ -91,10 +96,11 @@ func (s *RotinaService) Create(ctx context.Context, input RotinaInput) (RotinaLi
 
 func (s *RotinaService) Update(ctx context.Context, input RotinaInput) (RotinaListResponse, error) {
 	rotinas, total, err := s.repo.Update(ctx, repository.RotinaInput{
-		ID:          input.ID,
-		Descricao:   input.Descricao,
-		MunicipioID: input.CidadeID,
-		Link:        input.Link,
+		ID:             input.ID,
+		Descricao:      input.Descricao,
+		MunicipioID:    input.CidadeID,
+		TipoEmpresaID:  strings.TrimSpace(input.TipoEmpresaID),
+		Link:           input.Link,
 	})
 	if err != nil {
 		return RotinaListResponse{}, err

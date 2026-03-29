@@ -24,6 +24,7 @@ type EmpresaUpsertInput struct {
 	TenantID    string
 	RotinaID    string
 	Cnaes       any
+	Bairro      string
 }
 
 type EmpresaRepository struct {
@@ -43,10 +44,15 @@ type EmpresaListItem struct {
 		ID        string `json:"id"`
 		Descricao string `json:"descricao"`
 	} `json:"rotina"`
-	Cnaes               any  `json:"cnaes"`
-	Iniciado            bool `json:"iniciado"`
-	PassosConcluidos    bool `json:"passos_concluidos"`
-	CompromissosGerados bool `json:"compromissos_gerados"`
+	TipoEmpresa struct {
+		ID        string `json:"id"`
+		Descricao string `json:"descricao"`
+	} `json:"tipo_empresa"`
+	Cnaes               any    `json:"cnaes"`
+	Bairro              string `json:"bairro"`
+	Iniciado            bool   `json:"iniciado"`
+	PassosConcluidos    bool   `json:"passos_concluidos"`
+	CompromissosGerados bool   `json:"compromissos_gerados"`
 }
 
 type EmpresaMutationItem struct {
@@ -99,7 +105,10 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 			m.nome,
 			r.id,
 			r.descricao,
+			COALESCE(te.id, ''),
+			COALESCE(te.descricao, ''),
 			e.cnaes,
+			COALESCE(e.bairro, ''),
 			e.iniciado,
 			COALESCE((
 				SELECT CASE
@@ -113,12 +122,13 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 			), false) AS passos_concluidos,
 			EXISTS(
 				SELECT 1
-				FROM public.empresa_agenda ea
-				WHERE ea.empresa_id = e.id
+				FROM public.empresa_compromissos ec
+				WHERE ec.empresa_id = e.id
 			) AS compromissos_gerados
 		FROM public.empresa e
 		JOIN public.municipio m ON m.id = e.municipio_id
 		JOIN public.rotinas r ON r.id = e.rotina_id
+		LEFT JOIN public.tipoempresa te ON te.id = r.tipo_empresa_id
 		WHERE %s
 		ORDER BY %s
 		LIMIT $%d OFFSET $%d`, strings.Join(whereParts, " AND "), orderBy, argIndex, argIndex+1)
@@ -132,10 +142,10 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 
 	empresas := make([]EmpresaListItem, 0)
 	for rows.Next() {
-		var id, nome, mid, mnome, rid, rdesc string
+		var id, nome, mid, mnome, rid, rdesc, teid, tedesc, ebairro string
 		var iniciado, passosConcluidos, compromissosGerados bool
 		var cnaes any
-		if err := rows.Scan(&id, &nome, &mid, &mnome, &rid, &rdesc, &cnaes, &iniciado, &passosConcluidos, &compromissosGerados); err != nil {
+		if err := rows.Scan(&id, &nome, &mid, &mnome, &rid, &rdesc, &teid, &tedesc, &cnaes, &ebairro, &iniciado, &passosConcluidos, &compromissosGerados); err != nil {
 			return nil, 0, fmt.Errorf("scan empresa: %w", err)
 		}
 
@@ -147,12 +157,15 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 				Nome: mnome,
 			},
 			Cnaes:               cnaes,
+			Bairro:              ebairro,
 			Iniciado:            iniciado,
 			PassosConcluidos:    passosConcluidos,
 			CompromissosGerados: compromissosGerados,
 		}
 		item.Rotina.ID = rid
 		item.Rotina.Descricao = rdesc
+		item.TipoEmpresa.ID = teid
+		item.TipoEmpresa.Descricao = tedesc
 		empresas = append(empresas, item)
 	}
 
@@ -176,11 +189,11 @@ func (r *EmpresaRepository) Create(ctx context.Context, input EmpresaUpsertInput
 	}
 
 	const query = `
-		INSERT INTO public.empresa (nome, municipio_id, tenant_id, rotina_id, cnaes)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO public.empresa (nome, municipio_id, tenant_id, rotina_id, cnaes, bairro)
+		VALUES ($1, $2, $3, $4, $5, NULLIF(TRIM($6), ''))
 		RETURNING id, nome, municipio_id, tenant_id, rotina_id, cnaes, iniciado, ativo`
 
-	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, input.Cnaes)
+	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, input.Cnaes, input.Bairro)
 	if err != nil {
 		return nil, 0, fmt.Errorf("create empresa: %w", err)
 	}
@@ -212,11 +225,11 @@ func (r *EmpresaRepository) Create(ctx context.Context, input EmpresaUpsertInput
 func (r *EmpresaRepository) Update(ctx context.Context, input EmpresaUpsertInput) ([]EmpresaMutationItem, int64, error) {
 	const query = `
 		UPDATE public.empresa
-		SET nome = $1, municipio_id = $2, tenant_id = $3, rotina_id = $4, cnaes = $5
+		SET nome = $1, municipio_id = $2, tenant_id = $3, rotina_id = $4, cnaes = $5, bairro = NULLIF(TRIM($8), '')
 		WHERE id = $6 AND tenant_id = $7
 		RETURNING id, nome, municipio_id, tenant_id, rotina_id, cnaes, iniciado, ativo`
 
-	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, input.Cnaes, input.ID, input.TenantID)
+	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, input.Cnaes, input.ID, input.TenantID, input.Bairro)
 	if err != nil {
 		return nil, 0, fmt.Errorf("update empresa: %w", err)
 	}
@@ -315,4 +328,36 @@ func (r *EmpresaRepository) Delete(ctx context.Context, id, tenantID string) ([]
 	}
 
 	return empresas, int64(len(empresas)), nil
+}
+
+// MunicipioEUfIDs retorna municipio_id e ufid do município da empresa (escopo tenant).
+func (r *EmpresaRepository) MunicipioEUfIDs(ctx context.Context, empresaID, tenantID string) (municipioID string, ufID string, err error) {
+	err = r.pool.QueryRow(ctx, `
+		SELECT e.municipio_id, m.ufid
+		FROM public.empresa e
+		INNER JOIN public.municipio m ON m.id = e.municipio_id
+		WHERE e.id = $1 AND e.tenant_id = $2 AND e.ativo = true`,
+		empresaID, tenantID,
+	).Scan(&municipioID, &ufID)
+	if err != nil {
+		return "", "", fmt.Errorf("empresa nao encontrada neste tenant: %w", err)
+	}
+	return municipioID, ufID, nil
+}
+
+// TipoEmpresaIDFromRotina retorna o tipo de empresa cadastrado na rotina vinculada à empresa.
+func (r *EmpresaRepository) TipoEmpresaIDFromRotina(ctx context.Context, empresaID string) (string, error) {
+	var tid *string
+	err := r.pool.QueryRow(ctx, `
+		SELECT r.tipo_empresa_id
+		FROM public.empresa e
+		INNER JOIN public.rotinas r ON r.id = e.rotina_id
+		WHERE e.id = $1 AND e.ativo = true`, empresaID).Scan(&tid)
+	if err != nil {
+		return "", fmt.Errorf("buscar tipo de empresa da rotina: %w", err)
+	}
+	if tid == nil || strings.TrimSpace(*tid) == "" {
+		return "", fmt.Errorf("cadastre o tipo de empresa na rotina desta empresa antes de gerar compromissos")
+	}
+	return strings.TrimSpace(*tid), nil
 }

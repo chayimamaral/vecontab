@@ -46,27 +46,23 @@ export default function RotinaService() {
         }
     }
 
-    const getRotinasLite = async (params) => {
-
-        // do jeito que receber o params, ele vem como string, entao tem que converter para objeto
-        //alert(municipio?.id)
+    /** Backend: GET /api/listrotinaslite? id = UUID do município. */
+    const getRotinasLite = async (municipioRef?: { id?: string } | null) => {
         const apiClient = setupAPIClient(undefined);
-        // ao passar o params, ele vem como string, entao tem que converter para objeto com JSON.parse
+        const id = municipioRef && typeof municipioRef === 'object' ? String(municipioRef.id ?? '').trim() : '';
         const response = await apiClient.get('/api/listrotinaslite', {
-            params
-
+            params: { id },
         });
 
-        // não precisa converter para objeto, pois o axios já faz isso
-        const { rotinas, totalRecords } = response.data
+        const { rotinas, totalRecords } = response.data;
 
         return {
             data: {
-                rotinas,
-                totalRecords
-            }
-        }
-    }
+                rotinas: Array.isArray(rotinas) ? rotinas : [],
+                totalRecords,
+            },
+        };
+    };
 
     const deleteRotina = async (params) => {
         try {

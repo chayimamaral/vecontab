@@ -11,6 +11,7 @@ type Config struct {
 	Port            string
 	DatabaseURL     string
 	JWTSecret       string
+	PublicAPIKey    string
 	SSLRootCertPath string
 	SSLInsecure     bool
 }
@@ -31,6 +32,7 @@ func Load() (Config, error) {
 		Port:            getEnv("SERVER_PORT", "3333"),
 		DatabaseURL:     os.Getenv("PG_URL"),
 		JWTSecret:       os.Getenv("JWT_SECRET"),
+		PublicAPIKey:    getEnv("PUBLIC_API_KEY", ""),
 		SSLRootCertPath: getEnv("PG_SSL_ROOT_CERT", "/home/camaral/.postgres/ca.crt"),
 		SSLInsecure:     getEnv("PG_SSL_INSECURE", "true") == "true",
 	}
