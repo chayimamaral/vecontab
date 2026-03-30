@@ -12,28 +12,28 @@ import (
 )
 
 type EmpresaCompromissoItem struct {
-	ID                      string   `json:"id"`
-	Descricao               string   `json:"descricao"`
-	Valor                   *float64 `json:"valor,omitempty"`
-	Vencimento              string   `json:"vencimento"`
-	Observacao              string   `json:"observacao,omitempty"`
-	Status                  string   `json:"status"`
-	EmpresaID               string   `json:"empresa_id"`
-	CompromissoFinanceiroID string   `json:"compromisso_financeiro_id"`
+	ID                     string   `json:"id"`
+	Descricao              string   `json:"descricao"`
+	Valor                  *float64 `json:"valor,omitempty"`
+	Vencimento             string   `json:"vencimento"`
+	Observacao             string   `json:"observacao,omitempty"`
+	Status                 string   `json:"status"`
+	EmpresaID              string   `json:"empresa_id"`
+	TipoempresaObrigacaoID string   `json:"tipoempresa_obrigacao_id"`
 }
 
 // EmpresaCompromissoAcompanhamentoItem alinha com o dashboard (mesmos nomes JSON).
 type EmpresaCompromissoAcompanhamentoItem struct {
-	EmpresaID       string   `json:"empresa_id"`
-	EmpresaNome     string   `json:"empresa_nome"`
-	CompromissoID   string   `json:"compromisso_id"`
-	Descricao       string   `json:"descricao"`
-	DataVencimento  string   `json:"data_vencimento"`
-	Status          string   `json:"status"`
-	Tipo            string   `json:"tipo"`
-	Classificacao   string   `json:"classificacao"`
-	AgendaItemID    string   `json:"agenda_item_id"`
-	ValorEstimado   *float64 `json:"valor_estimado"`
+	EmpresaID      string   `json:"empresa_id"`
+	EmpresaNome    string   `json:"empresa_nome"`
+	CompromissoID  string   `json:"compromisso_id"`
+	Descricao      string   `json:"descricao"`
+	DataVencimento string   `json:"data_vencimento"`
+	Status         string   `json:"status"`
+	Tipo           string   `json:"tipo"`
+	Classificacao  string   `json:"classificacao"`
+	AgendaItemID   string   `json:"agenda_item_id"`
+	ValorEstimado  *float64 `json:"valor_estimado"`
 }
 
 type empresaGeracaoContext struct {
@@ -46,12 +46,12 @@ type empresaGeracaoContext struct {
 }
 
 type compromissoTemplateRow struct {
-	ID            string
-	Descricao     string
-	Periodicidade string
-	Valor         sql.NullFloat64
-	Observacao    sql.NullString
-	Natureza      string
+	ID                string
+	Descricao         string
+	Periodicidade     string
+	Valor             sql.NullFloat64
+	Observacao        sql.NullString
+	TipoClassificacao string
 }
 
 type EmpresaCompromissoRepository struct {
@@ -90,22 +90,22 @@ func (r *EmpresaCompromissoRepository) countByEmpresaTx(ctx context.Context, tx 
 
 func (r *EmpresaCompromissoRepository) listTemplatesForEmpresaTx(ctx context.Context, tx pgx.Tx, tipoEmpresaID, municipioID, bairro string) ([]compromissoTemplateRow, error) {
 	const q = `
-		SELECT c.id, c.descricao, c.periodicidade, c.valor, c.observacao, COALESCE(c.natureza, '')
-		FROM public.compromisso_financeiro c
+		SELECT c.id, c.descricao, c.periodicidade, c.valor, c.observacao, COALESCE(c.tipo_classificacao, '')
+		FROM public.tipoempresa_obrigacao c
 		WHERE c.ativo = true AND c.tipo_empresa_id = $1
 		  AND (
 			c.abrangencia = 'FEDERAL'
 			OR (
 				c.abrangencia = 'ESTADUAL' AND EXISTS (
-					SELECT 1 FROM public.compromisso_estado ce
+					SELECT 1 FROM public.tipoempresa_obriga_estado ce
 					INNER JOIN public.municipio m ON m.ufid = ce.estado_id
-					WHERE ce.compromisso_id = c.id AND m.id = $2
+					WHERE ce.obrigacao_id = c.id AND m.id = $2
 				)
 			)
 			OR (
 				c.abrangencia = 'MUNICIPAL' AND EXISTS (
-					SELECT 1 FROM public.compromisso_municipio cm
-					WHERE cm.compromisso_id = c.id AND cm.municipio_id = $2
+					SELECT 1 FROM public.tipoempresa_obriga_municipio cm
+					WHERE cm.obrigacao_id = c.id AND cm.municipio_id = $2
 				)
 			)
 			OR (
@@ -130,7 +130,7 @@ func (r *EmpresaCompromissoRepository) listTemplatesForEmpresaTx(ctx context.Con
 	out := make([]compromissoTemplateRow, 0)
 	for rows.Next() {
 		var row compromissoTemplateRow
-		if err := rows.Scan(&row.ID, &row.Descricao, &row.Periodicidade, &row.Valor, &row.Observacao, &row.Natureza); err != nil {
+		if err := rows.Scan(&row.ID, &row.Descricao, &row.Periodicidade, &row.Valor, &row.Observacao, &row.TipoClassificacao); err != nil {
 			return nil, fmt.Errorf("scan compromisso template: %w", err)
 		}
 		out = append(out, row)
@@ -172,17 +172,17 @@ func (r *EmpresaCompromissoRepository) GerarCompromissos(ctx context.Context, em
 	}
 
 	const ins = `
-		INSERT INTO public.empresa_compromissos (descricao, valor, vencimento, observacao, status, empresa_id, compromisso_financeiro_id)
+		INSERT INTO public.empresa_compromissos (descricao, valor, vencimento, observacao, status, empresa_id, tipoempresa_obrigacao_id)
 		VALUES ($1, $2, $3::timestamptz, $4, 'pendente', $5, $6::uuid)
-		RETURNING id, descricao, valor, vencimento::text, COALESCE(observacao, ''), status, empresa_id, compromisso_financeiro_id::text`
+		RETURNING id, descricao, valor, vencimento::text, COALESCE(observacao, ''), status, empresa_id, tipoempresa_obrigacao_id::text`
 
 	items := make([]EmpresaCompromissoItem, 0)
 
 	for _, t := range templates {
 		per := strings.ToUpper(strings.TrimSpace(t.Periodicidade))
-		nat := strings.ToUpper(strings.TrimSpace(t.Natureza))
+		tc := strings.ToUpper(strings.TrimSpace(t.TipoClassificacao))
 		var valorIns *float64
-		if nat == "FINANCEIRO" && t.Valor.Valid {
+		if (tc == "TRIBUTARIA" || tc == "TRIBUTO") && t.Valor.Valid {
 			v := t.Valor.Float64
 			valorIns = &v
 		}
@@ -199,7 +199,7 @@ func (r *EmpresaCompromissoRepository) GerarCompromissos(ctx context.Context, em
 				dt = ajustarVencimento(dt, feriados)
 				var row EmpresaCompromissoItem
 				err := tx.QueryRow(ctx, ins, t.Descricao, valorIns, dt.Format(time.RFC3339), obs, empresaID, t.ID).Scan(
-					&row.ID, &row.Descricao, &row.Valor, &row.Vencimento, &row.Observacao, &row.Status, &row.EmpresaID, &row.CompromissoFinanceiroID,
+					&row.ID, &row.Descricao, &row.Valor, &row.Vencimento, &row.Observacao, &row.Status, &row.EmpresaID, &row.TipoempresaObrigacaoID,
 				)
 				if err != nil {
 					return nil, fmt.Errorf("insert compromisso mensal: %w", err)
@@ -211,7 +211,7 @@ func (r *EmpresaCompromissoRepository) GerarCompromissos(ctx context.Context, em
 			dt = ajustarVencimento(dt, feriados)
 			var row EmpresaCompromissoItem
 			err := tx.QueryRow(ctx, ins, t.Descricao, valorIns, dt.Format(time.RFC3339), obs, empresaID, t.ID).Scan(
-				&row.ID, &row.Descricao, &row.Valor, &row.Vencimento, &row.Observacao, &row.Status, &row.EmpresaID, &row.CompromissoFinanceiroID,
+				&row.ID, &row.Descricao, &row.Valor, &row.Vencimento, &row.Observacao, &row.Status, &row.EmpresaID, &row.TipoempresaObrigacaoID,
 			)
 			if err != nil {
 				return nil, fmt.Errorf("insert compromisso anual: %w", err)
@@ -252,14 +252,14 @@ func (r *EmpresaCompromissoRepository) ListAcompanhamentoByTenant(ctx context.Co
 			ec.status,
 			'',
 			CASE
-				WHEN UPPER(COALESCE(cf.natureza, '')) = 'FINANCEIRO' THEN 'FINANCEIRO'
+				WHEN UPPER(TRIM(COALESCE(cf.tipo_classificacao, ''))) IN ('TRIBUTARIA','TRIBUTO') THEN 'FINANCEIRO'
 				ELSE 'NAO_FINANCEIRO'
 			END,
 			ec.id::text,
 			ec.valor
 		FROM public.empresa_compromissos ec
 		INNER JOIN public.empresa e ON e.id = ec.empresa_id
-		INNER JOIN public.compromisso_financeiro cf ON cf.id = ec.compromisso_financeiro_id
+		INNER JOIN public.tipoempresa_obrigacao cf ON cf.id = ec.tipoempresa_obrigacao_id
 		WHERE e.ativo = true AND e.tenant_id = $1
 		ORDER BY e.nome ASC, ec.vencimento ASC, ec.descricao ASC`
 

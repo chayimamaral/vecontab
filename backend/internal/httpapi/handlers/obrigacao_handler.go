@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/chayimamaral/vecontab/backend/internal/httpapi/render"
@@ -16,28 +17,41 @@ type ObrigacaoHandler struct {
 
 type obrigacaoEnvelope struct {
 	Params struct {
-		ID            string `json:"id"`
-		TipoEmpresaID string `json:"tipo_empresa_id"`
-		Descricao     string `json:"descricao"`
-		DiaBase       int    `json:"dia_base"`
-		MesBase       *int   `json:"mes_base"`
-		Frequencia    string `json:"frequencia"`
-		Tipo          string `json:"tipo"`
+		ID                string   `json:"id"`
+		TipoEmpresa       any      `json:"tipoempresa"`
+		TipoClassificacao any      `json:"tipo_classificacao"`
+		Descricao         string   `json:"descricao"`
+		Periodicidade     any      `json:"periodicidade"`
+		Abrangencia       any      `json:"abrangencia"`
+		DiaBase           int      `json:"dia_base"`
+		MesBase           any      `json:"mes_base"`
+		Valor             *float64 `json:"valor"`
+		Observacao        string   `json:"observacao"`
+		Municipio         any      `json:"municipio"`
+		Estado            any      `json:"estado"`
+		Bairro            string   `json:"bairro"`
 	} `json:"params"`
 }
 
-func NewObrigacaoHandler(service *service.ObrigacaoService) *ObrigacaoHandler {
-	return &ObrigacaoHandler{service: service}
+func NewObrigacaoHandler(s *service.ObrigacaoService) *ObrigacaoHandler {
+	return &ObrigacaoHandler{service: s}
 }
 
 func (h *ObrigacaoHandler) List(w http.ResponseWriter, r *http.Request) {
-	tipoEmpresaID := strings.TrimSpace(r.URL.Query().Get("tipo_empresa_id"))
-	if tipoEmpresaID == "" {
-		render.WriteError(w, http.StatusBadRequest, "tipo_empresa_id e obrigatorio")
-		return
+	params := repository.ObrigacaoListParams{
+		First:             parseObrigacaoInt(r.URL.Query().Get("first"), 0),
+		Rows:              parseObrigacaoInt(r.URL.Query().Get("rows"), 25),
+		SortField:         strings.TrimSpace(r.URL.Query().Get("sortField")),
+		SortOrder:         parseObrigacaoInt(r.URL.Query().Get("sortOrder"), 1),
+		Descricao:         parseObrigacaoFilterDescricao(r.URL.Query().Get("filters")),
+		Abrangencia:       parseObrigacaoAbrangencia(r),
+		TipoEmpresa:       strings.TrimSpace(r.URL.Query().Get("tipo_empresa_id")),
+		TipoClassificacao: parseObrigacaoCodeParam(r, "tipo_classificacao"),
+		Periodicidade:     parseObrigacaoCodeParam(r, "periodicidade"),
+		Localizacao:       strings.TrimSpace(r.URL.Query().Get("localizacao")),
 	}
 
-	response, err := h.service.ListByTipoEmpresa(r.Context(), tipoEmpresaID)
+	response, err := h.service.List(r.Context(), params)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -49,33 +63,46 @@ func (h *ObrigacaoHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *ObrigacaoHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var payload obrigacaoEnvelope
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		render.WriteError(w, http.StatusBadRequest, "JSON inválido")
 		return
 	}
 
-	p := payload.Params
-	if p.TipoEmpresaID == "" || p.Descricao == "" {
-		render.WriteError(w, http.StatusBadRequest, "tipo_empresa_id e descricao sao obrigatorios")
+	desc := strings.TrimSpace(payload.Params.Descricao)
+	if desc == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar a descrição!")
 		return
 	}
 
-	freq := strings.ToUpper(strings.TrimSpace(p.Frequencia))
-	if freq != "MENSAL" && freq != "ANUAL" {
-		freq = "MENSAL"
+	input := service.ObrigacaoInput{
+		TipoEmpresaID:     objectIDFromAny(payload.Params.TipoEmpresa),
+		TipoClassificacao: obrigacaoCodeFromAny(payload.Params.TipoClassificacao),
+		Descricao:         desc,
+		Periodicidade:     obrigacaoCodeFromAny(payload.Params.Periodicidade),
+		Abrangencia:       obrigacaoCodeFromAny(payload.Params.Abrangencia),
+		DiaBase:           payload.Params.DiaBase,
+		MesBase:           service.MesBaseFromAny(payload.Params.MesBase),
+		Valor:             payload.Params.Valor,
+		Observacao:        strings.TrimSpace(payload.Params.Observacao),
+		EstadoID:          objectIDFromAny(payload.Params.Estado),
+		MunicipioID:       objectIDFromAny(payload.Params.Municipio),
+		Bairro:            "",
 	}
 
-	tipo := strings.ToUpper(strings.TrimSpace(p.Tipo))
-	if tipo != "TRIBUTO" && tipo != "INFORMATIVA" {
-		tipo = "TRIBUTO"
+	if input.Periodicidade == "" {
+		input.Periodicidade = "MENSAL"
 	}
-
-	input := repository.ObrigacaoUpsertInput{
-		TipoEmpresaID: p.TipoEmpresaID,
-		Descricao:     p.Descricao,
-		DiaBase:       p.DiaBase,
-		MesBase:       p.MesBase,
-		Frequencia:    freq,
-		Tipo:          tipo,
+	if input.TipoClassificacao == "" {
+		input.TipoClassificacao = "TRIBUTARIA"
+	}
+	if input.Abrangencia == "" {
+		input.Abrangencia = "FEDERAL"
+	}
+	if input.TipoEmpresaID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o tipo de empresa!")
+		return
+	}
+	if input.DiaBase <= 0 {
+		input.DiaBase = 20
 	}
 
 	response, err := h.service.Create(r.Context(), input)
@@ -90,33 +117,48 @@ func (h *ObrigacaoHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *ObrigacaoHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var payload obrigacaoEnvelope
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		render.WriteError(w, http.StatusBadRequest, "JSON inválido")
 		return
 	}
 
-	p := payload.Params
-	if p.ID == "" {
-		render.WriteError(w, http.StatusBadRequest, "ID e obrigatorio")
+	id := strings.TrimSpace(payload.Params.ID)
+	desc := strings.TrimSpace(payload.Params.Descricao)
+	if id == "" || desc == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o id e a descrição!")
 		return
 	}
 
-	freq := strings.ToUpper(strings.TrimSpace(p.Frequencia))
-	if freq != "MENSAL" && freq != "ANUAL" {
-		freq = "MENSAL"
+	input := service.ObrigacaoInput{
+		ID:                id,
+		TipoEmpresaID:     objectIDFromAny(payload.Params.TipoEmpresa),
+		TipoClassificacao: obrigacaoCodeFromAny(payload.Params.TipoClassificacao),
+		Descricao:         desc,
+		Periodicidade:     obrigacaoCodeFromAny(payload.Params.Periodicidade),
+		Abrangencia:       obrigacaoCodeFromAny(payload.Params.Abrangencia),
+		DiaBase:           payload.Params.DiaBase,
+		MesBase:           service.MesBaseFromAny(payload.Params.MesBase),
+		Valor:             payload.Params.Valor,
+		Observacao:        strings.TrimSpace(payload.Params.Observacao),
+		EstadoID:          objectIDFromAny(payload.Params.Estado),
+		MunicipioID:       objectIDFromAny(payload.Params.Municipio),
+		Bairro:            "",
 	}
 
-	tipo := strings.ToUpper(strings.TrimSpace(p.Tipo))
-	if tipo != "TRIBUTO" && tipo != "INFORMATIVA" {
-		tipo = "TRIBUTO"
+	if input.Periodicidade == "" {
+		input.Periodicidade = "MENSAL"
 	}
-
-	input := repository.ObrigacaoUpsertInput{
-		ID:         p.ID,
-		Descricao:  p.Descricao,
-		DiaBase:    p.DiaBase,
-		MesBase:    p.MesBase,
-		Frequencia: freq,
-		Tipo:       tipo,
+	if input.TipoClassificacao == "" {
+		input.TipoClassificacao = "TRIBUTARIA"
+	}
+	if input.Abrangencia == "" {
+		input.Abrangencia = "FEDERAL"
+	}
+	if input.TipoEmpresaID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o tipo de empresa!")
+		return
+	}
+	if input.DiaBase <= 0 {
+		input.DiaBase = 20
 	}
 
 	response, err := h.service.Update(r.Context(), input)
@@ -130,20 +172,101 @@ func (h *ObrigacaoHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *ObrigacaoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	var payload obrigacaoEnvelope
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+	_ = json.NewDecoder(r.Body).Decode(&payload)
+
+	id := strings.TrimSpace(payload.Params.ID)
+	if id == "" {
+		id = strings.TrimSpace(r.URL.Query().Get("id"))
+	}
+	if id == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o id!")
 		return
 	}
 
-	if payload.Params.ID == "" {
-		render.WriteError(w, http.StatusBadRequest, "ID e obrigatorio")
-		return
-	}
-
-	if err := h.service.Delete(r.Context(), payload.Params.ID); err != nil {
+	response, err := h.service.Delete(r.Context(), id)
+	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	render.WriteJSON(w, http.StatusOK, map[string]string{"message": "obrigacao removida"})
+	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func parseObrigacaoInt(value string, fallback int) int {
+	n, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return n
+}
+
+func parseObrigacaoFilterDescricao(raw string) string {
+	type fp struct {
+		Descricao struct {
+			Value string `json:"value"`
+		} `json:"descricao"`
+	}
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
+	var p fp
+	if err := json.Unmarshal([]byte(raw), &p); err == nil {
+		return p.Descricao.Value
+	}
+	return ""
+}
+
+func parseObrigacaoAbrangencia(r *http.Request) string {
+	if v := strings.TrimSpace(r.URL.Query().Get("abrangencia.code")); v != "" {
+		return v
+	}
+	if v := strings.TrimSpace(r.URL.Query().Get("abrangencia[code]")); v != "" {
+		return v
+	}
+	raw := strings.TrimSpace(r.URL.Query().Get("abrangencia"))
+	if raw == "" {
+		return ""
+	}
+	var obj struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+		return obj.Code
+	}
+	return raw
+}
+
+func parseObrigacaoCodeParam(r *http.Request, key string) string {
+	if v := strings.TrimSpace(r.URL.Query().Get(key + ".code")); v != "" {
+		return strings.ToUpper(v)
+	}
+	if v := strings.TrimSpace(r.URL.Query().Get(key + "[code]")); v != "" {
+		return strings.ToUpper(v)
+	}
+	raw := strings.TrimSpace(r.URL.Query().Get(key))
+	if raw == "" {
+		return ""
+	}
+	var obj struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+		return strings.ToUpper(strings.TrimSpace(obj.Code))
+	}
+	return strings.ToUpper(raw)
+}
+
+func obrigacaoCodeFromAny(value any) string {
+	if value == nil {
+		return ""
+	}
+	if m, ok := value.(map[string]any); ok {
+		if code, ok := m["code"].(string); ok {
+			return code
+		}
+	}
+	if s, ok := value.(string); ok {
+		return s
+	}
+	return ""
 }

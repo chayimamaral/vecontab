@@ -8,13 +8,10 @@ import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import TipoEmpresaService from '../../services/cruds/TipoEmpresaService';
-import ObrigacaoService from '../../services/cruds/ObrigacaoService';
-import { canSSRAuth } from '../../components/utils/canSSRAuth';
-import setupAPIClient from '../../components/api/api';
 import { Vec } from '../../types/types';
 
 import { Dropdown } from 'primereact/dropdown';
-import { InputNumber, InputNumberChangeEvent, InputNumberValueChangeEvent } from 'primereact/inputnumber';
+import { InputNumber, InputNumberChangeEvent } from 'primereact/inputnumber';
 import { withAuthServerSideProps } from '../../components/utils/crudUtils';
 
 interface LazyTableState {
@@ -71,119 +68,6 @@ const TipoEmpresa = () => {
     }, [lazyState]);
 
     const tipoEmpresaService = TipoEmpresaService();
-    const obrigacaoService = ObrigacaoService();
-
-    // ── Estado do sub-cadastro de obrigações ─────────────────────────────────
-    const emptyObrigacao: Vec.Obrigacao = {
-        id: '',
-        tipo_empresa_id: '',
-        descricao: '',
-        dia_base: 1,
-        mes_base: null,
-        frequencia: 'MENSAL',
-        tipo: 'TRIBUTO',
-    };
-
-    const [obrigacaoDialogVisible, setObrigacaoDialogVisible] = useState(false);
-    const [obrigacoes, setObrigacoes] = useState<Vec.Obrigacao[]>([]);
-    const [obrigacao, setObrigacao] = useState<Vec.Obrigacao>(emptyObrigacao);
-    const [obrigacaoFormVisible, setObrigacaoFormVisible] = useState(false);
-    const [deleteObrigacaoDialog, setDeleteObrigacaoDialog] = useState(false);
-    const [obrigacaoSubmitted, setObrigacaoSubmitted] = useState(false);
-    const [obrigacaoLoading, setObrigacaoLoading] = useState(false);
-    const [tipoEmpresaSelecionado, setTipoEmpresaSelecionado] = useState<Vec.TipoEmpresa>(emptyTipoEmpresa);
-
-    const frequenciaOptions = [
-        { label: 'Mensal', value: 'MENSAL' },
-        { label: 'Anual', value: 'ANUAL' },
-    ];
-
-    const tipoObrigacaoOptions = [
-        { label: 'Tributo', value: 'TRIBUTO' },
-        { label: 'Informativa', value: 'INFORMATIVA' },
-    ];
-
-    const mesesOptions = [
-        { label: '(nenhum)', value: null },
-        { label: 'Janeiro', value: 1 },
-        { label: 'Fevereiro', value: 2 },
-        { label: 'Março', value: 3 },
-        { label: 'Abril', value: 4 },
-        { label: 'Maio', value: 5 },
-        { label: 'Junho', value: 6 },
-        { label: 'Julho', value: 7 },
-        { label: 'Agosto', value: 8 },
-        { label: 'Setembro', value: 9 },
-        { label: 'Outubro', value: 10 },
-        { label: 'Novembro', value: 11 },
-        { label: 'Dezembro', value: 12 },
-    ];
-
-    const openObrigacoes = (te: Vec.TipoEmpresa) => {
-        setTipoEmpresaSelecionado(te);
-        setObrigacaoDialogVisible(true);
-        loadObrigacoes(te.id!);
-    };
-
-    const loadObrigacoes = (tipoEmpresaId: string) => {
-        setObrigacaoLoading(true);
-        obrigacaoService.getObrigacoes(tipoEmpresaId)
-            .then(({ data }) => setObrigacoes(data.obrigacoes ?? []))
-            .catch(() => toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao carregar obrigações', life: 3000 }))
-            .finally(() => setObrigacaoLoading(false));
-    };
-
-    const openNewObrigacao = () => {
-        setObrigacao({ ...emptyObrigacao, tipo_empresa_id: tipoEmpresaSelecionado.id });
-        setObrigacaoSubmitted(false);
-        setObrigacaoFormVisible(true);
-    };
-
-    const hideObrigacaoForm = () => {
-        setObrigacaoSubmitted(false);
-        setObrigacaoFormVisible(false);
-    };
-
-    const editObrigacao = (ob: Vec.Obrigacao) => {
-        setObrigacao({ ...ob });
-        setObrigacaoFormVisible(true);
-    };
-
-    const confirmDeleteObrigacao = (ob: Vec.Obrigacao) => {
-        setObrigacao(ob);
-        setDeleteObrigacaoDialog(true);
-    };
-
-    const saveObrigacao = () => {
-        setObrigacaoSubmitted(true);
-        if (!obrigacao.descricao?.trim()) return;
-
-        const action = obrigacao.id
-            ? obrigacaoService.updateObrigacao(obrigacao)
-            : obrigacaoService.createObrigacao(obrigacao);
-
-        action
-            .then(() => {
-                toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: obrigacao.id ? 'Obrigação atualizada' : 'Obrigação criada', life: 3000 });
-                loadObrigacoes(tipoEmpresaSelecionado.id!);
-                setObrigacaoFormVisible(false);
-            })
-            .catch(() => toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao salvar obrigação', life: 3000 }));
-    };
-
-    const deleteObrigacaoConfirmed = () => {
-        if (!obrigacao.id) return;
-        obrigacaoService.deleteObrigacao(obrigacao)
-            .then(() => {
-                toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Obrigação excluída', life: 3000 });
-                loadObrigacoes(tipoEmpresaSelecionado.id!);
-            })
-            .catch(() => toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao excluir obrigação', life: 3000 }))
-            .finally(() => {
-                setDeleteObrigacaoDialog(false);
-                setObrigacao(emptyObrigacao);
-            });
-    };
 
     const loadLazyTipoEmpresa = () => {
         setLoading(true);
@@ -458,7 +342,6 @@ const TipoEmpresa = () => {
         return (
             <>
                 <Button icon="pi pi-pencil" rounded severity="success" className="mr-2" onClick={() => editTipoEmpreas(rowData)} />
-                <Button icon="pi pi-list" rounded severity="info" className="mr-2" tooltip="Obrigações" tooltipOptions={{ position: 'top' }} onClick={() => openObrigacoes(rowData)} />
                 <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteTipoEmpresa(rowData)} />
             </>
         );
@@ -578,140 +461,6 @@ const TipoEmpresa = () => {
                                 <span>
                                     Tem certeza que quer deletar <b>{tipoEmpresa.descricao}</b>?
                                 </span>
-                            )}
-                        </div>
-                    </Dialog>
-
-                    {/* ── Dialog de Obrigações (sub-cadastro) ─────────────────── */}
-                    <Dialog
-                        visible={obrigacaoDialogVisible}
-                        style={{ width: '900px' }}
-                        header={`Obrigações - ${tipoEmpresaSelecionado.descricao ?? ''}`}
-                        modal
-                        onHide={() => setObrigacaoDialogVisible(false)}
-                    >
-                        <div className="mb-3">
-                            <Button label="Nova Obrigação" icon="pi pi-plus" severity="success" onClick={openNewObrigacao} />
-                        </div>
-
-                        <DataTable value={obrigacoes} loading={obrigacaoLoading} dataKey="id" size="small" stripedRows emptyMessage="Nenhuma obrigação cadastrada.">
-                            <Column field="descricao" header="Descrição" headerStyle={{ minWidth: '12rem' }} />
-                            <Column field="dia_base" header="Dia Base" headerStyle={{ minWidth: '6rem' }} />
-                            <Column field="frequencia" header="Frequência" headerStyle={{ minWidth: '8rem' }} />
-                            <Column field="tipo" header="Tipo" headerStyle={{ minWidth: '8rem' }} />
-                            <Column
-                                field="mes_base"
-                                header="Mês Base"
-                                headerStyle={{ minWidth: '6rem' }}
-                                body={(rowData: Vec.Obrigacao) => {
-                                    if (rowData.mes_base == null) return '-';
-                                    const nomes = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-                                    return nomes[rowData.mes_base] ?? '-';
-                                }}
-                            />
-                            <Column
-                                body={(rowData: Vec.Obrigacao) => (
-                                    <>
-                                        <Button icon="pi pi-pencil" rounded severity="success" className="mr-2" onClick={() => editObrigacao(rowData)} />
-                                        <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteObrigacao(rowData)} />
-                                    </>
-                                )}
-                                headerStyle={{ minWidth: '8rem' }}
-                            />
-                        </DataTable>
-                    </Dialog>
-
-                    {/* ── Form de Obrigação (criar/editar) ────────────────────── */}
-                    <Dialog
-                        visible={obrigacaoFormVisible}
-                        style={{ width: '500px' }}
-                        header={obrigacao.id ? 'Editar Obrigação' : 'Nova Obrigação'}
-                        modal
-                        className="p-fluid"
-                        footer={
-                            <>
-                                <Button label="Cancelar" icon="pi pi-times" text onClick={hideObrigacaoForm} />
-                                <Button label="Salvar" icon="pi pi-check" text onClick={saveObrigacao} />
-                            </>
-                        }
-                        onHide={hideObrigacaoForm}
-                    >
-                        <div className="field">
-                            <label htmlFor="ob_descricao">Descrição</label>
-                            <InputText
-                                id="ob_descricao"
-                                value={obrigacao.descricao}
-                                onChange={(e) => setObrigacao({ ...obrigacao, descricao: e.target.value })}
-                                required
-                                autoFocus
-                                className={classNames({ 'p-invalid': obrigacaoSubmitted && !obrigacao.descricao })}
-                            />
-                            {obrigacaoSubmitted && !obrigacao.descricao && <small className="p-invalid">Descrição é obrigatória.</small>}
-                        </div>
-                        <div className="formgrid grid">
-                            <div className="field col">
-                                <label htmlFor="ob_dia_base">Dia Base</label>
-                                <InputNumber
-                                    id="ob_dia_base"
-                                    value={obrigacao.dia_base}
-                                    onValueChange={(e) => setObrigacao({ ...obrigacao, dia_base: e.value ?? 1 })}
-                                    min={1}
-                                    max={31}
-                                    showButtons
-                                />
-                            </div>
-                            <div className="field col">
-                                <label htmlFor="ob_mes_base">Mês Base</label>
-                                <Dropdown
-                                    id="ob_mes_base"
-                                    value={obrigacao.mes_base}
-                                    options={mesesOptions}
-                                    onChange={(e) => setObrigacao({ ...obrigacao, mes_base: e.value })}
-                                    placeholder="Selecione..."
-                                />
-                            </div>
-                        </div>
-                        <div className="formgrid grid">
-                            <div className="field col">
-                                <label htmlFor="ob_frequencia">Frequência</label>
-                                <Dropdown
-                                    id="ob_frequencia"
-                                    value={obrigacao.frequencia}
-                                    options={frequenciaOptions}
-                                    onChange={(e) => setObrigacao({ ...obrigacao, frequencia: e.value })}
-                                />
-                            </div>
-                            <div className="field col">
-                                <label htmlFor="ob_tipo">Tipo</label>
-                                <Dropdown
-                                    id="ob_tipo"
-                                    value={obrigacao.tipo}
-                                    options={tipoObrigacaoOptions}
-                                    onChange={(e) => setObrigacao({ ...obrigacao, tipo: e.value })}
-                                />
-                            </div>
-                        </div>
-                    </Dialog>
-
-                    {/* ── Confirmar exclusão de Obrigação ─────────────────────── */}
-                    <Dialog
-                        visible={deleteObrigacaoDialog}
-                        style={{ width: '450px' }}
-                        header="Confirma a exclusão ?"
-                        modal
-                        footer={
-                            <>
-                                <Button label="Não" icon="pi pi-times" text onClick={() => setDeleteObrigacaoDialog(false)} />
-                                <Button label="Sim" icon="pi pi-check" text onClick={deleteObrigacaoConfirmed} />
-                            </>
-                        }
-                        onHide={() => setDeleteObrigacaoDialog(false)}
-                        className="red-header"
-                    >
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem', color: '#d6551e' }} />
-                            {obrigacao && (
-                                <span>Tem certeza que quer excluir <b>{obrigacao.descricao}</b>?</span>
                             )}
                         </div>
                     </Dialog>

@@ -64,6 +64,27 @@ const MODULOS: ModuloCard[] = [
         icon: 'pi pi-cloud-download',
         tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
     },
+    {
+        future: true,
+        titulo: 'Compromissos do Dia',
+        descricao: 'Compromissos as empresas para o dia atual.',
+        icon: 'pi pi-calendar-clock',
+        tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
+    },
+    {
+        future: true,
+        titulo: 'Compromissos por Empresa',
+        descricao: 'Compromissos as empresas para o dia atual.',
+        icon: 'pi pi-building',
+        tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
+    },
+    {
+        future: true,
+        titulo: 'Compromissos por Período',
+        descricao: 'Compromissos as empresas para o dia atual.',
+        icon: 'pi pi-bars',
+        tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
+    },
 ];
 
 function ModuloTile({ modulo }: { modulo: ModuloCard }) {

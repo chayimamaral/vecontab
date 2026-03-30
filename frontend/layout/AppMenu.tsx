@@ -63,12 +63,12 @@ const AppMenu = () => {
                             icon: 'pi pi-fw pi-sitemap',
                             items: [
                                 {
-                                    label: 'Rotinas',
+                                    label: 'Rotinas para Empresas',
                                     icon: 'pi pi-fw pi-bookmark',
                                     to: '/rotinas'
                                 },
                                 {
-                                    label: 'Passos',
+                                    label: 'Passos das Rotinas',
                                     icon: 'pi pi-fw pi-bookmark',
                                     to: '/passos'
                                 },
@@ -98,9 +98,9 @@ const AppMenu = () => {
                                             to: '/tipoempresa'
                                         },
                                         {
-                                            label: 'Compromissos Legais',
+                                            label: 'Obrigações Legais',
                                             icon: 'pi pi-fw pi-money-bill',
-                                            to: '/compromissos'
+                                            to: '/obrigacoes'
                                         }
                                     ]
                                 },

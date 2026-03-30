@@ -103,10 +103,11 @@ const Feriados = () => {
   const [estado, setEstado] = useState<Estado>();
 
   const tipos = [
-    { name: 'Variável', code: 'VARIAVEL' },
+    { name: 'Fixo', code: 'FIXO' },
     { name: 'Municipal', code: 'MUNICIPAL' },
     { name: 'Estadual', code: 'ESTADUAL' },
-    { name: 'Fixo', code: 'FIXO' }
+    { name: 'Variável', code: 'VARIAVEL' }
+
   ];
 
   const [selectedTipo, setSelectedTipo] = useState<TipoFeriado>(tipos[0]);

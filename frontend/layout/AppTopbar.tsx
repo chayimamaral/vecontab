@@ -49,7 +49,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
                 <Link href="/">
                     <Tooltip target=".btn-dashboard" position="bottom" />
                     <button type="button" className="btn-dashboard p-link layout-topbar-button" data-pr-tooltip='Dashboard'>
-                        <i className="pi pi-chart-line"></i>
+                        <i className="pi pi-home"></i>
                         <span>Dashboard</span>
                     </button>
                 </Link>

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,16 +27,16 @@ type EmpresaAgendaItem struct {
 }
 
 type EmpresaAgendaAcompanhamentoItem struct {
-	EmpresaID       string   `json:"empresa_id"`
-	EmpresaNome     string   `json:"empresa_nome"`
-	CompromissoID   string   `json:"compromisso_id"`
-	Descricao       string   `json:"descricao"`
-	DataVencimento  string   `json:"data_vencimento"`
-	Status          string   `json:"status"`
-	Tipo            string   `json:"tipo"`            // TRIBUTO | INFORMATIVA (template)
-	Classificacao   string   `json:"classificacao"`   // FINANCEIRO | NAO_FINANCEIRO | vazio se sem instância
-	AgendaItemID    string   `json:"agenda_item_id"`  // UUID em empresa_agenda; vazio = só catálogo (não editável)
-	ValorEstimado   *float64 `json:"valor_estimado"`  // nil se sem valor
+	EmpresaID      string   `json:"empresa_id"`
+	EmpresaNome    string   `json:"empresa_nome"`
+	CompromissoID  string   `json:"compromisso_id"`
+	Descricao      string   `json:"descricao"`
+	DataVencimento string   `json:"data_vencimento"`
+	Status         string   `json:"status"`
+	Tipo           string   `json:"tipo"`           // TRIBUTARIA | INFORMATIVA (template; TRIBUTO legado)
+	Classificacao  string   `json:"classificacao"`  // FINANCEIRO | NAO_FINANCEIRO | vazio se sem instância
+	AgendaItemID   string   `json:"agenda_item_id"` // UUID em empresa_agenda; vazio = só catálogo (não editável)
+	ValorEstimado  *float64 `json:"valor_estimado"` // nil se sem valor
 }
 
 type EmpresaAgendaRepository struct {
@@ -157,10 +158,10 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 			COALESCE(ea.descricao, ''),
 			COALESCE(ea.data_vencimento::text, ''),
 			COALESCE(ea.status, ''),
-			COALESCE(teo.tipo, ''),
+			COALESCE(teo.tipo_classificacao, ''),
 			CASE
 				WHEN ea.id IS NULL THEN ''
-				WHEN UPPER(COALESCE(teo.tipo, '')) = 'TRIBUTO' THEN 'FINANCEIRO'
+				WHEN UPPER(TRIM(COALESCE(teo.tipo_classificacao, ''))) IN ('TRIBUTO', 'TRIBUTARIA') THEN 'FINANCEIRO'
 				ELSE 'NAO_FINANCEIRO'
 			END,
 			CASE WHEN ea.id IS NOT NULL THEN ea.id::text ELSE '' END,
@@ -188,14 +189,14 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 			'PENDENTE',
 			'',
 			CASE
-				WHEN UPPER(COALESCE(c.natureza, '')) = 'FINANCEIRO' THEN 'FINANCEIRO'
+				WHEN UPPER(TRIM(COALESCE(c.tipo_classificacao, ''))) IN ('TRIBUTARIA','TRIBUTO') THEN 'FINANCEIRO'
 				ELSE 'NAO_FINANCEIRO'
 			END,
 			'',
 			NULL::numeric
 		FROM public.empresa e
 		INNER JOIN public.rotinas r ON r.id = e.rotina_id
-		INNER JOIN public.compromisso_financeiro c
+		INNER JOIN public.tipoempresa_obrigacao c
 			ON c.tipo_empresa_id = r.tipo_empresa_id AND c.ativo = true
 		WHERE e.ativo = true
 		  AND e.tenant_id = $1
@@ -212,7 +213,7 @@ func (r *EmpresaAgendaRepository) ListAcompanhamentoByTenant(ctx context.Context
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "42703" {
-			// Colunas de migração (ex.: rotinas.tipo_empresa_id, compromisso_financeiro.natureza) ainda ausentes: retorna só agenda gerada.
+			// Colunas de migração ainda ausentes: retorna só agenda gerada.
 			return items, nil
 		}
 		return nil, fmt.Errorf("list acompanhamento catalogo compromissos: %w", err)
@@ -265,7 +266,7 @@ func scanAcompanhamentoRows(ctx context.Context, pool *pgxpool.Pool, query strin
 func (r *EmpresaAgendaRepository) GerarAgenda(ctx context.Context, empresaID, tipoEmpresaID string, dataInicio time.Time, feriados map[string]bool) ([]EmpresaAgendaItem, error) {
 	// 1) Buscar templates de obrigação
 	const tmplQuery = `
-		SELECT id, descricao, dia_base, mes_base, frequencia
+		SELECT id, descricao, COALESCE(dia_base::int, 20), mes_base, periodicidade
 		FROM public.tipoempresa_obrigacao
 		WHERE tipo_empresa_id = $1 AND ativo = true`
 
@@ -275,19 +276,25 @@ func (r *EmpresaAgendaRepository) GerarAgenda(ctx context.Context, empresaID, ti
 	}
 
 	type template struct {
-		ID         string
-		Descricao  string
-		DiaBase    int
-		MesBase    *int
-		Frequencia string
+		ID            string
+		Descricao     string
+		DiaBase       int
+		MesBase       *int
+		Periodicidade string
 	}
 
 	templates := make([]template, 0)
 	for tmplRows.Next() {
 		var t template
-		if err := tmplRows.Scan(&t.ID, &t.Descricao, &t.DiaBase, &t.MesBase, &t.Frequencia); err != nil {
+		var mesStr sql.NullString
+		if err := tmplRows.Scan(&t.ID, &t.Descricao, &t.DiaBase, &mesStr, &t.Periodicidade); err != nil {
 			tmplRows.Close()
 			return nil, fmt.Errorf("scan template: %w", err)
+		}
+		if mesStr.Valid && strings.TrimSpace(mesStr.String) != "" {
+			if m, err := strconv.Atoi(strings.TrimSpace(mesStr.String)); err == nil && m >= 1 && m <= 12 {
+				t.MesBase = &m
+			}
 		}
 		templates = append(templates, t)
 	}
@@ -327,7 +334,7 @@ func (r *EmpresaAgendaRepository) GerarAgenda(ctx context.Context, empresaID, ti
 
 	batch := &pgx.Batch{}
 	for _, t := range templates {
-		if t.Frequencia == "MENSAL" {
+		if strings.ToUpper(strings.TrimSpace(t.Periodicidade)) == "MENSAL" {
 			// Gerar 12 meses a partir da dataInicio
 			for i := 0; i < 12; i++ {
 				dt := time.Date(dataInicio.Year(), dataInicio.Month()+time.Month(i), t.DiaBase, 0, 0, 0, 0, time.Local)
