@@ -47,6 +47,7 @@ interface ObrigacaoLegais {
   observacao?: string;
   estado?: GeoRef;
   municipio?: GeoRef;
+  bairro?: string;
 }
 
 interface LazyTableState {
@@ -85,6 +86,7 @@ const abrangencias: AbrangenciaOpcao[] = [
   { name: 'Federal', code: 'FEDERAL' },
   { name: 'Estadual', code: 'ESTADUAL' },
   { name: 'Municipal', code: 'MUNICIPAL' },
+  { name: 'Bairro', code: 'BAIRRO' },
 ];
 
 const periodicidades: AbrangenciaOpcao[] = [
@@ -130,6 +132,7 @@ const emptyObrigacao: ObrigacaoLegais = {
   observacao: '',
   estado: { id: '', nome: '' },
   municipio: { id: '', nome: '' },
+  bairro: '',
 };
 
 const ObrigacoesLegaisPage = () => {
@@ -381,8 +384,7 @@ const ObrigacoesLegaisPage = () => {
         ? ''
         : String(row.mes_base);
     setObrigacao({ ...row, mes_base: mesNorm });
-    const abrCode = row.abrangencia === 'BAIRRO' ? 'MUNICIPAL' : row.abrangencia;
-    setSelectedAbrangencia(abrangencias.find((a) => a.code === abrCode) ?? abrangencias[1]);
+    setSelectedAbrangencia(abrangencias.find((a) => a.code === row.abrangencia) ?? abrangencias[1]);
     setSelectedPeriodicidade(periodicidades.find((p) => p.code === row.periodicidade) ?? periodicidades[0]);
     setSelectedTipoClassificacao(
       tiposClassificacao.find((t) => t.code === (row.tipo_classificacao || '').toUpperCase()) ?? tiposClassificacao[0],
@@ -418,7 +420,8 @@ const ObrigacoesLegaisPage = () => {
       periodicidade: selectedPeriodicidade?.code ?? 'MENSAL',
       abrangencia: abrangCode,
       estado: abrangCode === 'ESTADUAL' ? selectedEstado : undefined,
-      municipio: abrangCode === 'MUNICIPAL' ? selectedMunicipio : undefined,
+      municipio: (abrangCode === 'MUNICIPAL' || abrangCode === 'BAIRRO') ? selectedMunicipio : undefined,
+      bairro: abrangCode === 'BAIRRO' ? (obrigacao.bairro ?? '').trim() : '',
       dia_base: obrigacao.dia_base ?? 20,
       mes_base: obrigacao.mes_base && String(obrigacao.mes_base).trim() !== '' ? String(obrigacao.mes_base) : null,
     };
@@ -550,9 +553,6 @@ const ObrigacoesLegaisPage = () => {
   };
 
   const abrangenciaBodyTemplate = (rowData: ObrigacaoLegais) => {
-    if (rowData.abrangencia === 'BAIRRO') {
-      return <span>Municipal</span>;
-    }
     const label = abrangencias.find((a) => a.code === rowData.abrangencia)?.name ?? rowData.abrangencia;
     return <span>{label}</span>;
   };
@@ -562,6 +562,12 @@ const ObrigacoesLegaisPage = () => {
       return <span>{rowData.estado.nome}</span>;
     }
     if ((rowData.abrangencia === 'MUNICIPAL' || rowData.abrangencia === 'BAIRRO') && rowData.municipio?.nome) {
+      if (rowData.abrangencia === 'BAIRRO') {
+        const localBairro = (rowData.bairro ?? '').trim();
+        if (localBairro !== '') {
+          return <span>{`${localBairro} / ${rowData.municipio.nome}`}</span>;
+        }
+      }
       return <span>{rowData.municipio.nome}</span>;
     }
     return <span>—</span>;
@@ -658,7 +664,7 @@ const ObrigacoesLegaisPage = () => {
           onKeyDown={(e) => handleFilterLocalizacao(e, e.currentTarget.value)}
           onChange={handleFilterLocalizacaoClear}
           placeholder="Localização (Enter)"
-          tooltip="Digite estado ou município e tecle Enter"
+          tooltip="Digite estado, município ou bairro e tecle Enter"
           tooltipOptions={{ position: 'left' }}
         />
       </span>
@@ -824,6 +830,7 @@ const ObrigacoesLegaisPage = () => {
                     setSelectedAbrangencia(e.value);
                     setSelectedEstado(undefined);
                     setSelectedMunicipio(undefined);
+                    setObrigacao((prev) => ({ ...prev, bairro: '' }));
                   }}
                   optionLabel="name"
                 />
@@ -850,7 +857,7 @@ const ObrigacoesLegaisPage = () => {
               )}
 
               {/* Município – escopos municipais */}
-              {currentAbrang === 'MUNICIPAL' && (
+              {(currentAbrang === 'MUNICIPAL' || currentAbrang === 'BAIRRO') && (
                 <div className="field">
                   <label htmlFor="ddmunicipio">Município</label>
                   <Dropdown
@@ -863,9 +870,21 @@ const ObrigacoesLegaisPage = () => {
                     placeholder="Selecione um Município"
                     filter
                   />
-                  {submitted && currentAbrang === 'MUNICIPAL' && !selectedMunicipio && (
+                  {submitted && (currentAbrang === 'MUNICIPAL' || currentAbrang === 'BAIRRO') && !selectedMunicipio && (
                     <small className="p-invalid">Município é obrigatório.</small>
                   )}
+                </div>
+              )}
+
+              {currentAbrang === 'BAIRRO' && (
+                <div className="field">
+                  <label htmlFor="bairro">Bairro</label>
+                  <InputText
+                    id="bairro"
+                    value={obrigacao.bairro ?? ''}
+                    onChange={(e) => onInputChange(e, 'bairro')}
+                    placeholder="Informe o bairro"
+                  />
                 </div>
               )}
 

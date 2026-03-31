@@ -16,8 +16,9 @@ type EmpresaCompromissoService struct {
 }
 
 type EmpresaCompromissoGerarResponse struct {
-	Itens   []repository.EmpresaCompromissoItem `json:"itens"`
-	Message string                              `json:"message"`
+	Itens      []repository.EmpresaCompromissoItem `json:"itens"`
+	Quantidade int                                 `json:"quantidade"`
+	Message    string                              `json:"message"`
 }
 
 type EmpresaCompromissoAcompanhamentoResponse struct {
@@ -38,32 +39,20 @@ func NewEmpresaCompromissoService(
 
 func (s *EmpresaCompromissoService) Gerar(ctx context.Context, empresaID, tenantID string, dataInicio time.Time) (EmpresaCompromissoGerarResponse, error) {
 	eid := strings.TrimSpace(empresaID)
-	if eid == "" {
-		return EmpresaCompromissoGerarResponse{}, fmt.Errorf("empresa_id e obrigatorio")
-	}
 	tid := strings.TrimSpace(tenantID)
 	if tid == "" {
 		return EmpresaCompromissoGerarResponse{}, fmt.Errorf("tenant nao identificado")
 	}
 
-	municipioID, estadoID, err := s.empresaRepo.MunicipioEUfIDs(ctx, eid, tid)
-	if err != nil {
-		return EmpresaCompromissoGerarResponse{}, err
-	}
-
-	feriados, err := s.buildFeriadosMapForEmpresa(ctx, dataInicio, municipioID, estadoID)
-	if err != nil {
-		return EmpresaCompromissoGerarResponse{}, fmt.Errorf("build feriados map: %w", err)
-	}
-
-	itens, err := s.repo.GerarCompromissos(ctx, eid, tid, dataInicio, feriados)
+	total, err := s.repo.GerarCompromissosMensais(ctx, tid, dataInicio, eid)
 	if err != nil {
 		return EmpresaCompromissoGerarResponse{}, err
 	}
 
 	return EmpresaCompromissoGerarResponse{
-		Itens:   itens,
-		Message: fmt.Sprintf("%d compromissos gerados", len(itens)),
+		Itens:      []repository.EmpresaCompromissoItem{},
+		Quantidade: total,
+		Message:    fmt.Sprintf("%d compromissos gerados", total),
 	}, nil
 }
 

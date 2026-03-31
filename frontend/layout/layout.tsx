@@ -2,7 +2,7 @@
 
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEventListener, useMountEffect, useUnmountEffect } from 'primereact/hooks';
+import { useEventListener, useUnmountEffect } from 'primereact/hooks';
 import { classNames } from 'primereact/utils';
 import React, { useContext, useEffect, useRef } from 'react';
 import AppFooter from './AppFooter';
@@ -78,9 +78,9 @@ const Layout = ({ children }: ChildContainerProps) => {
         }
     };
 
-    useMountEffect(() => {
-        PrimeReact.ripple = true;
-    })
+    useEffect(() => {
+        PrimeReact.ripple = layoutConfig.ripple;
+    }, [layoutConfig.ripple]);
 
     useEffect(() => {
         if (layoutState.overlayMenuActive || layoutState.staticMenuMobileActive) {

@@ -68,7 +68,7 @@ export const RegisterPage: Page = () => {
                         </div>
                         <div>
                             <label htmlFor="nome1" className="block text-900 text-xl font-medium mb-2">
-                                Email
+                                Nome
                             </label>
                             <InputText id="nome1" value={nome} onChange={(e) => setNome(e.target.value)} type="text" placeholder="Nome" className={`w-full md:w-30rem mb-5 ${isInvalid ? 'p-invalid' : ''}`} style={{ padding: '1rem' }} />
 

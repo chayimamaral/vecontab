@@ -85,7 +85,7 @@ func (h *ObrigacaoHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Observacao:        strings.TrimSpace(payload.Params.Observacao),
 		EstadoID:          objectIDFromAny(payload.Params.Estado),
 		MunicipioID:       objectIDFromAny(payload.Params.Municipio),
-		Bairro:            "",
+		Bairro:            strings.TrimSpace(payload.Params.Bairro),
 	}
 
 	if input.Periodicidade == "" {
@@ -141,7 +141,7 @@ func (h *ObrigacaoHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Observacao:        strings.TrimSpace(payload.Params.Observacao),
 		EstadoID:          objectIDFromAny(payload.Params.Estado),
 		MunicipioID:       objectIDFromAny(payload.Params.Municipio),
-		Bairro:            "",
+		Bairro:            strings.TrimSpace(payload.Params.Bairro),
 	}
 
 	if input.Periodicidade == "" {

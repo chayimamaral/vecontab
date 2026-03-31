@@ -192,7 +192,7 @@ func (r *ObrigacaoRepository) List(ctx context.Context, params ObrigacaoListPara
 		LEFT JOIN public.estado                e  ON e.id  = ce.estado_id
 		LEFT JOIN public.tipoempresa_obriga_municipio cm ON cm.obrigacao_id = c.id
 		LEFT JOIN public.municipio             mm ON mm.id = cm.municipio_id
-		LEFT JOIN public.compromisso_bairro    cb ON cb.compromisso_id = c.id
+		LEFT JOIN public.tipoempresa_obriga_bairro cb ON cb.tipoempresa_obrigacao_id = c.id
 		LEFT JOIN public.municipio             mb ON mb.id = cb.municipio_id
 		WHERE %s
 		ORDER BY %s
@@ -270,7 +270,7 @@ func (r *ObrigacaoRepository) List(ctx context.Context, params ObrigacaoListPara
 		LEFT JOIN public.estado                e  ON e.id  = ce.estado_id
 		LEFT JOIN public.tipoempresa_obriga_municipio cm ON cm.obrigacao_id = c.id
 		LEFT JOIN public.municipio             mm ON mm.id = cm.municipio_id
-		LEFT JOIN public.compromisso_bairro    cb ON cb.compromisso_id = c.id
+		LEFT JOIN public.tipoempresa_obriga_bairro cb ON cb.tipoempresa_obrigacao_id = c.id
 		LEFT JOIN public.municipio             mb ON mb.id = cb.municipio_id
 		WHERE %s`, where)
 	var total int64
@@ -452,9 +452,9 @@ func (r *ObrigacaoRepository) upsertRelations(ctx context.Context, id string, in
 	case "BAIRRO":
 		if strings.TrimSpace(input.MunicipioID) != "" && strings.TrimSpace(input.Bairro) != "" {
 			_, _ = r.pool.Exec(ctx,
-				`INSERT INTO public.compromisso_bairro (compromisso_id, municipio_id, bairro)
+				`INSERT INTO public.tipoempresa_obriga_bairro (tipoempresa_obrigacao_id, municipio_id, bairro)
 				 VALUES ($1, $2, $3)
-				 ON CONFLICT (compromisso_id) DO UPDATE SET municipio_id = EXCLUDED.municipio_id, bairro = EXCLUDED.bairro`,
+				 ON CONFLICT (tipoempresa_obrigacao_id) DO UPDATE SET municipio_id = EXCLUDED.municipio_id, bairro = EXCLUDED.bairro`,
 				id, input.MunicipioID, input.Bairro)
 		}
 	}
@@ -463,7 +463,7 @@ func (r *ObrigacaoRepository) upsertRelations(ctx context.Context, id string, in
 func (r *ObrigacaoRepository) clearRelations(ctx context.Context, id string) {
 	_, _ = r.pool.Exec(ctx, `DELETE FROM public.tipoempresa_obriga_estado WHERE obrigacao_id = $1`, id)
 	_, _ = r.pool.Exec(ctx, `DELETE FROM public.tipoempresa_obriga_municipio WHERE obrigacao_id = $1`, id)
-	_, _ = r.pool.Exec(ctx, `DELETE FROM public.compromisso_bairro WHERE compromisso_id = $1`, id)
+	_, _ = r.pool.Exec(ctx, `DELETE FROM public.tipoempresa_obriga_bairro WHERE tipoempresa_obrigacao_id = $1`, id)
 }
 
 func obrigacaoNullFloat(v *float64) any {

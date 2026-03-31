@@ -561,7 +561,7 @@ const Empresas = ({ dados }) => {
       data_inicio: inicio,
     })
       .then(({ data }) => {
-        const qtd = data?.itens?.length ?? 0;
+        const qtd = data?.quantidade ?? data?.itens?.length ?? 0;
         toast.current?.show({
           severity: 'success',
           summary: 'Gerar Compromissos',

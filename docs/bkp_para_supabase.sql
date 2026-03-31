@@ -2,12 +2,37 @@
 -- PostgreSQL database dump
 --
 
-\restrict 1nf74cn2cuDbPWQxsgIKFWFo3tUkP6eq5itfQf4MDjPEKsXQDrku7280qgugf9d
+\restrict djJ3u7fqK190Fba53Y9po3GoUrL1flb0tM5AqG8GGrjKMN9hmbHbusCr5VP4XiX
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
 
--- Started on 2026-03-30 08:00:28 -03
+-- Started on 2026-03-31 07:39:18 -03
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE vecontab;
+--
+-- TOC entry 4797 (class 1262 OID 17603)
+-- Name: vecontab; Type: DATABASE; Schema: -; Owner: -
+--
+
+CREATE DATABASE vecontab WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'pt_BR.UTF-8';
+
+
+\unrestrict djJ3u7fqK190Fba53Y9po3GoUrL1flb0tM5AqG8GGrjKMN9hmbHbusCr5VP4XiX
+\connect vecontab
+\restrict djJ3u7fqK190Fba53Y9po3GoUrL1flb0tM5AqG8GGrjKMN9hmbHbusCr5VP4XiX
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -23,17 +48,24 @@ SET row_security = off;
 
 --
 -- TOC entry 5 (class 2615 OID 2200)
--- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
--- *not* creating schema, since initdb creates it
+CREATE SCHEMA public;
 
 
-ALTER SCHEMA public OWNER TO postgres;
+--
+-- TOC entry 4798 (class 0 OID 0)
+-- Dependencies: 5
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
 
 --
 -- TOC entry 894 (class 1247 OID 17605)
--- Name: feriado; Type: TYPE; Schema: public; Owner: postgres
+-- Name: feriado; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.feriado AS ENUM (
@@ -44,11 +76,9 @@ CREATE TYPE public.feriado AS ENUM (
 );
 
 
-ALTER TYPE public.feriado OWNER TO postgres;
-
 --
 -- TOC entry 897 (class 1247 OID 17614)
--- Name: feriado_old; Type: TYPE; Schema: public; Owner: postgres
+-- Name: feriado_old; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.feriado_old AS ENUM (
@@ -60,11 +90,9 @@ CREATE TYPE public.feriado_old AS ENUM (
 );
 
 
-ALTER TYPE public.feriado_old OWNER TO postgres;
-
 --
 -- TOC entry 900 (class 1247 OID 17626)
--- Name: plano; Type: TYPE; Schema: public; Owner: postgres
+-- Name: plano; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.plano AS ENUM (
@@ -75,11 +103,9 @@ CREATE TYPE public.plano AS ENUM (
 );
 
 
-ALTER TYPE public.plano OWNER TO postgres;
-
 --
 -- TOC entry 903 (class 1247 OID 17636)
--- Name: role; Type: TYPE; Schema: public; Owner: postgres
+-- Name: role; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.role AS ENUM (
@@ -93,11 +119,9 @@ CREATE TYPE public.role AS ENUM (
 );
 
 
-ALTER TYPE public.role OWNER TO postgres;
-
 --
 -- TOC entry 906 (class 1247 OID 17652)
--- Name: status; Type: TYPE; Schema: public; Owner: postgres
+-- Name: status; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.status AS ENUM (
@@ -106,11 +130,9 @@ CREATE TYPE public.status AS ENUM (
 );
 
 
-ALTER TYPE public.status OWNER TO postgres;
-
 --
 -- TOC entry 248 (class 1255 OID 17657)
--- Name: calcular_data_termino(date, integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: calcular_data_termino(date, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.calcular_data_termino(inicio date, tempo_estimado integer) RETURNS date
@@ -135,11 +157,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.calcular_data_termino(inicio date, tempo_estimado integer) OWNER TO postgres;
-
 --
 -- TOC entry 265 (class 1255 OID 17658)
--- Name: gerar_agenda(text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: gerar_agenda(text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.gerar_agenda(in_empresa_id text, in_tenant_id text, in_rotina_id text) RETURNS void
@@ -194,11 +214,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.gerar_agenda(in_empresa_id text, in_tenant_id text, in_rotina_id text) OWNER TO postgres;
-
 --
 -- TOC entry 266 (class 1255 OID 17659)
--- Name: gerar_agenda_trigger(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: gerar_agenda_trigger(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.gerar_agenda_trigger() RETURNS trigger
@@ -214,11 +232,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.gerar_agenda_trigger() OWNER TO postgres;
-
 --
 -- TOC entry 267 (class 1255 OID 17660)
--- Name: get_cidades_with_ufs(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: get_cidades_with_ufs(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.get_cidades_with_ufs() RETURNS json
@@ -245,11 +261,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.get_cidades_with_ufs() OWNER TO postgres;
-
 --
 -- TOC entry 268 (class 1255 OID 17661)
--- Name: get_cidades_with_ufs2(character varying, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: get_cidades_with_ufs2(character varying, integer, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.get_cidades_with_ufs2(p_field character varying DEFAULT 'c.name'::character varying, p_order integer DEFAULT 1, p_first integer DEFAULT 0, p_rows integer DEFAULT 20) RETURNS json
@@ -277,11 +291,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.get_cidades_with_ufs2(p_field character varying, p_order integer, p_first integer, p_rows integer) OWNER TO postgres;
-
 --
 -- TOC entry 269 (class 1255 OID 17662)
--- Name: get_passos_nested(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: get_passos_nested(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.get_passos_nested() RETURNS jsonb
@@ -304,11 +316,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.get_passos_nested() OWNER TO postgres;
-
 --
 -- TOC entry 270 (class 1255 OID 17663)
--- Name: get_passos_nested_children(text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: get_passos_nested_children(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.get_passos_nested_children(_parent_id text) RETURNS jsonb
@@ -333,11 +343,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.get_passos_nested_children(_parent_id text) OWNER TO postgres;
-
 --
 -- TOC entry 271 (class 1255 OID 17664)
--- Name: get_passos_recur(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: get_passos_recur(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.get_passos_recur() RETURNS json
@@ -365,15 +373,13 @@ END;
 $$;
 
 
-ALTER FUNCTION public.get_passos_recur() OWNER TO postgres;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
 -- TOC entry 219 (class 1259 OID 17665)
--- Name: estado; Type: TABLE; Schema: public; Owner: postgres
+-- Name: estado; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.estado (
@@ -384,11 +390,9 @@ CREATE TABLE public.estado (
 );
 
 
-ALTER TABLE public.estado OWNER TO postgres;
-
 --
 -- TOC entry 272 (class 1255 OID 17675)
--- Name: getfoo(character varying); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: getfoo(character varying); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.getfoo(character varying) RETURNS SETOF public.estado
@@ -398,11 +402,9 @@ CREATE FUNCTION public.getfoo(character varying) RETURNS SETOF public.estado
 $_$;
 
 
-ALTER FUNCTION public.getfoo(character varying) OWNER TO postgres;
-
 --
 -- TOC entry 249 (class 1255 OID 17676)
--- Name: inserir_passos_na_agenda(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: inserir_passos_na_agenda(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.inserir_passos_na_agenda(empresa_id text, rotina_id text) RETURNS void
@@ -421,11 +423,9 @@ END;
 $_$;
 
 
-ALTER FUNCTION public.inserir_passos_na_agenda(empresa_id text, rotina_id text) OWNER TO postgres;
-
 --
 -- TOC entry 250 (class 1255 OID 17677)
--- Name: nested(integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: nested(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.nested(_id integer) RETURNS jsonb
@@ -451,11 +451,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.nested(_id integer) OWNER TO postgres;
-
 --
 -- TOC entry 251 (class 1255 OID 17678)
--- Name: r(integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: r(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.r(_id integer) RETURNS jsonb
@@ -481,11 +479,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.r(_id integer) OWNER TO postgres;
-
 --
 -- TOC entry 252 (class 1255 OID 17679)
--- Name: recur(integer); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: recur(integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.recur(_id integer) RETURNS jsonb
@@ -511,11 +507,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.recur(_id integer) OWNER TO postgres;
-
 --
 -- TOC entry 253 (class 1255 OID 17680)
--- Name: recursive_example(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: recursive_example(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.recursive_example() RETURNS TABLE(id integer, value text)
@@ -535,11 +529,9 @@ END;
 $$;
 
 
-ALTER FUNCTION public.recursive_example() OWNER TO postgres;
-
 --
 -- TOC entry 220 (class 1259 OID 17681)
--- Name: agenda; Type: TABLE; Schema: public; Owner: postgres
+-- Name: agenda; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.agenda (
@@ -556,11 +548,9 @@ CREATE TABLE public.agenda (
 );
 
 
-ALTER TABLE public.agenda OWNER TO postgres;
-
 --
 -- TOC entry 221 (class 1259 OID 17696)
--- Name: agendaitens; Type: TABLE; Schema: public; Owner: postgres
+-- Name: agendaitens; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.agendaitens (
@@ -573,11 +563,9 @@ CREATE TABLE public.agendaitens (
 );
 
 
-ALTER TABLE public.agendaitens OWNER TO postgres;
-
 --
 -- TOC entry 222 (class 1259 OID 17707)
--- Name: cnae; Type: TABLE; Schema: public; Owner: postgres
+-- Name: cnae; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.cnae (
@@ -588,11 +576,9 @@ CREATE TABLE public.cnae (
 );
 
 
-ALTER TABLE public.cnae OWNER TO postgres;
-
 --
 -- TOC entry 244 (class 1259 OID 27527)
--- Name: compromisso_bairro; Type: TABLE; Schema: public; Owner: postgres
+-- Name: compromisso_bairro; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.compromisso_bairro (
@@ -602,59 +588,9 @@ CREATE TABLE public.compromisso_bairro (
 );
 
 
-ALTER TABLE public.compromisso_bairro OWNER TO postgres;
-
---
--- TOC entry 242 (class 1259 OID 27489)
--- Name: compromisso_estado; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.compromisso_estado (
-    compromisso_id uuid NOT NULL,
-    estado_id text NOT NULL
-);
-
-
-ALTER TABLE public.compromisso_estado OWNER TO postgres;
-
---
--- TOC entry 241 (class 1259 OID 27358)
--- Name: compromisso_financeiro; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.compromisso_financeiro (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    descricao character varying(255) NOT NULL,
-    periodicidade character varying(20) DEFAULT 'MENSAL'::character varying NOT NULL,
-    abrangencia character varying(20) DEFAULT 'FEDERAL'::character varying NOT NULL,
-    valor numeric(15,2),
-    observacao text,
-    ativo boolean DEFAULT true NOT NULL,
-    criado_em timestamp with time zone DEFAULT now() NOT NULL,
-    atualizado_em timestamp with time zone DEFAULT now() NOT NULL,
-    tipo_empresa_id text,
-    natureza character varying(20) DEFAULT 'FINANCEIRO'::character varying NOT NULL
-);
-
-
-ALTER TABLE public.compromisso_financeiro OWNER TO postgres;
-
---
--- TOC entry 243 (class 1259 OID 27508)
--- Name: compromisso_municipio; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.compromisso_municipio (
-    compromisso_id uuid NOT NULL,
-    municipio_id text NOT NULL
-);
-
-
-ALTER TABLE public.compromisso_municipio OWNER TO postgres;
-
 --
 -- TOC entry 223 (class 1259 OID 17718)
--- Name: dadoscomplementares; Type: TABLE; Schema: public; Owner: postgres
+-- Name: dadoscomplementares; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.dadoscomplementares (
@@ -677,11 +613,9 @@ CREATE TABLE public.dadoscomplementares (
 );
 
 
-ALTER TABLE public.dadoscomplementares OWNER TO postgres;
-
 --
 -- TOC entry 224 (class 1259 OID 17728)
--- Name: empresa; Type: TABLE; Schema: public; Owner: postgres
+-- Name: empresa; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.empresa (
@@ -699,11 +633,9 @@ CREATE TABLE public.empresa (
 );
 
 
-ALTER TABLE public.empresa OWNER TO postgres;
-
 --
 -- TOC entry 246 (class 1259 OID 28766)
--- Name: empresa_agenda; Type: TABLE; Schema: public; Owner: postgres
+-- Name: empresa_agenda; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.empresa_agenda (
@@ -719,11 +651,9 @@ CREATE TABLE public.empresa_agenda (
 );
 
 
-ALTER TABLE public.empresa_agenda OWNER TO postgres;
-
 --
 -- TOC entry 247 (class 1259 OID 28851)
--- Name: empresa_compromissos; Type: TABLE; Schema: public; Owner: postgres
+-- Name: empresa_compromissos; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.empresa_compromissos (
@@ -734,18 +664,16 @@ CREATE TABLE public.empresa_compromissos (
     observacao text,
     status character varying(20) DEFAULT 'pendente'::character varying NOT NULL,
     empresa_id text NOT NULL,
-    compromisso_financeiro_id uuid NOT NULL,
+    tipoempresa_obrigacao_id uuid CONSTRAINT empresa_compromissos_compromisso_financeiro_id_not_null NOT NULL,
     criado_em timestamp with time zone DEFAULT now() NOT NULL,
     atualizado_em timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT chk_empresa_compromissos_status CHECK (((status)::text = ANY ((ARRAY['pendente'::character varying, 'concluido'::character varying])::text[])))
 );
 
 
-ALTER TABLE public.empresa_compromissos OWNER TO postgres;
-
 --
 -- TOC entry 225 (class 1259 OID 17742)
--- Name: empresacnae; Type: TABLE; Schema: public; Owner: postgres
+-- Name: empresacnae; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.empresacnae (
@@ -754,11 +682,9 @@ CREATE TABLE public.empresacnae (
 );
 
 
-ALTER TABLE public.empresacnae OWNER TO postgres;
-
 --
 -- TOC entry 226 (class 1259 OID 17749)
--- Name: empresadados; Type: TABLE; Schema: public; Owner: postgres
+-- Name: empresadados; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.empresadados (
@@ -772,11 +698,9 @@ CREATE TABLE public.empresadados (
 );
 
 
-ALTER TABLE public.empresadados OWNER TO postgres;
-
 --
 -- TOC entry 227 (class 1259 OID 17757)
--- Name: feriado_estadual; Type: TABLE; Schema: public; Owner: postgres
+-- Name: feriado_estadual; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.feriado_estadual (
@@ -785,11 +709,9 @@ CREATE TABLE public.feriado_estadual (
 );
 
 
-ALTER TABLE public.feriado_estadual OWNER TO postgres;
-
 --
 -- TOC entry 228 (class 1259 OID 17764)
--- Name: feriado_municipal; Type: TABLE; Schema: public; Owner: postgres
+-- Name: feriado_municipal; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.feriado_municipal (
@@ -798,11 +720,9 @@ CREATE TABLE public.feriado_municipal (
 );
 
 
-ALTER TABLE public.feriado_municipal OWNER TO postgres;
-
 --
 -- TOC entry 229 (class 1259 OID 17771)
--- Name: feriados; Type: TABLE; Schema: public; Owner: postgres
+-- Name: feriados; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.feriados (
@@ -814,11 +734,9 @@ CREATE TABLE public.feriados (
 );
 
 
-ALTER TABLE public.feriados OWNER TO postgres;
-
 --
 -- TOC entry 230 (class 1259 OID 17783)
--- Name: grupopassos; Type: TABLE; Schema: public; Owner: postgres
+-- Name: grupopassos; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.grupopassos (
@@ -832,11 +750,9 @@ CREATE TABLE public.grupopassos (
 );
 
 
-ALTER TABLE public.grupopassos OWNER TO postgres;
-
 --
 -- TOC entry 231 (class 1259 OID 17799)
--- Name: itenspassos; Type: TABLE; Schema: public; Owner: postgres
+-- Name: itenspassos; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.itenspassos (
@@ -846,11 +762,9 @@ CREATE TABLE public.itenspassos (
 );
 
 
-ALTER TABLE public.itenspassos OWNER TO postgres;
-
 --
 -- TOC entry 232 (class 1259 OID 17808)
--- Name: linkpassos; Type: TABLE; Schema: public; Owner: postgres
+-- Name: linkpassos; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.linkpassos (
@@ -859,11 +773,9 @@ CREATE TABLE public.linkpassos (
 );
 
 
-ALTER TABLE public.linkpassos OWNER TO postgres;
-
 --
 -- TOC entry 233 (class 1259 OID 17815)
--- Name: municipio; Type: TABLE; Schema: public; Owner: postgres
+-- Name: municipio; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.municipio (
@@ -875,11 +787,9 @@ CREATE TABLE public.municipio (
 );
 
 
-ALTER TABLE public.municipio OWNER TO postgres;
-
 --
 -- TOC entry 234 (class 1259 OID 17826)
--- Name: passos; Type: TABLE; Schema: public; Owner: postgres
+-- Name: passos; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.passos (
@@ -894,11 +804,9 @@ CREATE TABLE public.passos (
 );
 
 
-ALTER TABLE public.passos OWNER TO postgres;
-
 --
 -- TOC entry 235 (class 1259 OID 17842)
--- Name: rotinaitemlink; Type: TABLE; Schema: public; Owner: postgres
+-- Name: rotinaitemlink; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.rotinaitemlink (
@@ -907,11 +815,9 @@ CREATE TABLE public.rotinaitemlink (
 );
 
 
-ALTER TABLE public.rotinaitemlink OWNER TO postgres;
-
 --
 -- TOC entry 236 (class 1259 OID 17848)
--- Name: rotinaitens; Type: TABLE; Schema: public; Owner: postgres
+-- Name: rotinaitens; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.rotinaitens (
@@ -921,11 +827,9 @@ CREATE TABLE public.rotinaitens (
 );
 
 
-ALTER TABLE public.rotinaitens OWNER TO postgres;
-
 --
 -- TOC entry 237 (class 1259 OID 17855)
--- Name: rotinas; Type: TABLE; Schema: public; Owner: postgres
+-- Name: rotinas; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.rotinas (
@@ -937,11 +841,9 @@ CREATE TABLE public.rotinas (
 );
 
 
-ALTER TABLE public.rotinas OWNER TO postgres;
-
 --
 -- TOC entry 238 (class 1259 OID 17866)
--- Name: tenant; Type: TABLE; Schema: public; Owner: postgres
+-- Name: tenant; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.tenant (
@@ -955,11 +857,9 @@ CREATE TABLE public.tenant (
 );
 
 
-ALTER TABLE public.tenant OWNER TO postgres;
-
 --
 -- TOC entry 239 (class 1259 OID 17882)
--- Name: tipoempresa; Type: TABLE; Schema: public; Owner: postgres
+-- Name: tipoempresa; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.tipoempresa (
@@ -971,32 +871,72 @@ CREATE TABLE public.tipoempresa (
 );
 
 
-ALTER TABLE public.tipoempresa OWNER TO postgres;
-
 --
--- TOC entry 245 (class 1259 OID 28738)
--- Name: tipoempresa_obrigacao; Type: TABLE; Schema: public; Owner: postgres
+-- TOC entry 242 (class 1259 OID 27489)
+-- Name: tipoempresa_obriga_estado; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.tipoempresa_obrigacao (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    tipo_empresa_id text NOT NULL,
-    descricao character varying(255) NOT NULL,
-    dia_base integer DEFAULT 20 NOT NULL,
-    mes_base integer,
-    frequencia character varying(10) DEFAULT 'MENSAL'::character varying NOT NULL,
-    tipo character varying(15) DEFAULT 'TRIBUTO'::character varying NOT NULL,
-    ativo boolean DEFAULT true NOT NULL,
-    criado_em timestamp with time zone DEFAULT now() NOT NULL,
-    atualizado_em timestamp with time zone DEFAULT now() NOT NULL
+CREATE TABLE public.tipoempresa_obriga_estado (
+    obrigacao_id uuid CONSTRAINT compromisso_estado_compromisso_id_not_null NOT NULL,
+    estado_id text CONSTRAINT compromisso_estado_estado_id_not_null NOT NULL
 );
 
 
-ALTER TABLE public.tipoempresa_obrigacao OWNER TO postgres;
+--
+-- TOC entry 243 (class 1259 OID 27508)
+-- Name: tipoempresa_obriga_municipio; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tipoempresa_obriga_municipio (
+    obrigacao_id uuid CONSTRAINT compromisso_municipio_compromisso_id_not_null NOT NULL,
+    municipio_id text CONSTRAINT compromisso_municipio_municipio_id_not_null NOT NULL
+);
+
+
+--
+-- TOC entry 241 (class 1259 OID 27358)
+-- Name: tipoempresa_obrigacao; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tipoempresa_obrigacao (
+    id uuid DEFAULT gen_random_uuid() CONSTRAINT compromisso_financeiro_id_not_null NOT NULL,
+    descricao character varying(255) CONSTRAINT compromisso_financeiro_descricao_not_null NOT NULL,
+    periodicidade character varying(20) DEFAULT 'MENSAL'::character varying CONSTRAINT compromisso_financeiro_periodicidade_not_null NOT NULL,
+    abrangencia character varying(20) DEFAULT 'FEDERAL'::character varying CONSTRAINT compromisso_financeiro_abrangencia_not_null NOT NULL,
+    valor numeric(15,2),
+    observacao text,
+    ativo boolean DEFAULT true CONSTRAINT compromisso_financeiro_ativo_not_null NOT NULL,
+    criado_em timestamp with time zone DEFAULT now() CONSTRAINT compromisso_financeiro_criado_em_not_null NOT NULL,
+    atualizado_em timestamp with time zone DEFAULT now() CONSTRAINT compromisso_financeiro_atualizado_em_not_null NOT NULL,
+    tipo_empresa_id text,
+    dia_base numeric DEFAULT 20 CONSTRAINT compromisso_financeiro_dia_base_not_null NOT NULL,
+    mes_base character varying(20),
+    tipo_classificacao character varying(15)
+);
+
+
+--
+-- TOC entry 245 (class 1259 OID 28738)
+-- Name: tipoempresa_obrigacao_old; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tipoempresa_obrigacao_old (
+    id uuid DEFAULT gen_random_uuid() CONSTRAINT tipoempresa_obrigacao_id_not_null NOT NULL,
+    tipo_empresa_id text CONSTRAINT tipoempresa_obrigacao_tipo_empresa_id_not_null NOT NULL,
+    descricao character varying(255) CONSTRAINT tipoempresa_obrigacao_descricao_not_null NOT NULL,
+    dia_base integer DEFAULT 20 CONSTRAINT tipoempresa_obrigacao_dia_base_not_null NOT NULL,
+    mes_base integer,
+    frequencia character varying(10) DEFAULT 'MENSAL'::character varying CONSTRAINT tipoempresa_obrigacao_frequencia_not_null NOT NULL,
+    tipo character varying(15) DEFAULT 'TRIBUTO'::character varying CONSTRAINT tipoempresa_obrigacao_tipo_not_null NOT NULL,
+    ativo boolean DEFAULT true CONSTRAINT tipoempresa_obrigacao_ativo_not_null NOT NULL,
+    criado_em timestamp with time zone DEFAULT now() CONSTRAINT tipoempresa_obrigacao_criado_em_not_null NOT NULL,
+    atualizado_em timestamp with time zone DEFAULT now() CONSTRAINT tipoempresa_obrigacao_atualizado_em_not_null NOT NULL
+);
+
 
 --
 -- TOC entry 240 (class 1259 OID 17890)
--- Name: usuario; Type: TABLE; Schema: public; Owner: postgres
+-- Name: usuario; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.usuario (
@@ -1012,12 +952,10 @@ CREATE TABLE public.usuario (
 );
 
 
-ALTER TABLE public.usuario OWNER TO postgres;
-
 --
--- TOC entry 4763 (class 0 OID 17681)
+-- TOC entry 4764 (class 0 OID 17681)
 -- Dependencies: 220
--- Data for Name: agenda; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: agenda; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.agenda (id, inicio, descricao, status, tenant_id, createdat, updatedat, empresa_id, rotina_id, termino) FROM stdin;
@@ -1031,9 +969,9 @@ e046dbb2-bfc7-49af-be92-924810821ab3	2023-09-22	\N	passos_concluidos	5bf1a2bc-b3
 
 
 --
--- TOC entry 4764 (class 0 OID 17696)
+-- TOC entry 4765 (class 0 OID 17696)
 -- Dependencies: 221
--- Data for Name: agendaitens; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: agendaitens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.agendaitens (id, agenda_id, passo_id, inicio, termino, concluido) FROM stdin;
@@ -1065,9 +1003,9 @@ ef3f73f9-34d1-4d83-8eba-ff1941ea2ada	1ea777c7-574e-4b84-82b0-e0db28344ffc	5047a6
 
 
 --
--- TOC entry 4765 (class 0 OID 17707)
+-- TOC entry 4766 (class 0 OID 17707)
 -- Dependencies: 222
--- Data for Name: cnae; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: cnae; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.cnae (id, subclasse, denominacao, ativo) FROM stdin;
@@ -1077,73 +1015,19 @@ COPY public.cnae (id, subclasse, denominacao, ativo) FROM stdin;
 
 
 --
--- TOC entry 4787 (class 0 OID 27527)
+-- TOC entry 4788 (class 0 OID 27527)
 -- Dependencies: 244
--- Data for Name: compromisso_bairro; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: compromisso_bairro; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.compromisso_bairro (compromisso_id, municipio_id, bairro) FROM stdin;
-93c6a4dc-ae55-431a-b0d8-b69bc237875f	4a8647d1-06c8-4616-85be-3f6399949ed3	CENTRO
-87a3300d-60a2-4d87-9e48-702ab9ad1ced	4a8647d1-06c8-4616-85be-3f6399949ed3	CENTRO
-e85d3da6-fac6-4f01-95af-0cbe67576089	4a8647d1-06c8-4616-85be-3f6399949ed3	CENTRO
-bce1f085-fdc7-4054-a20f-09ad6f22e2a6	4a8647d1-06c8-4616-85be-3f6399949ed3	CENTRO
 \.
 
 
 --
--- TOC entry 4785 (class 0 OID 27489)
--- Dependencies: 242
--- Data for Name: compromisso_estado; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.compromisso_estado (compromisso_id, estado_id) FROM stdin;
-7a6e69c2-57e6-4beb-9ec1-e3424a7a2d8d	59e0036a-4269-4297-a30a-d86a54dc4b7c
-c603a3c5-10ee-4b14-a122-b7473ece1fa5	59e0036a-4269-4297-a30a-d86a54dc4b7c
-5d3189ad-0395-490f-a929-b4f8675bad4e	59e0036a-4269-4297-a30a-d86a54dc4b7c
-f3d85f25-31d0-4cdc-93f9-c9a9818e65c7	59e0036a-4269-4297-a30a-d86a54dc4b7c
-\.
-
-
---
--- TOC entry 4784 (class 0 OID 27358)
--- Dependencies: 241
--- Data for Name: compromisso_financeiro; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.compromisso_financeiro (id, descricao, periodicidade, abrangencia, valor, observacao, ativo, criado_em, atualizado_em, tipo_empresa_id, natureza) FROM stdin;
-5d3189ad-0395-490f-a929-b4f8675bad4e	Compromisso estadual mensal nao financeiro	MENSAL	ESTADUAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	NAO_FINANCEIRO
-f3d85f25-31d0-4cdc-93f9-c9a9818e65c7	Compromisso estadual anual nao financeiro	ANUAL	ESTADUAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	NAO_FINANCEIRO
-9a9af32b-a611-46ea-9acc-abce4ab662ec	Compromisso municipal mensal nao financeiro	MENSAL	MUNICIPAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	NAO_FINANCEIRO
-4acf5849-2a62-4390-b7b8-b0a2920113f0	Compromisso municipal anual nao financeiro	ANUAL	MUNICIPAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	NAO_FINANCEIRO
-93c6a4dc-ae55-431a-b0d8-b69bc237875f	Compromisso bairro mensal nao financeiro	MENSAL	BAIRRO	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	NAO_FINANCEIRO
-87a3300d-60a2-4d87-9e48-702ab9ad1ced	Compromisso bairro anual nao financeiro	ANUAL	BAIRRO	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	NAO_FINANCEIRO
-e85d3da6-fac6-4f01-95af-0cbe67576089	Compromisso bairro mensal financeiro	MENSAL	BAIRRO	200.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:58:59.667472-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	FINANCEIRO
-bce1f085-fdc7-4054-a20f-09ad6f22e2a6	Compromisso bairro anual financeiro	ANUAL	BAIRRO	200.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:59:12.283385-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	FINANCEIRO
-7a6e69c2-57e6-4beb-9ec1-e3424a7a2d8d	Compromisso estadual mensal financeiro	MENSAL	ESTADUAL	100.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	FINANCEIRO
-c603a3c5-10ee-4b14-a122-b7473ece1fa5	Compromisso estadual anual financeiro	ANUAL	ESTADUAL	110.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	FINANCEIRO
-cf548021-bc2d-4091-8f1a-087918e5f577	Compromisso municipal mensal financeiro	MENSAL	MUNICIPAL	120.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	FINANCEIRO
-e7873d49-a38d-48bd-aa59-268d943625e3	Compromisso municipal anual financeiro	ANUAL	MUNICIPAL	130.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	FINANCEIRO
-\.
-
-
---
--- TOC entry 4786 (class 0 OID 27508)
--- Dependencies: 243
--- Data for Name: compromisso_municipio; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.compromisso_municipio (compromisso_id, municipio_id) FROM stdin;
-cf548021-bc2d-4091-8f1a-087918e5f577	4a8647d1-06c8-4616-85be-3f6399949ed3
-e7873d49-a38d-48bd-aa59-268d943625e3	4a8647d1-06c8-4616-85be-3f6399949ed3
-9a9af32b-a611-46ea-9acc-abce4ab662ec	4a8647d1-06c8-4616-85be-3f6399949ed3
-4acf5849-2a62-4390-b7b8-b0a2920113f0	4a8647d1-06c8-4616-85be-3f6399949ed3
-\.
-
-
---
--- TOC entry 4766 (class 0 OID 17718)
+-- TOC entry 4767 (class 0 OID 17718)
 -- Dependencies: 223
--- Data for Name: dadoscomplementares; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: dadoscomplementares; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.dadoscomplementares (endereco, bairro, cidade, estado, cep, telefone, email, cnpj, ie, im, tenantid, createdat, updatedat, fantasia, razaosocial, observacoes) FROM stdin;
@@ -1157,9 +1041,9 @@ Rua das Curruiras, 175	Campeche	Florianópolis	SC	88063091	48 988151381	chayimam
 
 
 --
--- TOC entry 4767 (class 0 OID 17728)
+-- TOC entry 4768 (class 0 OID 17728)
 -- Dependencies: 224
--- Data for Name: empresa; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: empresa; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.empresa (id, nome, municipio_id, dataabertura, datafechamento, ativo, tenant_id, rotina_id, cnaes, iniciado, bairro) FROM stdin;
@@ -1176,9 +1060,9 @@ a0ef2dad-5f65-4821-bbf2-034477183f44	Empresa Teste	abfd20e5-d561-4c44-ba42-ae194
 
 
 --
--- TOC entry 4789 (class 0 OID 28766)
+-- TOC entry 4790 (class 0 OID 28766)
 -- Dependencies: 246
--- Data for Name: empresa_agenda; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: empresa_agenda; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.empresa_agenda (id, empresa_id, template_id, descricao, data_vencimento, status, valor_estimado, criado_em, atualizado_em) FROM stdin;
@@ -1186,19 +1070,19 @@ COPY public.empresa_agenda (id, empresa_id, template_id, descricao, data_vencime
 
 
 --
--- TOC entry 4790 (class 0 OID 28851)
+-- TOC entry 4791 (class 0 OID 28851)
 -- Dependencies: 247
--- Data for Name: empresa_compromissos; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: empresa_compromissos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.empresa_compromissos (id, descricao, valor, vencimento, observacao, status, empresa_id, compromisso_financeiro_id, criado_em, atualizado_em) FROM stdin;
+COPY public.empresa_compromissos (id, descricao, valor, vencimento, observacao, status, empresa_id, tipoempresa_obrigacao_id, criado_em, atualizado_em) FROM stdin;
 \.
 
 
 --
--- TOC entry 4768 (class 0 OID 17742)
+-- TOC entry 4769 (class 0 OID 17742)
 -- Dependencies: 225
--- Data for Name: empresacnae; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: empresacnae; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.empresacnae (empresa, cnae) FROM stdin;
@@ -1206,9 +1090,9 @@ COPY public.empresacnae (empresa, cnae) FROM stdin;
 
 
 --
--- TOC entry 4769 (class 0 OID 17749)
+-- TOC entry 4770 (class 0 OID 17749)
 -- Dependencies: 226
--- Data for Name: empresadados; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: empresadados; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.empresadados (id, razaosocial, fantasia, cnpj, ie, im, empresaid) FROM stdin;
@@ -1216,9 +1100,9 @@ COPY public.empresadados (id, razaosocial, fantasia, cnpj, ie, im, empresaid) FR
 
 
 --
--- TOC entry 4762 (class 0 OID 17665)
+-- TOC entry 4763 (class 0 OID 17665)
 -- Dependencies: 219
--- Data for Name: estado; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: estado; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.estado (id, nome, sigla, ativo) FROM stdin;
@@ -1260,9 +1144,9 @@ c79b80a5-7877-40ba-9b01-408f411ac5bf	Rio Grande do Centro	RC	f
 
 
 --
--- TOC entry 4770 (class 0 OID 17757)
+-- TOC entry 4771 (class 0 OID 17757)
 -- Dependencies: 227
--- Data for Name: feriado_estadual; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: feriado_estadual; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.feriado_estadual (feriado_id, uf_id) FROM stdin;
@@ -1272,9 +1156,9 @@ d9002885-b6e2-423d-a524-90be59cf1c94	0eacb915-f4a3-41dc-982e-e8c281a2a33c\n
 
 
 --
--- TOC entry 4771 (class 0 OID 17764)
+-- TOC entry 4772 (class 0 OID 17764)
 -- Dependencies: 228
--- Data for Name: feriado_municipal; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: feriado_municipal; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.feriado_municipal (feriado_id, municipio_id) FROM stdin;
@@ -1289,9 +1173,9 @@ c587121e-8c81-4a33-8d11-ea586c11d33e	5e6b9b79-66ce-4119-af61-1fdf141c085b
 
 
 --
--- TOC entry 4772 (class 0 OID 17771)
+-- TOC entry 4773 (class 0 OID 17771)
 -- Dependencies: 229
--- Data for Name: feriados; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: feriados; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.feriados (id, descricao, data, ativo, feriado) FROM stdin;
@@ -1313,9 +1197,9 @@ c587121e-8c81-4a33-8d11-ea586c11d33e	Aiversário Curitiba	29/03	t	MUNICIPAL
 
 
 --
--- TOC entry 4773 (class 0 OID 17783)
+-- TOC entry 4774 (class 0 OID 17783)
 -- Dependencies: 230
--- Data for Name: grupopassos; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: grupopassos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.grupopassos (id, descricao, municipio_id, createdat, updatedat, tipoempresa_id, ativo) FROM stdin;
@@ -1328,9 +1212,9 @@ f18a4388-252e-41a7-a0da-14e4061539d9	Guarujá MEI	4a8647d1-06c8-4616-85be-3f6399
 
 
 --
--- TOC entry 4774 (class 0 OID 17799)
+-- TOC entry 4775 (class 0 OID 17799)
 -- Dependencies: 231
--- Data for Name: itenspassos; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: itenspassos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.itenspassos (id, grupopassos_id, passos_id) FROM stdin;
@@ -1340,9 +1224,9 @@ e592d7a5-7c8f-4115-828c-78aba53f8d20	8de1301f-ba9d-41d8-b391-db9e0b56ab9c	7b3594
 
 
 --
--- TOC entry 4775 (class 0 OID 17808)
+-- TOC entry 4776 (class 0 OID 17808)
 -- Dependencies: 232
--- Data for Name: linkpassos; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: linkpassos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.linkpassos (passo_id, link) FROM stdin;
@@ -1356,9 +1240,9 @@ d4ededcb-b5a2-402a-90e6-f4db735beb29	www.biguacu.sc.gov.br
 
 
 --
--- TOC entry 4776 (class 0 OID 17815)
+-- TOC entry 4777 (class 0 OID 17815)
 -- Dependencies: 233
--- Data for Name: municipio; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: municipio; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.municipio (id, nome, codigo, ufid, ativo) FROM stdin;
@@ -1374,9 +1258,9 @@ f5531987-ec10-4099-b940-b9bde36c0b16	Antonio Carlos	654321456	502caf63-be95-472f
 
 
 --
--- TOC entry 4777 (class 0 OID 17826)
+-- TOC entry 4778 (class 0 OID 17826)
 -- Dependencies: 234
--- Data for Name: passos; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: passos; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.passos (id, descricao, tempoestimado, createdat, updatedat, tipopasso, ativo, municipio_id) FROM stdin;
@@ -1403,9 +1287,9 @@ a13f2be9-4098-4a46-991e-2979f6dfc280	Enviar email (a quem de direito)	1	2023-09-
 
 
 --
--- TOC entry 4778 (class 0 OID 17842)
+-- TOC entry 4779 (class 0 OID 17842)
 -- Dependencies: 235
--- Data for Name: rotinaitemlink; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: rotinaitemlink; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.rotinaitemlink (rotinaitem_id, link) FROM stdin;
@@ -1415,9 +1299,9 @@ a5ee4f4e-9a78-4e4b-a02c-b379734699c3	www.jucesc.sc.gov.br
 
 
 --
--- TOC entry 4779 (class 0 OID 17848)
+-- TOC entry 4780 (class 0 OID 17848)
 -- Dependencies: 236
--- Data for Name: rotinaitens; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: rotinaitens; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.rotinaitens (rotina_id, passo_id, ordem) FROM stdin;
@@ -1472,9 +1356,9 @@ ed925e14-d150-434f-b287-7154d67c1d0a	e58d4218-1fa0-4a8a-a80f-fdb5ef245bef	1
 
 
 --
--- TOC entry 4780 (class 0 OID 17855)
+-- TOC entry 4781 (class 0 OID 17855)
 -- Dependencies: 237
--- Data for Name: rotinas; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: rotinas; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.rotinas (id, descricao, municipio_id, ativo, tipo_empresa_id) FROM stdin;
@@ -1493,9 +1377,9 @@ e4fa2d00-bea7-4718-be6b-0c7608de7bb6	Teste pós Refactoring	f5531987-ec10-4099-b
 
 
 --
--- TOC entry 4781 (class 0 OID 17866)
+-- TOC entry 4782 (class 0 OID 17866)
 -- Dependencies: 238
--- Data for Name: tenant; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: tenant; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.tenant (id, nome, contato, active, createdat, updatedat, plano) FROM stdin;
@@ -1527,9 +1411,9 @@ c0b38958-8832-465d-9efa-812185c2fb1a	\N	Eduardo Amaral	t	2023-07-04 14:06:37.913
 
 
 --
--- TOC entry 4782 (class 0 OID 17882)
+-- TOC entry 4783 (class 0 OID 17882)
 -- Dependencies: 239
--- Data for Name: tipoempresa; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: tipoempresa; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.tipoempresa (descricao, capital, anual, ativo, id) FROM stdin;
@@ -1543,23 +1427,77 @@ LTDA - Sociedade Empresária Limitada	\N	\N	t	190016eb-d7df-419c-a203-fbdec2e6f3
 
 
 --
--- TOC entry 4788 (class 0 OID 28738)
--- Dependencies: 245
--- Data for Name: tipoempresa_obrigacao; Type: TABLE DATA; Schema: public; Owner: postgres
+-- TOC entry 4786 (class 0 OID 27489)
+-- Dependencies: 242
+-- Data for Name: tipoempresa_obriga_estado; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.tipoempresa_obrigacao (id, tipo_empresa_id, descricao, dia_base, mes_base, frequencia, tipo, ativo, criado_em, atualizado_em) FROM stdin;
-d64a947a-46e4-4a66-b40c-3da0670c34d6	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Compromisso Mensal	5	4	MENSAL	TRIBUTO	t	2026-03-28 16:10:34.188739-03	2026-03-28 16:10:34.188739-03
-86adf4d1-d6d2-409d-a55d-34f26b51aafb	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Comrpomisso teste Anual	20	4	ANUAL	TRIBUTO	t	2026-03-28 16:11:05.825873-03	2026-03-28 16:11:05.825873-03
-db735fe7-72ca-47b9-a034-15acc166ec92	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Compromisso Mensal apenas informativo 	5	4	MENSAL	INFORMATIVA	t	2026-03-28 16:11:57.545202-03	2026-03-28 16:11:57.545202-03
-ccabfb5d-6921-440f-826c-359943414fbd	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Novo teste de compromisso informativo anual	5	4	ANUAL	INFORMATIVA	t	2026-03-28 16:12:21.599454-03	2026-03-28 16:12:21.599454-03
+COPY public.tipoempresa_obriga_estado (obrigacao_id, estado_id) FROM stdin;
+7a6e69c2-57e6-4beb-9ec1-e3424a7a2d8d	59e0036a-4269-4297-a30a-d86a54dc4b7c
+5d3189ad-0395-490f-a929-b4f8675bad4e	59e0036a-4269-4297-a30a-d86a54dc4b7c
+f3d85f25-31d0-4cdc-93f9-c9a9818e65c7	59e0036a-4269-4297-a30a-d86a54dc4b7c
+c603a3c5-10ee-4b14-a122-b7473ece1fa5	59e0036a-4269-4297-a30a-d86a54dc4b7c
 \.
 
 
 --
--- TOC entry 4783 (class 0 OID 17890)
+-- TOC entry 4787 (class 0 OID 27508)
+-- Dependencies: 243
+-- Data for Name: tipoempresa_obriga_municipio; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.tipoempresa_obriga_municipio (obrigacao_id, municipio_id) FROM stdin;
+cf548021-bc2d-4091-8f1a-087918e5f577	4a8647d1-06c8-4616-85be-3f6399949ed3
+9a9af32b-a611-46ea-9acc-abce4ab662ec	4a8647d1-06c8-4616-85be-3f6399949ed3
+4acf5849-2a62-4390-b7b8-b0a2920113f0	4a8647d1-06c8-4616-85be-3f6399949ed3
+e7873d49-a38d-48bd-aa59-268d943625e3	4a8647d1-06c8-4616-85be-3f6399949ed3
+93c6a4dc-ae55-431a-b0d8-b69bc237875f	4a8647d1-06c8-4616-85be-3f6399949ed3
+bce1f085-fdc7-4054-a20f-09ad6f22e2a6	4a8647d1-06c8-4616-85be-3f6399949ed3
+e85d3da6-fac6-4f01-95af-0cbe67576089	4a8647d1-06c8-4616-85be-3f6399949ed3
+\.
+
+
+--
+-- TOC entry 4785 (class 0 OID 27358)
+-- Dependencies: 241
+-- Data for Name: tipoempresa_obrigacao; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.tipoempresa_obrigacao (id, descricao, periodicidade, abrangencia, valor, observacao, ativo, criado_em, atualizado_em, tipo_empresa_id, dia_base, mes_base, tipo_classificacao) FROM stdin;
+93c6a4dc-ae55-431a-b0d8-b69bc237875f	Compromisso bairro mensal nao financeiro	MENSAL	MUNICIPAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-30 18:25:14.268504-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	INFORMATIVA
+bce1f085-fdc7-4054-a20f-09ad6f22e2a6	Compromisso bairro anual financeiro	ANUAL	MUNICIPAL	200.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-30 18:27:34.765519-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	TRIBUTARIA
+cf548021-bc2d-4091-8f1a-087918e5f577	Compromisso municipal mensal financeiro	MENSAL	MUNICIPAL	120.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	TRIBUTARIA
+e7873d49-a38d-48bd-aa59-268d943625e3	Compromisso municipal anual financeiro	ANUAL	MUNICIPAL	130.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-30 14:10:36.379865-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	TRIBUTARIA
+e85d3da6-fac6-4f01-95af-0cbe67576089	Compromisso bairro mensal financeiro	MENSAL	MUNICIPAL	200.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-30 18:39:14.692931-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	TRIBUTO
+c603a3c5-10ee-4b14-a122-b7473ece1fa5	Compromisso estadual anual financeiro	ANUAL	ESTADUAL	110.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-30 19:20:19.374854-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	TRIBUTARIA
+4acf5849-2a62-4390-b7b8-b0a2920113f0	Compromisso municipal anual nao financeiro	ANUAL	MUNICIPAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	INFORMATIVA
+5d3189ad-0395-490f-a929-b4f8675bad4e	Compromisso estadual mensal nao financeiro	MENSAL	ESTADUAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	INFORMATIVA
+9a9af32b-a611-46ea-9acc-abce4ab662ec	Compromisso municipal mensal nao financeiro	MENSAL	MUNICIPAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	INFORMATIVA
+f3d85f25-31d0-4cdc-93f9-c9a9818e65c7	Compromisso estadual anual nao financeiro	ANUAL	ESTADUAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	INFORMATIVA
+87a3300d-60a2-4d87-9e48-702ab9ad1ced	Compromisso bairro anual nao financeiro	ANUAL	MUNICIPAL	\N	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-30 18:28:23.579697-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	INFORMATIVA
+7a6e69c2-57e6-4beb-9ec1-e3424a7a2d8d	Compromisso estadual mensal financeiro	MENSAL	ESTADUAL	100.00	Seed automatico MEI - abrangencia local.	t	2026-03-27 10:43:14.959813-03	2026-03-27 10:43:14.959813-03	21a4bf05-3100-41e2-a3b2-e59ff67fc897	20	4	TRIBUTARIA
+\.
+
+
+--
+-- TOC entry 4789 (class 0 OID 28738)
+-- Dependencies: 245
+-- Data for Name: tipoempresa_obrigacao_old; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.tipoempresa_obrigacao_old (id, tipo_empresa_id, descricao, dia_base, mes_base, frequencia, tipo, ativo, criado_em, atualizado_em) FROM stdin;
+d64a947a-46e4-4a66-b40c-3da0670c34d6	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Compromisso Mensal	5	4	MENSAL	TRIBUTO	t	2026-03-28 16:10:34.188739-03	2026-03-28 16:10:34.188739-03
+86adf4d1-d6d2-409d-a55d-34f26b51aafb	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Comrpomisso teste Anual	20	4	ANUAL	TRIBUTO	t	2026-03-28 16:11:05.825873-03	2026-03-28 16:11:05.825873-03
+db735fe7-72ca-47b9-a034-15acc166ec92	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Compromisso Mensal apenas informativo 	5	4	MENSAL	INFORMATIVA	t	2026-03-28 16:11:57.545202-03	2026-03-28 16:11:57.545202-03
+ccabfb5d-6921-440f-826c-359943414fbd	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Novo teste de compromisso informativo anual	5	4	ANUAL	INFORMATIVA	t	2026-03-28 16:12:21.599454-03	2026-03-28 16:12:21.599454-03
+b9daccb1-f634-45df-8f4c-b14218512452	21a4bf05-3100-41e2-a3b2-e59ff67fc897	Nova Obrigação	1	5	MENSAL	INFORMATIVA	t	2026-03-30 14:07:00.66542-03	2026-03-30 14:07:00.66542-03
+\.
+
+
+--
+-- TOC entry 4784 (class 0 OID 17890)
 -- Dependencies: 240
--- Data for Name: usuario; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: usuario; Type: TABLE DATA; Schema: public; Owner: -
 --
 
 COPY public.usuario (id, password, email, tenantid, active, createdat, role, updatedat, nome) FROM stdin;
@@ -1578,601 +1516,20 @@ c261b585-7be0-4017-948e-7747affd8e34	$2b$08$r8UJ3tAfwWAqIHB31SMCj.ZfF.1Ooax5X5mt
 
 
 --
--- TOC entry 4521 (class 2606 OID 17910)
--- Name: estado Estado_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.estado
-    ADD CONSTRAINT "Estado_pkey" PRIMARY KEY (id);
-
-
---
--- TOC entry 4549 (class 2606 OID 17912)
--- Name: municipio Municipio_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.municipio
-    ADD CONSTRAINT "Municipio_pkey" PRIMARY KEY (id);
-
-
---
--- TOC entry 4523 (class 2606 OID 17914)
--- Name: agenda agenda_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.agenda
-    ADD CONSTRAINT agenda_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4525 (class 2606 OID 17916)
--- Name: agendaitens agendaitens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.agendaitens
-    ADD CONSTRAINT agendaitens_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4527 (class 2606 OID 17918)
--- Name: cnae cnae_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.cnae
-    ADD CONSTRAINT cnae_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4576 (class 2606 OID 27536)
--- Name: compromisso_bairro compromisso_bairro_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_bairro
-    ADD CONSTRAINT compromisso_bairro_pkey PRIMARY KEY (compromisso_id);
-
-
---
--- TOC entry 4572 (class 2606 OID 27497)
--- Name: compromisso_estado compromisso_estado_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_estado
-    ADD CONSTRAINT compromisso_estado_pkey PRIMARY KEY (compromisso_id);
-
-
---
--- TOC entry 4569 (class 2606 OID 27377)
--- Name: compromisso_financeiro compromisso_financeiro_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_financeiro
-    ADD CONSTRAINT compromisso_financeiro_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4574 (class 2606 OID 27516)
--- Name: compromisso_municipio compromisso_municipio_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_municipio
-    ADD CONSTRAINT compromisso_municipio_pkey PRIMARY KEY (compromisso_id);
-
-
---
--- TOC entry 4581 (class 2606 OID 28784)
--- Name: empresa_agenda empresa_agenda_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresa_agenda
-    ADD CONSTRAINT empresa_agenda_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4586 (class 2606 OID 28870)
--- Name: empresa_compromissos empresa_compromissos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresa_compromissos
-    ADD CONSTRAINT empresa_compromissos_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4529 (class 2606 OID 17920)
--- Name: empresa empresa_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresa
-    ADD CONSTRAINT empresa_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4531 (class 2606 OID 17922)
--- Name: empresadados empresas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresadados
-    ADD CONSTRAINT empresas_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4533 (class 2606 OID 17924)
--- Name: feriado_estadual feriado_estadual_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.feriado_estadual
-    ADD CONSTRAINT feriado_estadual_pkey PRIMARY KEY (feriado_id, uf_id);
-
-
---
--- TOC entry 4535 (class 2606 OID 17926)
--- Name: feriado_municipal feriado_municipal_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.feriado_municipal
-    ADD CONSTRAINT feriado_municipal_pkey PRIMARY KEY (feriado_id, municipio_id);
-
-
---
--- TOC entry 4537 (class 2606 OID 17928)
--- Name: feriados feriados_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.feriados
-    ADD CONSTRAINT feriados_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4539 (class 2606 OID 17930)
--- Name: grupopassos grupopasso_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.grupopassos
-    ADD CONSTRAINT grupopasso_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4541 (class 2606 OID 17932)
--- Name: itenspassos itenspassos_id_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.itenspassos
-    ADD CONSTRAINT itenspassos_id_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4545 (class 2606 OID 17934)
--- Name: linkpassos linkpassos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.linkpassos
-    ADD CONSTRAINT linkpassos_pkey PRIMARY KEY (passo_id);
-
-
---
--- TOC entry 4551 (class 2606 OID 17936)
--- Name: passos passo_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.passos
-    ADD CONSTRAINT passo_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4547 (class 2606 OID 17938)
--- Name: linkpassos passos_id_unq; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.linkpassos
-    ADD CONSTRAINT passos_id_unq UNIQUE (passo_id);
-
-
---
--- TOC entry 4543 (class 2606 OID 17940)
--- Name: itenspassos passos_itens_unq; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.itenspassos
-    ADD CONSTRAINT passos_itens_unq UNIQUE (grupopassos_id, passos_id);
-
-
---
--- TOC entry 4553 (class 2606 OID 17942)
--- Name: rotinaitemlink rotinaitemlink_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.rotinaitemlink
-    ADD CONSTRAINT rotinaitemlink_pkey PRIMARY KEY (rotinaitem_id);
-
-
---
--- TOC entry 4559 (class 2606 OID 17944)
--- Name: rotinas rotinas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.rotinas
-    ADD CONSTRAINT rotinas_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4556 (class 2606 OID 17946)
--- Name: rotinaitens rotinasitens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.rotinaitens
-    ADD CONSTRAINT rotinasitens_pkey PRIMARY KEY (rotina_id, passo_id);
-
-
---
--- TOC entry 4562 (class 2606 OID 17948)
--- Name: tenant tenant_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tenant
-    ADD CONSTRAINT tenant_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4564 (class 2606 OID 17950)
--- Name: tipoempresa tipoempresa_id_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tipoempresa
-    ADD CONSTRAINT tipoempresa_id_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4579 (class 2606 OID 28760)
--- Name: tipoempresa_obrigacao tipoempresa_obrigacao_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tipoempresa_obrigacao
-    ADD CONSTRAINT tipoempresa_obrigacao_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4567 (class 2606 OID 17952)
--- Name: usuario usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.usuario
-    ADD CONSTRAINT usuario_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 4570 (class 1259 OID 28806)
--- Name: idx_compromisso_financeiro_tipoempresa; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_compromisso_financeiro_tipoempresa ON public.compromisso_financeiro USING btree (tipo_empresa_id);
-
-
---
--- TOC entry 4582 (class 1259 OID 28796)
--- Name: idx_empresa_agenda_empresa; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_empresa_agenda_empresa ON public.empresa_agenda USING btree (empresa_id);
-
-
---
--- TOC entry 4583 (class 1259 OID 28797)
--- Name: idx_empresa_agenda_template; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_empresa_agenda_template ON public.empresa_agenda USING btree (template_id);
-
-
---
--- TOC entry 4584 (class 1259 OID 28798)
--- Name: idx_empresa_agenda_vencimento; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_empresa_agenda_vencimento ON public.empresa_agenda USING btree (data_vencimento);
-
-
---
--- TOC entry 4587 (class 1259 OID 28883)
--- Name: idx_empresa_compromissos_compromisso_fin; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_empresa_compromissos_compromisso_fin ON public.empresa_compromissos USING btree (compromisso_financeiro_id);
-
-
---
--- TOC entry 4588 (class 1259 OID 28881)
--- Name: idx_empresa_compromissos_empresa; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_empresa_compromissos_empresa ON public.empresa_compromissos USING btree (empresa_id);
-
-
---
--- TOC entry 4589 (class 1259 OID 28882)
--- Name: idx_empresa_compromissos_vencimento; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_empresa_compromissos_vencimento ON public.empresa_compromissos USING btree (vencimento);
-
-
---
--- TOC entry 4554 (class 1259 OID 17953)
--- Name: idx_rotinaitens_ordem; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_rotinaitens_ordem ON public.rotinaitens USING btree (ordem);
-
-
---
--- TOC entry 4557 (class 1259 OID 28850)
--- Name: idx_rotinas_tipo_empresa; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_rotinas_tipo_empresa ON public.rotinas USING btree (tipo_empresa_id);
-
-
---
--- TOC entry 4577 (class 1259 OID 28795)
--- Name: idx_tipoempresa_obrigacao_tipo_empresa; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_tipoempresa_obrigacao_tipo_empresa ON public.tipoempresa_obrigacao USING btree (tipo_empresa_id);
-
-
---
--- TOC entry 4560 (class 1259 OID 17954)
--- Name: tenant_nome_unico; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX tenant_nome_unico ON public.tenant USING btree (nome);
-
-
---
--- TOC entry 4565 (class 1259 OID 17955)
--- Name: usuario_email_key; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX usuario_email_key ON public.usuario USING btree (email);
-
-
---
--- TOC entry 4614 (class 2620 OID 17956)
--- Name: empresa gerar_agenda; Type: TRIGGER; Schema: public; Owner: postgres
---
-
-CREATE TRIGGER gerar_agenda AFTER UPDATE ON public.empresa FOR EACH ROW EXECUTE FUNCTION public.gerar_agenda_trigger();
-
-
---
--- TOC entry 4596 (class 2606 OID 17957)
--- Name: municipio Municipio_ufId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.municipio
-    ADD CONSTRAINT "Municipio_ufId_fkey" FOREIGN KEY (ufid) REFERENCES public.estado(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- TOC entry 4607 (class 2606 OID 27537)
--- Name: compromisso_bairro compromisso_bairro_compromisso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_bairro
-    ADD CONSTRAINT compromisso_bairro_compromisso_id_fkey FOREIGN KEY (compromisso_id) REFERENCES public.compromisso_financeiro(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4608 (class 2606 OID 27542)
--- Name: compromisso_bairro compromisso_bairro_municipio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_bairro
-    ADD CONSTRAINT compromisso_bairro_municipio_id_fkey FOREIGN KEY (municipio_id) REFERENCES public.municipio(id);
-
-
---
--- TOC entry 4603 (class 2606 OID 27498)
--- Name: compromisso_estado compromisso_estado_compromisso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_estado
-    ADD CONSTRAINT compromisso_estado_compromisso_id_fkey FOREIGN KEY (compromisso_id) REFERENCES public.compromisso_financeiro(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4604 (class 2606 OID 27503)
--- Name: compromisso_estado compromisso_estado_estado_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_estado
-    ADD CONSTRAINT compromisso_estado_estado_id_fkey FOREIGN KEY (estado_id) REFERENCES public.estado(id);
-
-
---
--- TOC entry 4605 (class 2606 OID 27517)
--- Name: compromisso_municipio compromisso_municipio_compromisso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_municipio
-    ADD CONSTRAINT compromisso_municipio_compromisso_id_fkey FOREIGN KEY (compromisso_id) REFERENCES public.compromisso_financeiro(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4606 (class 2606 OID 27522)
--- Name: compromisso_municipio compromisso_municipio_municipio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_municipio
-    ADD CONSTRAINT compromisso_municipio_municipio_id_fkey FOREIGN KEY (municipio_id) REFERENCES public.municipio(id);
-
-
---
--- TOC entry 4590 (class 2606 OID 17962)
--- Name: dadoscomplementares dadoscomplementares_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.dadoscomplementares
-    ADD CONSTRAINT dadoscomplementares_fkey FOREIGN KEY (tenantid) REFERENCES public.tenant(id);
-
-
---
--- TOC entry 4610 (class 2606 OID 28785)
--- Name: empresa_agenda empresa_agenda_empresa_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresa_agenda
-    ADD CONSTRAINT empresa_agenda_empresa_id_fkey FOREIGN KEY (empresa_id) REFERENCES public.empresa(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4611 (class 2606 OID 28790)
--- Name: empresa_agenda empresa_agenda_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresa_agenda
-    ADD CONSTRAINT empresa_agenda_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.tipoempresa_obrigacao(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4612 (class 2606 OID 28876)
--- Name: empresa_compromissos empresa_compromissos_compromisso_financeiro_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresa_compromissos
-    ADD CONSTRAINT empresa_compromissos_compromisso_financeiro_id_fkey FOREIGN KEY (compromisso_financeiro_id) REFERENCES public.compromisso_financeiro(id) ON DELETE RESTRICT;
-
-
---
--- TOC entry 4613 (class 2606 OID 28871)
--- Name: empresa_compromissos empresa_compromissos_empresa_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.empresa_compromissos
-    ADD CONSTRAINT empresa_compromissos_empresa_id_fkey FOREIGN KEY (empresa_id) REFERENCES public.empresa(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4602 (class 2606 OID 28801)
--- Name: compromisso_financeiro fk_compromisso_tipoempresa; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.compromisso_financeiro
-    ADD CONSTRAINT fk_compromisso_tipoempresa FOREIGN KEY (tipo_empresa_id) REFERENCES public.tipoempresa(id);
-
-
---
--- TOC entry 4591 (class 2606 OID 17967)
--- Name: grupopassos grupo_municipio_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.grupopassos
-    ADD CONSTRAINT grupo_municipio_id_fkey FOREIGN KEY (municipio_id) REFERENCES public.municipio(id) NOT VALID;
-
-
---
--- TOC entry 4592 (class 2606 OID 17972)
--- Name: grupopassos grupo_tipoempresa_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.grupopassos
-    ADD CONSTRAINT grupo_tipoempresa_id_fkey FOREIGN KEY (tipoempresa_id) REFERENCES public.tipoempresa(id) NOT VALID;
-
-
---
--- TOC entry 4593 (class 2606 OID 17977)
--- Name: itenspassos grupopassos_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.itenspassos
-    ADD CONSTRAINT grupopassos_id_fkey FOREIGN KEY (grupopassos_id) REFERENCES public.grupopassos(id);
-
-
---
--- TOC entry 4595 (class 2606 OID 17982)
--- Name: linkpassos linkpassos_passos_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.linkpassos
-    ADD CONSTRAINT linkpassos_passos_id_fkey FOREIGN KEY (passo_id) REFERENCES public.passos(id) NOT VALID;
-
-
---
--- TOC entry 4599 (class 2606 OID 17987)
--- Name: rotinas municipio_cidade_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.rotinas
-    ADD CONSTRAINT municipio_cidade_id_fkey FOREIGN KEY (municipio_id) REFERENCES public.municipio(id) NOT VALID;
-
-
---
--- TOC entry 4594 (class 2606 OID 17992)
--- Name: itenspassos passos_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.itenspassos
-    ADD CONSTRAINT passos_id_fkey FOREIGN KEY (passos_id) REFERENCES public.passos(id) NOT VALID;
-
-
---
--- TOC entry 4597 (class 2606 OID 17997)
--- Name: rotinaitens rotinas_passo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.rotinaitens
-    ADD CONSTRAINT rotinas_passo_id_fkey FOREIGN KEY (passo_id) REFERENCES public.passos(id) NOT VALID;
-
-
---
--- TOC entry 4598 (class 2606 OID 18002)
--- Name: rotinaitens rotinas_rotina_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.rotinaitens
-    ADD CONSTRAINT rotinas_rotina_id_fkey FOREIGN KEY (rotina_id) REFERENCES public.rotinas(id) NOT VALID;
-
-
---
--- TOC entry 4600 (class 2606 OID 28845)
--- Name: rotinas rotinas_tipo_empresa_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.rotinas
-    ADD CONSTRAINT rotinas_tipo_empresa_id_fkey FOREIGN KEY (tipo_empresa_id) REFERENCES public.tipoempresa(id);
-
-
---
--- TOC entry 4609 (class 2606 OID 28761)
--- Name: tipoempresa_obrigacao tipoempresa_obrigacao_tipo_empresa_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tipoempresa_obrigacao
-    ADD CONSTRAINT tipoempresa_obrigacao_tipo_empresa_id_fkey FOREIGN KEY (tipo_empresa_id) REFERENCES public.tipoempresa(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4601 (class 2606 OID 18007)
--- Name: usuario usuario_tenantid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.usuario
-    ADD CONSTRAINT usuario_tenantid_fkey FOREIGN KEY (tenantid) REFERENCES public.tenant(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- TOC entry 4796 (class 0 OID 0)
+-- TOC entry 4799 (class 0 OID 0)
 -- Dependencies: 5
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
 --
 
 REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
--- Completed on 2026-03-30 08:00:29 -03
+-- Completed on 2026-03-31 07:39:18 -03
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1nf74cn2cuDbPWQxsgIKFWFo3tUkP6eq5itfQf4MDjPEKsXQDrku7280qgugf9d
+\unrestrict djJ3u7fqK190Fba53Y9po3GoUrL1flb0tM5AqG8GGrjKMN9hmbHbusCr5VP4XiX
 

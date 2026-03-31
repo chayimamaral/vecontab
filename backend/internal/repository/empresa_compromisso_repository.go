@@ -62,6 +62,32 @@ func NewEmpresaCompromissoRepository(pool *pgxpool.Pool) *EmpresaCompromissoRepo
 	return &EmpresaCompromissoRepository{pool: pool}
 }
 
+// GerarCompromissosMensais executa a function SQL idempotente por tenant/competência.
+func (r *EmpresaCompromissoRepository) GerarCompromissosMensais(ctx context.Context, tenantID string, dataRef time.Time, empresaID string) (int, error) {
+	tid := strings.TrimSpace(tenantID)
+	if tid == "" {
+		return 0, fmt.Errorf("tenant nao informado")
+	}
+	var eid any
+	if strings.TrimSpace(empresaID) == "" {
+		eid = nil
+	} else {
+		eid = strings.TrimSpace(empresaID)
+	}
+	var total int
+	err := r.pool.QueryRow(
+		ctx,
+		`SELECT public.gerar_compromissos_mensais($1, $2::date, $3)`,
+		tid,
+		dataRef.Format("2006-01-02"),
+		eid,
+	).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("executar gerar_compromissos_mensais: %w", err)
+	}
+	return total, nil
+}
+
 func (r *EmpresaCompromissoRepository) loadGeracaoContext(ctx context.Context, empresaID, tenantID string) (empresaGeracaoContext, error) {
 	var out empresaGeracaoContext
 	err := r.pool.QueryRow(ctx, `
@@ -110,8 +136,8 @@ func (r *EmpresaCompromissoRepository) listTemplatesForEmpresaTx(ctx context.Con
 			)
 			OR (
 				c.abrangencia = 'BAIRRO' AND EXISTS (
-					SELECT 1 FROM public.compromisso_bairro cb
-					WHERE cb.compromisso_id = c.id AND cb.municipio_id = $2
+					SELECT 1 FROM public.tipoempresa_obriga_bairro cb
+					WHERE cb.tipoempresa_obrigacao_id = c.id AND cb.municipio_id = $2
 					  AND (
 						cb.bairro IS NULL OR TRIM(cb.bairro) = ''
 						OR LOWER(TRIM(cb.bairro)) = LOWER(TRIM(COALESCE($3::text, '')))

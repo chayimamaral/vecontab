@@ -8,11 +8,15 @@ import (
 )
 
 type Config struct {
-	Port            string
-	DatabaseURL     string
-	JWTSecret       string
-	SSLRootCertPath string
-	SSLInsecure     bool
+	Port                           string
+	DatabaseURL                    string
+	JWTSecret                      string
+	SSLRootCertPath                string
+	SSLInsecure                    bool
+	CompromissosWorkerEnabled      bool
+	CompromissosWorkerCron         string
+	CompromissosWorkerRunOnStartup bool
+	CompromissosWorkerTimezone     string
 }
 
 func Load() (Config, error) {
@@ -28,11 +32,15 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		Port:            getEnv("SERVER_PORT", "3333"),
-		DatabaseURL:     os.Getenv("PG_URL"),
-		JWTSecret:       os.Getenv("JWT_SECRET"),
-		SSLRootCertPath: getEnv("PG_SSL_ROOT_CERT", "/home/camaral/.postgres/ca.crt"),
-		SSLInsecure:     getEnv("PG_SSL_INSECURE", "true") == "true",
+		Port:                           getEnv("PORT", "8080"),
+		DatabaseURL:                    os.Getenv("PG_URL"),
+		JWTSecret:                      os.Getenv("JWT_SECRET"),
+		SSLRootCertPath:                getEnv("PG_SSL_ROOT_CERT", "/home/camaral/.postgres/ca.crt"),
+		SSLInsecure:                    getEnv("PG_SSL_INSECURE", "true") == "true",
+		CompromissosWorkerEnabled:      getEnv("COMPROMISSOS_WORKER_ENABLED", "false") == "true",
+		CompromissosWorkerCron:         getEnv("COMPROMISSOS_WORKER_CRON", "0 5 1 * *"),
+		CompromissosWorkerRunOnStartup: getEnv("COMPROMISSOS_WORKER_RUN_ON_STARTUP", "false") == "true",
+		CompromissosWorkerTimezone:     getEnv("COMPROMISSOS_WORKER_TIMEZONE", "America/Sao_Paulo"),
 	}
 
 	if cfg.DatabaseURL == "" {

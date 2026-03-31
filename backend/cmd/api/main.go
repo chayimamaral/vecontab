@@ -11,6 +11,7 @@ import (
 	"github.com/chayimamaral/vecontab/backend/internal/config"
 	"github.com/chayimamaral/vecontab/backend/internal/db"
 	"github.com/chayimamaral/vecontab/backend/internal/httpapi"
+	"github.com/chayimamaral/vecontab/backend/internal/worker"
 )
 
 func main() {
@@ -38,6 +39,15 @@ func main() {
 	}
 
 	errCh := make(chan error, 1)
+
+	if cfg.CompromissosWorkerEnabled {
+		w, err := worker.NewCompromissosWorker(pool, cfg)
+		if err != nil {
+			log.Fatalf("init compromissos worker: %v", err)
+		}
+		go w.Start(ctx)
+	}
+
 	go func() {
 		log.Printf("backendgo listening on :%s", cfg.Port)
 		errCh <- server.ListenAndServe()

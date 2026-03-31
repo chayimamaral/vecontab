@@ -33,6 +33,7 @@ type MutateParams = {
   observacao?: string;
   estado?: { id?: string; nome?: string };
   municipio?: { id?: string; nome?: string };
+  bairro?: string;
 };
 
 export default function ObrigacaoLegaisService() {

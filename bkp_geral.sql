@@ -2,12 +2,39 @@
 -- PostgreSQL database dump
 --
 
-\restrict osxLWG7AtFOA2ChC7lqn64OhFCwgn73jlUbgxClNiqxcKhUuv6iABmwfKVzU2Ck
+\restrict 8ULT4PMcXkvsO7p7u0lkjXrWanLfsUA0gwnICSiryN2JWWnOh5KuZUWvCo6DxvD
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
 
--- Started on 2026-03-31 08:18:21 -03
+-- Started on 2026-03-31 08:21:11 -03
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE vecontab;
+--
+-- TOC entry 4797 (class 1262 OID 17603)
+-- Name: vecontab; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE vecontab WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'pt_BR.UTF-8';
+
+
+ALTER DATABASE vecontab OWNER TO postgres;
+
+\unrestrict 8ULT4PMcXkvsO7p7u0lkjXrWanLfsUA0gwnICSiryN2JWWnOh5KuZUWvCo6DxvD
+\connect vecontab
+\restrict 8ULT4PMcXkvsO7p7u0lkjXrWanLfsUA0gwnICSiryN2JWWnOh5KuZUWvCo6DxvD
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -26,10 +53,19 @@ SET row_security = off;
 -- Name: public; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
--- *not* creating schema, since initdb creates it
+CREATE SCHEMA public;
 
 
 ALTER SCHEMA public OWNER TO postgres;
+
+--
+-- TOC entry 4798 (class 0 OID 0)
+-- Dependencies: 5
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
 
 --
 -- TOC entry 894 (class 1247 OID 17605)
@@ -2169,7 +2205,7 @@ ALTER TABLE ONLY public.usuario
 
 
 --
--- TOC entry 4797 (class 0 OID 0)
+-- TOC entry 4799 (class 0 OID 0)
 -- Dependencies: 5
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: postgres
 --
@@ -2178,11 +2214,11 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
--- Completed on 2026-03-31 08:18:21 -03
+-- Completed on 2026-03-31 08:21:11 -03
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict osxLWG7AtFOA2ChC7lqn64OhFCwgn73jlUbgxClNiqxcKhUuv6iABmwfKVzU2Ck
+\unrestrict 8ULT4PMcXkvsO7p7u0lkjXrWanLfsUA0gwnICSiryN2JWWnOh5KuZUWvCo6DxvD
 

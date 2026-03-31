@@ -35,4 +35,4 @@ COPY --from=builder /app/vecontab-backend .
 EXPOSE 8080
 
 # Execução
-CMD ["./vecontab-backend, "-port", "8080"]
+CMD ["./vecontab-backend", "-port", "8080"]

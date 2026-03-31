@@ -52,11 +52,6 @@ func (h *EmpresaCompromissoHandler) Gerar(w http.ResponseWriter, r *http.Request
 		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
 		return
 	}
-	if strings.TrimSpace(payload.Params.EmpresaID) == "" {
-		render.WriteError(w, http.StatusBadRequest, "empresa_id e obrigatorio")
-		return
-	}
-
 	dataInicio := time.Now()
 	if payload.Params.DataInicio != "" {
 		parsed, err := time.Parse("2006-01-02", payload.Params.DataInicio)
