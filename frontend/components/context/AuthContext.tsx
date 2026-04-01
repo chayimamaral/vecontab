@@ -1,9 +1,15 @@
 import { createContext, ReactNode, useEffect, useState } from 'react';
-import { destroyCookie, setCookie, parseCookies } from 'nookies';
+import { setCookie, parseCookies } from 'nookies';
 import Router from 'next/router';
 import { AxiosError } from 'axios';
 
-import api from '../api/apiClient'
+import api from '../api/apiClient';
+import {
+  AUTH_TOKEN_COOKIE,
+  clearAuthTokenCookies,
+  clearLegacyAuthTokenCookieBrowser,
+  getAuthTokenFromParsedCookies,
+} from '../../constants/authCookie';
 
 interface AuthContextData {
   user?: UserProps | undefined;
@@ -50,7 +56,7 @@ const AuthContext = createContext({} as AuthContextData)
 export function signOut() {
 
   try {
-    destroyCookie(null, '@vecontab.token', { path: '/' })
+    clearAuthTokenCookies(null);
     Router.push('/auth/login');
 
   } catch (err) {
@@ -63,7 +69,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    const { '@vecontab.token': token } = parseCookies()
+    const token = getAuthTokenFromParsedCookies(parseCookies());
 
     if (token) {
       api.get('/api/me').then(response => {
@@ -91,10 +97,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { id, nome, token, empresa } = response.data;
 
 
-      setCookie(undefined, '@vecontab.token', token, {
+      setCookie(undefined, AUTH_TOKEN_COOKIE, token, {
         maxAge: 60 * 60 * 24 * 30, // Expirar em 1 mês
         path: '/'
       })
+      clearLegacyAuthTokenCookieBrowser();
 
       setUser({
         id,
@@ -138,8 +145,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function logoutUser() {
     try {
-      destroyCookie(null, '@vecontab.token', { path: '/' })
-      //setUser(undefined)
+      clearAuthTokenCookies(null);
       Router.push('/auth/login');
       setUser(undefined)
     } catch (err) {
