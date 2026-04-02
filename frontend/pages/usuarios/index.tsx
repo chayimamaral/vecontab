@@ -12,7 +12,8 @@ import { Vec } from '../../types/types';
 import { Dropdown } from 'primereact/dropdown';
 import UsuarioService from '../../services/cruds/UsuarioService';
 import EmptyPage from '../pages/empty';
-import { withAuthServerSideProps } from '../../components/utils/crudUtils';
+import { canSSRAuth } from '../../components/utils/canSSRAuth';
+import setupAPIClient from '../../components/api/api';
 import { ct } from '@fullcalendar/core/internal-common';
 import { RadioButton, RadioButtonChangeEvent } from 'primereact/radiobutton';
 
@@ -660,13 +661,29 @@ const Usuarios = ({ user_id }) => {
 export default Usuarios;
 
 
-export const getServerSideProps = withAuthServerSideProps(async (ctx) => {
-  // Aqui não é necessário nenhum processamento adicional
-  const user_id = ctx.req.cookies.user_id;
+export const getServerSideProps = canSSRAuth(async (ctx) => {
+  const apiClient = setupAPIClient(ctx);
+
+  try {
+    await apiClient.get('/api/registro');
+  } catch (err: unknown) {
+    const ax = err as { response?: { status?: number; data?: { error?: string } } };
+    const msg = ax?.response?.data?.error ?? '';
+    if (ax?.response?.status === 400 && msg.includes('no rows in result set')) {
+      // mesmo critério de withAuthServerSideProps
+    } else {
+      return { redirect: { destination: '/', permanent: false } };
+    }
+  }
+
+  const { data } = await apiClient.get('/api/usuariorole');
+  if (data?.logado?.role === 'USER') {
+    return { redirect: { destination: '/', permanent: false } };
+  }
 
   return {
     props: {
-      user_id,
+      user_id: ctx.req.cookies?.user_id ?? '',
     },
   };
 });

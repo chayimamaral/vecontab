@@ -127,7 +127,7 @@ func registerRoutes(
 
 	r.Post("/session", authHandler.Login)
 	r.With(requireAuth).Get("/me", userHandler.Me)
-	r.With(requireAuth).Get("/usuarios", userHandler.List)
+	r.With(requireAuth, requireAdmin).Get("/usuarios", userHandler.List)
 	r.With(requireAuth).Get("/usuariorole", userHandler.UserRole)
 	r.With(requireAuth).Get("/usuariotenant", userHandler.TenantID)
 	r.With(requireAuth, requireAdmin).Post("/usuario", userHandler.Create)
