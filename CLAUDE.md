@@ -22,7 +22,8 @@ Segurança: Basear estratégias de proteção de código no projeto MARE.
 Legado: Compatibilidade mental com arquiteturas robustas (referência histórica: sistemas 8086/TK85).
 
 📝 Padrões de Código e Escrita
-Nomenclatura (Ortografia): Seguir a regra gramatical de que o "ç" nunca é utilizado antes de "e" ou "i". Em nomes de variáveis ou funções, o som de "s" antes destas vogais deve ser garantido pelo "c" simples.
+Nomenclatura (Ortografia): Seguir a regra gramatical de que o "ç" nunca é utilizado antes de "e" ou "i". Em nomes de variáveis ou funções, o som de "s" antes destas vogais deve ser garantido pelo "c" simples. 
+O mesmo para palavras acentuadas.
 
 Documentação: Não apresentar resumos ortográficos em respostas de busca.
 
@@ -31,7 +32,7 @@ Tradução: Utilizar termos técnicos de mercado (ex: "issue" como tarefa/proble
 🚫 Restrições de Contexto (Strict)
 Separação de Domínios: É terminantemente proibido associar textos ou conceitos religiosos a temas de TI (desenvolvimento, banco de dados, agilidade, etc).
 
-Terminologia: Não usar qualquer contexto religioso ou político
+Terminologia: Não usar qualquer contexto religioso ou político.
 
 Licenciamento: O projeto é Proprietário. Todos os direitos reservados (Copyright 2026). Não sugerir licenças permissivas (como MIT/Apache) para o núcleo do sistema.
 
