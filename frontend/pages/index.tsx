@@ -79,11 +79,11 @@ const MODULOS: ModuloCard[] = [
         tooltip: 'Abre o acompanhamento de compromissos em visão corrida.',
     },
     {
-        future: true,
-        titulo: 'Compromissos por Período',
-        descricao: 'Compromissos as empresas para o dia atual.',
-        icon: 'pi pi-bars',
-        tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
+        titulo: 'Compromissos por Natureza',
+        descricao: 'Árvore com Tributária e Informativa no primeiro nível; em seguida empresas e compromissos, com as mesmas edições da visão por empresa.',
+        href: '/compromissos-por-natureza',
+        icon: 'pi pi-sitemap',
+        tooltip: 'Visão natureza → empresa → compromisso (issue #48).',
     },
 ];
 

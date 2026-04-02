@@ -30,6 +30,11 @@ const AppMenu = () => {
                         to: '/compromissos-empresas',
                     },
                     {
+                        label: 'Compromissos por Natureza',
+                        icon: 'pi pi-fw pi-sitemap',
+                        to: '/compromissos-por-natureza',
+                    },
+                    {
                         label: 'Compromissos (Visão Corrida)',
                         icon: 'pi pi-fw pi-table',
                         to: '/compromissos-visao',
