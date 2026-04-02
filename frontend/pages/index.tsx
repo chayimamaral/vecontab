@@ -44,6 +44,20 @@ const MODULOS: ModuloCard[] = [
         tooltip: 'CRUD de empresas e fluxo de abertura.',
     },
     {
+        titulo: 'Compromissos (Visão Corrida)',
+        descricao: 'Acompanhamento sem separação por empresa, em lista única.',
+        href: '/compromissos-visao',
+        icon: 'pi pi-building',
+        tooltip: 'Abre o acompanhamento de compromissos em visão corrida.',
+    },
+    {
+        titulo: 'Compromissos por Natureza',
+        descricao: 'Árvore com Tributária e Informativa no primeiro nível; em seguida empresas e compromissos, com as mesmas edições da visão por empresa.',
+        href: '/compromissos-por-natureza',
+        icon: 'pi pi-sitemap',
+        tooltip: 'Visão natureza → empresa → compromisso (issue #48).',
+    },
+    {
         future: true,
         titulo: 'Relatórios gerenciais',
         descricao: 'Indicadores e exportações para gestão contábil e fiscal.',
@@ -71,20 +85,7 @@ const MODULOS: ModuloCard[] = [
         icon: 'pi pi-calendar-clock',
         tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
     },
-    {
-        titulo: 'Compromissos (Visão Corrida)',
-        descricao: 'Acompanhamento sem separação por empresa, em lista única.',
-        href: '/compromissos-visao',
-        icon: 'pi pi-building',
-        tooltip: 'Abre o acompanhamento de compromissos em visão corrida.',
-    },
-    {
-        titulo: 'Compromissos por Natureza',
-        descricao: 'Árvore com Tributária e Informativa no primeiro nível; em seguida empresas e compromissos, com as mesmas edições da visão por empresa.',
-        href: '/compromissos-por-natureza',
-        icon: 'pi pi-sitemap',
-        tooltip: 'Visão natureza → empresa → compromisso (issue #48).',
-    },
+
 ];
 
 function ModuloTile({ modulo }: { modulo: ModuloCard }) {
