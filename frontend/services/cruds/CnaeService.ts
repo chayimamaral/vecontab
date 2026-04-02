@@ -3,14 +3,18 @@ import setupAPIClient from '../../components/api/api';
 export default function CnaeService() {
 
   const getCnaes = async (params) => {
-    // do jeito que receber o params, ele vem como string, entao tem que converter para objeto
-    //console.log('params.lazyEvent', params.lazyEvent.toString())
     const apiClient = setupAPIClient(undefined);
-    // ao passar o params, ele vem como string, entao tem que converter para objeto com JSON.parse
+    const lazy = typeof params.lazyEvent === 'string' ? JSON.parse(params.lazyEvent) : params.lazyEvent;
 
     try {
       const response = await apiClient.get('/api/cnaes', {
-        params: JSON.parse(params.lazyEvent),
+        params: {
+          first: lazy.first ?? 0,
+          rows: lazy.rows ?? 25,
+          sortField: lazy.sortField ?? '',
+          sortOrder: lazy.sortOrder ?? 1,
+          filters: typeof lazy.filters === 'string' ? lazy.filters : JSON.stringify(lazy.filters ?? {}),
+        },
       })
       // não precisa converter para objeto, pois o axios já faz isso
       const { cnaes, totalRecords } = response.data
@@ -102,12 +106,22 @@ export default function CnaeService() {
     }
   }
 
+  /** Resolve hierarquia + denominação pelo catálogo IBGE (tabelas ibge_cnae_* no backend). */
+  const resolveCnae = async (subclasse7: string) => {
+    const apiClient = setupAPIClient(undefined);
+    const response = await apiClient.get('/api/cnaeresolve', {
+      params: { subclasse: subclasse7.replace(/\D/g, '') },
+    });
+    return { data: response.data };
+  };
+
   return {
     getCnaes,
     createCnae,
     deleteCnae,
     updateCnae,
-    getCnaeLite
+    getCnaeLite,
+    resolveCnae,
   }
 
 }

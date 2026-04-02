@@ -18,6 +18,10 @@ type CnaeHandler struct {
 type cnaeEnvelope struct {
 	Params struct {
 		ID          string `json:"id"`
+		Secao       string `json:"secao"`
+		Divisao     string `json:"divisao"`
+		Grupo       string `json:"grupo"`
+		Classe      string `json:"classe"`
 		Denominacao string `json:"denominacao"`
 		Subclasse   string `json:"subclasse"`
 	} `json:"params"`
@@ -53,12 +57,20 @@ func (h *CnaeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(payload.Params.Denominacao) == "" {
-		render.WriteError(w, http.StatusBadRequest, "Denominacao e obrigatoria")
+	if len(repository.SubclasseSomenteDigitos(payload.Params.Subclasse)) != 7 {
+		render.WriteError(w, http.StatusBadRequest, "Subclasse invalida (7 digitos)")
 		return
 	}
 
-	response, err := h.service.Create(r.Context(), service.CnaeInput(payload.Params))
+	response, err := h.service.Create(r.Context(), service.CnaeInput{
+		ID:          payload.Params.ID,
+		Secao:       payload.Params.Secao,
+		Divisao:     payload.Params.Divisao,
+		Grupo:       payload.Params.Grupo,
+		Classe:      payload.Params.Classe,
+		Subclasse:   payload.Params.Subclasse,
+		Denominacao: payload.Params.Denominacao,
+	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -73,8 +85,20 @@ func (h *CnaeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
 		return
 	}
+	if len(repository.SubclasseSomenteDigitos(payload.Params.Subclasse)) != 7 {
+		render.WriteError(w, http.StatusBadRequest, "Subclasse invalida (7 digitos)")
+		return
+	}
 
-	response, err := h.service.Update(r.Context(), service.CnaeInput(payload.Params))
+	response, err := h.service.Update(r.Context(), service.CnaeInput{
+		ID:          payload.Params.ID,
+		Secao:       payload.Params.Secao,
+		Divisao:     payload.Params.Divisao,
+		Grupo:       payload.Params.Grupo,
+		Classe:      payload.Params.Classe,
+		Subclasse:   payload.Params.Subclasse,
+		Denominacao: payload.Params.Denominacao,
+	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -113,6 +137,16 @@ func (h *CnaeHandler) Lite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *CnaeHandler) ResolveIbge(w http.ResponseWriter, r *http.Request) {
+	sub := strings.TrimSpace(r.URL.Query().Get("subclasse"))
+	out, err := h.service.ResolveIbge(r.Context(), sub)
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	render.WriteJSON(w, http.StatusOK, out)
 }
 
 func (h *CnaeHandler) Validate(w http.ResponseWriter, r *http.Request) {

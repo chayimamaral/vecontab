@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -68,6 +69,53 @@ type EmpresaMutationItem struct {
 
 func NewEmpresaRepository(pool *pgxpool.Pool) *EmpresaRepository {
 	return &EmpresaRepository{pool: pool}
+}
+
+// normalizeCnaesParaTextArray converte o payload JSON ([]any após decode, []string, etc.)
+// em []string para a coluna PostgreSQL text[]. O pgx v5 não codifica []any como text[].
+func normalizeCnaesParaTextArray(v any) []string {
+	if v == nil {
+		return nil
+	}
+	switch x := v.(type) {
+	case []string:
+		out := make([]string, 0, len(x))
+		for _, s := range x {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	case []any:
+		out := make([]string, 0, len(x))
+		for _, e := range x {
+			switch t := e.(type) {
+			case string:
+				if s := strings.TrimSpace(t); s != "" {
+					out = append(out, s)
+				}
+			case float64:
+				s := strconv.FormatInt(int64(t), 10)
+				if s != "" {
+					out = append(out, s)
+				}
+			default:
+				if s := strings.TrimSpace(fmt.Sprint(e)); s != "" {
+					out = append(out, s)
+				}
+			}
+		}
+		return out
+	case string:
+		s := strings.TrimSpace(x)
+		if s == "" {
+			return nil
+		}
+		return []string{s}
+	default:
+		return nil
+	}
 }
 
 func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) ([]EmpresaListItem, int64, error) {
@@ -193,7 +241,11 @@ func (r *EmpresaRepository) Create(ctx context.Context, input EmpresaUpsertInput
 		VALUES ($1, $2, $3, $4, $5, NULLIF(TRIM($6), ''))
 		RETURNING id, nome, municipio_id, tenant_id, rotina_id, cnaes, iniciado, ativo`
 
-	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, input.Cnaes, input.Bairro)
+	cnaes := normalizeCnaesParaTextArray(input.Cnaes)
+	if cnaes == nil {
+		cnaes = []string{}
+	}
+	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, cnaes, input.Bairro)
 	if err != nil {
 		return nil, 0, fmt.Errorf("create empresa: %w", err)
 	}
@@ -229,7 +281,11 @@ func (r *EmpresaRepository) Update(ctx context.Context, input EmpresaUpsertInput
 		WHERE id = $6 AND tenant_id = $7
 		RETURNING id, nome, municipio_id, tenant_id, rotina_id, cnaes, iniciado, ativo`
 
-	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, input.Cnaes, input.ID, input.TenantID, input.Bairro)
+	cnaes := normalizeCnaesParaTextArray(input.Cnaes)
+	if cnaes == nil {
+		cnaes = []string{}
+	}
+	rows, err := r.pool.Query(ctx, query, input.Nome, input.MunicipioID, input.TenantID, input.RotinaID, cnaes, input.ID, input.TenantID, input.Bairro)
 	if err != nil {
 		return nil, 0, fmt.Errorf("update empresa: %w", err)
 	}

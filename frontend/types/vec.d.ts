@@ -62,6 +62,18 @@ declare namespace Vec {
         municipio?: MunicipioLite;
     }
 
+    type EmpresaDados = {
+        empresa_id?: string;
+        cnpj?: string;
+        endereco?: string;
+        email_contato?: string;
+        telefone?: string;
+        telefone2?: string;
+        data_abertura?: string;
+        data_encerramento?: string;
+        observacao?: string;
+    };
+
     type Empresa = {
         id?: string;
         nome?: string;
@@ -145,6 +157,10 @@ declare namespace Vec {
 
     type CNAE = {
         id?: string;
+        secao?: string;
+        divisao?: string;
+        grupo?: string;
+        classe?: string;
         subclasse?: string;
         denominacao?: string;
     }

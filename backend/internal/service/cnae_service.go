@@ -12,8 +12,12 @@ type CnaeService struct {
 
 type CnaeInput struct {
 	ID          string `json:"id"`
-	Denominacao string `json:"denominacao"`
+	Secao       string `json:"secao"`
+	Divisao     string `json:"divisao"`
+	Grupo       string `json:"grupo"`
+	Classe      string `json:"classe"`
 	Subclasse   string `json:"subclasse"`
+	Denominacao string `json:"denominacao"`
 }
 
 type CnaeListResponse struct {
@@ -29,6 +33,9 @@ type CnaeValidateResponse struct {
 	Valid bool `json:"valid"`
 }
 
+// CnaeIbgeResolveResponse espelha repository.CnaeIbgeResolve (JSON da API).
+type CnaeIbgeResolveResponse = repository.CnaeIbgeResolve
+
 func NewCnaeService(repo *repository.CnaeRepository) *CnaeService {
 	return &CnaeService{repo: repo}
 }
@@ -43,7 +50,7 @@ func (s *CnaeService) List(ctx context.Context, params repository.CnaeListParams
 }
 
 func (s *CnaeService) Create(ctx context.Context, input CnaeInput) (CnaeListResponse, error) {
-	cnaes, total, err := s.repo.Create(ctx, input.Denominacao, input.Subclasse)
+	cnaes, total, err := s.repo.Create(ctx, input.Secao, input.Divisao, input.Grupo, input.Classe, input.Denominacao, input.Subclasse)
 	if err != nil {
 		return CnaeListResponse{}, err
 	}
@@ -52,7 +59,7 @@ func (s *CnaeService) Create(ctx context.Context, input CnaeInput) (CnaeListResp
 }
 
 func (s *CnaeService) Update(ctx context.Context, input CnaeInput) (CnaeListResponse, error) {
-	cnaes, total, err := s.repo.Update(ctx, input.ID, input.Denominacao, input.Subclasse)
+	cnaes, total, err := s.repo.Update(ctx, input.ID, input.Secao, input.Divisao, input.Grupo, input.Classe, input.Denominacao, input.Subclasse)
 	if err != nil {
 		return CnaeListResponse{}, err
 	}
@@ -85,4 +92,8 @@ func (s *CnaeService) Validate(ctx context.Context, cnae string) (CnaeValidateRe
 	}
 
 	return CnaeValidateResponse{Valid: len(cnaes) > 0}, nil
+}
+
+func (s *CnaeService) ResolveIbge(ctx context.Context, subclasse string) (CnaeIbgeResolveResponse, error) {
+	return s.repo.ResolveIbge(ctx, subclasse)
 }

@@ -52,6 +52,7 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 		feriadoRepo,
 		empresaRepo,
 	)
+	empresaDadosService := service.NewEmpresaDadosService(repository.NewEmpresaDadosRepository(pool))
 
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -71,17 +72,19 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	obrigacaoHandler := handlers.NewObrigacaoHandler(obrigacaoService)
 	empresaAgendaHandler := handlers.NewEmpresaAgendaHandler(empresaAgendaService)
 	empresaCompromissoHandler := handlers.NewEmpresaCompromissoHandler(empresaCompromissoService)
+	empresaDadosHandler := handlers.NewEmpresaDadosHandler(empresaDadosService)
 	requireAuth := apiMiddleware.RequireAuth(tokenService)
 	requireAdmin := apiMiddleware.RequireAnyRole("ADMIN", "SUPER")
+	requireAdminOrUser := apiMiddleware.RequireAnyRole("ADMIN", "USER")
 	requireSuper := apiMiddleware.RequireAnyRole("SUPER")
 
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		render.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, requireAuth, requireAdmin, requireSuper)
+	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, requireAuth, requireAdmin, requireAdminOrUser, requireSuper)
 	r.Route("/api", func(api chi.Router) {
-		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, requireAuth, requireAdmin, requireSuper)
+		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, requireAuth, requireAdmin, requireAdminOrUser, requireSuper)
 	})
 
 	return r
@@ -99,6 +102,7 @@ func registerRoutes(
 	grupoPassosHandler *handlers.GrupoPassosHandler,
 	feriadoHandler *handlers.FeriadoHandler,
 	empresaHandler *handlers.EmpresaHandler,
+	empresaDadosHandler *handlers.EmpresaDadosHandler,
 	cnaeHandler *handlers.CnaeHandler,
 	agendaHandler *handlers.AgendaHandler,
 	rotinaHandler *handlers.RotinaHandler,
@@ -109,6 +113,7 @@ func registerRoutes(
 	empresaCompromissoHandler *handlers.EmpresaCompromissoHandler,
 	requireAuth func(http.Handler) http.Handler,
 	requireAdmin func(http.Handler) http.Handler,
+	requireAdminOrUser func(http.Handler) http.Handler,
 	requireSuper func(http.Handler) http.Handler,
 ) {
 	r.Post("/registro", registroHandler.Create)
@@ -189,11 +194,15 @@ func registerRoutes(
 	r.With(requireAuth, requireAdmin).Put("/deleteempresa", empresaHandler.Delete)
 	r.With(requireAuth, requireAdmin).Put("/iniciarprocesso", empresaHandler.IniciarProcesso)
 
+	r.With(requireAuth).Get("/empresadados", empresaDadosHandler.Get)
+	r.With(requireAuth, requireAdminOrUser).Put("/empresadados", empresaDadosHandler.Upsert)
+
 	r.With(requireAuth).Get("/cnaes", cnaeHandler.List)
 	r.With(requireAuth, requireAdmin).Post("/cnae", cnaeHandler.Create)
 	r.With(requireAuth, requireAdmin).Put("/cnae", cnaeHandler.Update)
 	r.With(requireAuth, requireAdmin).Put("/deletecnae", cnaeHandler.Delete)
 	r.With(requireAuth).Get("/cnaelite", cnaeHandler.Lite)
+	r.With(requireAuth).Get("/cnaeresolve", cnaeHandler.ResolveIbge)
 	r.With(requireAuth).Post("/validacnae", cnaeHandler.Validate)
 
 	r.With(requireAuth).Get("/agendalist", agendaHandler.List)

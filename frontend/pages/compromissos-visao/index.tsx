@@ -311,6 +311,13 @@ export default function CompromissosVisaoPage() {
             .catch(() => toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Não foi possível alterar o status.', life: 3500 }));
     };
 
+    const rowClassName: DataTableProps<RowData[]>['rowClassName'] = (d) => {
+        if (statusNorm(d?.status || '') === 'concluido') {
+            return { 'vecontab-dash-concluido': true };
+        }
+        return {};
+    };
+
     const abrirInclusaoManual = () => {
         setCreateEmpresaID('');
         setCreateObrigacaoID('');
@@ -392,7 +399,7 @@ export default function CompromissosVisaoPage() {
             <Toast ref={toast} />
 
             <div className="flex align-items-center justify-content-start mb-3">
-                <Button icon="pi pi-plus" label="Incluir" severity="success" outlined onClick={abrirInclusaoManual} tooltip="Inclusão Manual de Compromisso" />
+                <Button icon="pi pi-plus" label="Incluir" severity="success" className=" mr-2" onClick={abrirInclusaoManual} tooltip="Inclusão Manual de Compromisso" />
                 <div className="ml-2" style={{ minWidth: '16rem' }}>
                     <Dropdown value={prazoFiltro} options={PRAZO_FILTER_OPTIONS} onChange={(e) => { setPrazoFiltro((e.value as PrazoFiltro) || 'TODOS'); setFirst(0); }} className="w-full" />
                 </div>
@@ -427,6 +434,7 @@ export default function CompromissosVisaoPage() {
             <DataTable
                 value={rowsFiltradosPrazo}
                 loading={loading}
+                rowClassName={rowClassName}
                 paginator
                 rows={rows}
                 first={first}
@@ -467,8 +475,17 @@ export default function CompromissosVisaoPage() {
                 <Column
                     header="Ações"
                     body={(d: RowData) => (
-                        <div className="flex gap-1 flex-wrap align-items-center">
-                            <Button icon="pi pi-pencil" rounded outlined severity="secondary" onClick={() => openEdit(d)} tooltip="Editar valor e vencimento" tooltipOptions={{ position: 'left' }} />
+                        <div className="flex gap-1 flex-wrap align-items-center vecontab-acoes-comp">
+                            <Button
+                                icon="pi pi-pencil"
+                                rounded
+                                outlined
+                                severity="secondary"
+                                onClick={() => openEdit(d)}
+                                tooltip="Editar valor e vencimento"
+                                tooltipOptions={{ position: 'left' }}
+                                className="text-sm vecontab-comp-editar"
+                            />
                             <Button
                                 type="button"
                                 label={statusNorm(d.status || '') === 'concluido' ? 'Reabrir' : 'Concluído'}
@@ -476,6 +493,7 @@ export default function CompromissosVisaoPage() {
                                 outlined
                                 severity="secondary"
                                 onClick={() => toggleConcluido(d)}
+                                className={`text-sm ${statusNorm(d.status || '') === 'concluido' ? 'vecontab-comp-reabrir' : 'vecontab-comp-concluir'}`}
                             />
                         </div>
                     )}
@@ -574,6 +592,45 @@ export default function CompromissosVisaoPage() {
                     </div>
                 </div>
             </Dialog>
+
+            <style jsx>{`
+                :global(.p-datatable .p-datatable-tbody > tr.vecontab-dash-concluido > td) {
+                    background-color: #d5e0d6 !important;
+                    color: #0d1f0d !important;
+                }
+                :global(.p-datatable .p-datatable-tbody > tr.vecontab-dash-concluido .vecontab-acoes-comp .p-button) {
+                    color: #1b5e20 !important;
+                }
+                :global(.p-datatable .p-datatable-tbody > tr.vecontab-dash-concluido .vecontab-comp-editar.p-button-outlined) {
+                    color: #1b3d24 !important;
+                    border-color: #2e7d32 !important;
+                }
+                :global(.p-datatable .p-datatable-tbody > tr.vecontab-dash-concluido .vecontab-comp-editar.p-button-outlined:not(:disabled):hover) {
+                    background: rgba(27, 94, 32, 0.12) !important;
+                    color: #0d260d !important;
+                }
+                :global(.vecontab-comp-concluir.p-button.p-button-outlined) {
+                    color: #009c3b !important;
+                    border-color: #009c3b !important;
+                }
+                :global(.vecontab-comp-concluir.p-button.p-button-outlined:not(:disabled):hover) {
+                    background: rgba(0, 156, 59, 0.12) !important;
+                    color: #006b29 !important;
+                    border-color: #006b29 !important;
+                }
+                :global(tr:not(.vecontab-dash-concluido) .vecontab-comp-reabrir.p-button.p-button-outlined) {
+                    color: #37474f !important;
+                    border-color: #78909c !important;
+                }
+                :global(.p-datatable .p-datatable-tbody > tr.vecontab-dash-concluido .vecontab-comp-reabrir.p-button-outlined) {
+                    color: #0d260d !important;
+                    border-color: #1b5e20 !important;
+                    font-weight: 600;
+                }
+                :global(.p-datatable .p-datatable-tbody > tr.vecontab-dash-concluido .vecontab-comp-reabrir.p-button-outlined:not(:disabled):hover) {
+                    background: rgba(13, 38, 13, 0.08) !important;
+                }
+            `}</style>
         </div>
     );
 }

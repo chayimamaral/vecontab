@@ -767,7 +767,7 @@ export default function CompromissosEmpresasPage() {
                     icon="pi pi-plus"
                     label="Incluir"
                     severity="success"
-                    outlined
+                    className=" mr-2"
                     onClick={abrirInclusaoManual}
                     tooltip="Inclusão Manual de Compromisso"
                 />
