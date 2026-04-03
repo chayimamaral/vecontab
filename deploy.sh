@@ -1,43 +1,67 @@
 #!/bin/bash
 
-# Aborta o script se qualquer comando falhar
-set -e
+# Removemos o 'set -e' para que o script não pare no meio em caso de erro
+set +e
 
-# Captura o horário de início (segundos desde 1970 para cálculo e formato legível para exibição)
 START_TIME=$(date +%s)
 START_DATE=$(date +"%H:%M:%S")
+
+# Arquivos temporários para capturar apenas os erros (stderr)
+BACKEND_LOG=$(mktemp)
+FRONTEND_LOG=$(mktemp)
 
 echo ""
 echo "--- Iniciando Deploy Global [Início: $START_DATE] ---"
 echo ""
 
-# Executa backend
+# --- Executa backend ---
 echo "📦 Processando Backend..."
-(cd backend && ./deploy-backend.sh)
+# Redireciona apenas o erro (2>) para o log, mas mantém a saída no terminal (tee)
+if (cd backend && ./deploy-backend.sh 2> "$BACKEND_LOG"); then
+    BACKEND_STATUS="✅ Sucesso"
+else
+    BACKEND_STATUS="❌ FALHOU"
+fi
 
 echo ""
 
-# Executa frontend
+# --- Executa frontend ---
 echo "🎨 Processando Frontend..."
-(cd frontend && ./deploy-frontend.sh)
+if (cd frontend && ./deploy-frontend.sh 2> "$FRONTEND_LOG"); then
+    FRONTEND_STATUS="✅ Sucesso"
+else
+    FRONTEND_STATUS="❌ FALHOU"
+fi
 
 echo ""
 
 # Captura o horário de fim
 END_TIME=$(date +%s)
 END_DATE=$(date +"%H:%M:%S")
-
-# Calcula a diferença em segundos
 ELAPSED=$(( END_TIME - START_TIME ))
-
-# Formata o tempo total (Minutos e Segundos)
 MINUTES=$(( ELAPSED / 60 ))
 SECONDS=$(( ELAPSED % 60 ))
 
-echo "✅ Deploy Global finalizado com sucesso!"
+# --- RESUMO FINAL ---
 echo "-------------------------------------------"
-echo "Início:      $START_DATE"
-echo "Fim:         $END_DATE"
-echo "Tempo Total: ${MINUTES}m ${SECONDS}s"
+echo "        RESUMO DO DEPLOY GLOBAL"
 echo "-------------------------------------------"
+echo "Início:       $START_DATE"
+echo "Fim:          $END_DATE"
+echo "Tempo Total:  ${MINUTES}m ${SECONDS}s"
+echo ""
+echo "Status Backend:  $BACKEND_STATUS"
+if [ "$BACKEND_STATUS" == "❌ FALHOU" ]; then
+    echo "  L Erro detectado: $(cat "$BACKEND_LOG" | tail -n 2)"
+fi
+
+echo "Status Frontend: $FRONTEND_STATUS"
+if [ "$FRONTEND_STATUS" == "❌ FALHOU" ]; then
+    echo "  L Erro detectado: $(cat "$FRONTEND_LOG" | tail -n 2)"
+fi
+echo "-------------------------------------------"
+
+# Limpeza dos arquivos temporários
+rm -f "$BACKEND_LOG" "$FRONTEND_LOG"
+
 echo ""

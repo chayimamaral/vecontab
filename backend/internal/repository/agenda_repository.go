@@ -102,7 +102,7 @@ func (r *AgendaRepository) DetailEvents(ctx context.Context, tenantID, agendaID 
 	const query = `
 		SELECT
 			ai.id,
-			COALESCE(p.descricao, ''),
+			COALESCE(NULLIF(btrim(COALESCE(ai.descricao, '')), ''), p.descricao, ''),
 			COALESCE(p.id, ''),
 			ai.agenda_id,
 			ai.inicio::text,
@@ -418,6 +418,136 @@ func (r *AgendaRepository) desmarcarAgendaConcluida(ctx context.Context, agendaI
 		return fmt.Errorf("desmarcar agenda concluida: %w", err)
 	}
 
+	return nil
+}
+
+// InsertAgendaItem cria item sem passo_id (somente agendaitens; nao altera tabela passos).
+func (r *AgendaRepository) InsertAgendaItem(ctx context.Context, tenantID, agendaID, descricao, inicio, termino string) (string, error) {
+	agendaID = strings.TrimSpace(agendaID)
+	descricao = strings.TrimSpace(descricao)
+	inicio = strings.TrimSpace(inicio)
+	termino = strings.TrimSpace(termino)
+	if agendaID == "" || descricao == "" || inicio == "" {
+		return "", fmt.Errorf("agenda_id, descricao e inicio sao obrigatorios")
+	}
+	if termino == "" {
+		termino = inicio
+	}
+	hasDesc, err := r.columnExists(ctx, "agendaitens", "descricao")
+	if err != nil {
+		return "", err
+	}
+	if !hasDesc {
+		return "", fmt.Errorf("coluna agendaitens.descricao ausente: aplique a migracao 018")
+	}
+
+	var owned bool
+	if err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (SELECT 1 FROM public.agenda a WHERE a.id = $1 AND a.tenant_id = $2)`,
+		agendaID, tenantID,
+	).Scan(&owned); err != nil {
+		return "", fmt.Errorf("validar agenda: %w", err)
+	}
+	if !owned {
+		return "", fmt.Errorf("agenda nao encontrada neste tenant")
+	}
+
+	var newID string
+	if err := r.pool.QueryRow(ctx, `
+		INSERT INTO public.agendaitens (agenda_id, passo_id, inicio, termino, descricao)
+		VALUES ($1, NULL, $2::date, $3::date, $4)
+		RETURNING id`,
+		agendaID, inicio, termino, descricao,
+	).Scan(&newID); err != nil {
+		return "", fmt.Errorf("inserir item da agenda: %w", err)
+	}
+	return newID, nil
+}
+
+// UpdateAgendaItem atualiza descricao e/ou datas do item (nao altera passos).
+func (r *AgendaRepository) UpdateAgendaItem(ctx context.Context, tenantID, agendaID, itemID string, descricao, inicio, termino *string) error {
+	agendaID = strings.TrimSpace(agendaID)
+	itemID = strings.TrimSpace(itemID)
+	if agendaID == "" || itemID == "" {
+		return fmt.Errorf("agenda_id e id do item sao obrigatorios")
+	}
+	hasDesc, err := r.columnExists(ctx, "agendaitens", "descricao")
+	if err != nil {
+		return err
+	}
+	if !hasDesc {
+		return fmt.Errorf("coluna agendaitens.descricao ausente: aplique a migracao 018")
+	}
+
+	setParts := make([]string, 0, 3)
+	args := []interface{}{itemID, agendaID, tenantID}
+	n := 4
+
+	if descricao != nil {
+		d := strings.TrimSpace(*descricao)
+		if d == "" {
+			return fmt.Errorf("descricao nao pode ser vazia")
+		}
+		setParts = append(setParts, fmt.Sprintf("descricao = $%d", n))
+		args = append(args, d)
+		n++
+	}
+	if inicio != nil {
+		s := strings.TrimSpace(*inicio)
+		if s == "" {
+			return fmt.Errorf("inicio invalido")
+		}
+		setParts = append(setParts, fmt.Sprintf("inicio = $%d::date", n))
+		args = append(args, s)
+		n++
+	}
+	if termino != nil {
+		s := strings.TrimSpace(*termino)
+		if s == "" {
+			return fmt.Errorf("termino invalido")
+		}
+		setParts = append(setParts, fmt.Sprintf("termino = $%d::date", n))
+		args = append(args, s)
+		n++
+	}
+	if len(setParts) == 0 {
+		return fmt.Errorf("informe descricao, inicio ou termino para alterar")
+	}
+
+	q := fmt.Sprintf(`
+		UPDATE public.agendaitens ai SET %s
+		FROM public.agenda a
+		WHERE ai.id = $1 AND ai.agenda_id = $2 AND ai.agenda_id = a.id AND a.tenant_id = $3`,
+		strings.Join(setParts, ", "))
+
+	ct, err := r.pool.Exec(ctx, q, args...)
+	if err != nil {
+		return fmt.Errorf("atualizar item da agenda: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return fmt.Errorf("item da agenda nao encontrado neste tenant")
+	}
+	return nil
+}
+
+// DeleteAgendaItem remove apenas a linha em agendaitens.
+func (r *AgendaRepository) DeleteAgendaItem(ctx context.Context, tenantID, agendaID, itemID string) error {
+	agendaID = strings.TrimSpace(agendaID)
+	itemID = strings.TrimSpace(itemID)
+	if agendaID == "" || itemID == "" {
+		return fmt.Errorf("agenda_id e id do item sao obrigatorios")
+	}
+	ct, err := r.pool.Exec(ctx, `
+		DELETE FROM public.agendaitens ai
+		USING public.agenda a
+		WHERE ai.id = $1 AND ai.agenda_id = $2 AND a.id = ai.agenda_id AND a.tenant_id = $3`,
+		itemID, agendaID, tenantID)
+	if err != nil {
+		return fmt.Errorf("excluir item da agenda: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return fmt.Errorf("item da agenda nao encontrado neste tenant")
+	}
 	return nil
 }
 

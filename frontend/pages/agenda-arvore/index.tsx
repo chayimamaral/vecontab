@@ -7,6 +7,9 @@ import { TreeNode } from 'primereact/treenode';
 import { Tag } from 'primereact/tag';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import { Dialog } from 'primereact/dialog';
+import { Calendar } from 'primereact/calendar';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { canSSRAuth } from '../../components/utils/canSSRAuth';
 import setupAPIClient from '../../components/api/api';
 import AgendaService from '../../services/cruds/AgendaService';
@@ -164,6 +167,25 @@ const formatDate = (value?: string): string => {
     }
     return `${day}/${month}/${year}`;
 };
+
+function toISODateLocal(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function parseDataNoLocal(iso: string): Date {
+    const raw = (iso || '').slice(0, 10);
+    const parts = raw.split('-').map((x) => parseInt(x, 10));
+    const y = parts[0];
+    const mo = parts[1];
+    const da = parts[2];
+    if (!y || !mo || !da) {
+        return new Date();
+    }
+    return new Date(y, mo - 1, da, 12, 0, 0, 0);
+}
 
 function normalizeListEvents(payload: unknown): AgendaEventDTO[] {
     if (Array.isArray(payload)) {
@@ -330,6 +352,17 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
     const [expandedKeys, setExpandedKeys] = useState<Record<string, boolean>>({});
     const [loading, setLoading] = useState(false);
     const [loadingExpand, setLoadingExpand] = useState<string | null>(null);
+    const [dialogNovoAgendaId, setDialogNovoAgendaId] = useState<string | null>(null);
+    const [novoDescricao, setNovoDescricao] = useState('');
+    const [novoInicio, setNovoInicio] = useState<Date | null>(null);
+    const [novoTermino, setNovoTermino] = useState<Date | null>(null);
+    const [dialogEdit, setDialogEdit] = useState<{
+        agendaId: string;
+        itemId: string;
+        descricao: string;
+        inicio: Date | null;
+        termino: Date | null;
+    } | null>(null);
     const toast = useRef<Toast>(null);
     const nodesRef = useRef<TreeNode[]>([]);
     const agendaSvc = useMemo(() => AgendaService(), []);
@@ -561,6 +594,101 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
         [agendaSvc, atualizarRamificacao],
     );
 
+    const abrirNovoItem = useCallback((agendaId: string) => {
+        setDialogNovoAgendaId(agendaId);
+        setNovoDescricao('');
+        setNovoInicio(new Date());
+        setNovoTermino(new Date());
+    }, []);
+
+    const salvarNovoItemArvore = useCallback(async () => {
+        if (!dialogNovoAgendaId) {
+            return;
+        }
+        const di = novoInicio ? toISODateLocal(novoInicio) : '';
+        const df = novoTermino ? toISODateLocal(novoTermino) : di;
+        if (!novoDescricao.trim() || !di) {
+            toast.current?.show({
+                severity: 'warn',
+                summary: 'Atenção',
+                detail: 'Descrição e início são obrigatórios.',
+                life: 3500,
+            });
+            return;
+        }
+        try {
+            await agendaSvc.createAgendaItem({
+                agenda_id: dialogNovoAgendaId,
+                descricao: novoDescricao.trim(),
+                inicio: di,
+                termino: df,
+            });
+            toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Item incluído.', life: 3000 });
+            setDialogNovoAgendaId(null);
+            await atualizarRamificacao(dialogNovoAgendaId);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Erro ao incluir item.';
+            toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+        }
+    }, [agendaSvc, atualizarRamificacao, dialogNovoAgendaId, novoDescricao, novoInicio, novoTermino]);
+
+    const salvarEdicaoItemArvore = useCallback(async () => {
+        if (!dialogEdit) {
+            return;
+        }
+        const di = dialogEdit.inicio ? toISODateLocal(dialogEdit.inicio) : '';
+        const df = dialogEdit.termino ? toISODateLocal(dialogEdit.termino) : di;
+        if (!dialogEdit.descricao.trim() || !di) {
+            toast.current?.show({
+                severity: 'warn',
+                summary: 'Atenção',
+                detail: 'Descrição e início são obrigatórios.',
+                life: 3500,
+            });
+            return;
+        }
+        try {
+            await agendaSvc.updateAgendaItem({
+                agenda_id: dialogEdit.agendaId,
+                agenda_item_id: dialogEdit.itemId,
+                descricao: dialogEdit.descricao.trim(),
+                inicio: di,
+                termino: df,
+            });
+            toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Item atualizado.', life: 3000 });
+            const aid = dialogEdit.agendaId;
+            setDialogEdit(null);
+            await atualizarRamificacao(aid);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Erro ao salvar.';
+            toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+        }
+    }, [agendaSvc, atualizarRamificacao, dialogEdit]);
+
+    const solicitarExcluirItemArvore = useCallback(
+        (agendaId: string, itemId: string) => {
+            confirmDialog({
+                message: 'Excluir este item da agenda? A tabela de passos não será alterada.',
+                header: 'Confirmar exclusão',
+                icon: 'pi pi-exclamation-triangle',
+                acceptLabel: 'Excluir',
+                rejectLabel: 'Cancelar',
+                acceptClassName: 'p-button-danger',
+                accept: async () => {
+                    try {
+                        await agendaSvc.deleteAgendaItem(agendaId, itemId);
+                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Item excluído.', life: 3000 });
+                        await atualizarRamificacao(agendaId);
+                    } catch (e: unknown) {
+                        const msg = e instanceof Error ? e.message : 'Erro ao excluir.';
+                        toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+                    }
+                },
+            });
+        },
+        [agendaSvc, atualizarRamificacao],
+    );
+
     const indicadorSituacaoTemplate = (row: TreeNode) => {
         const d = row.data as NoData;
         if (d.tipo !== 'passo') {
@@ -604,36 +732,87 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
 
     const acoesTemplate = (row: TreeNode) => {
         const d = row.data as NoData;
+        if (d.tipo === 'rotina') {
+            const busy = loadingExpand === d.agendaId;
+            return (
+                <div className="flex justify-content-start pl-1">
+                    <Button
+                        type="button"
+                        icon="pi pi-plus"
+                        rounded
+                        severity="success"
+                        tooltip="Novo item na agenda"
+                        tooltipOptions={{ position: 'left' }}
+                        disabled={busy}
+                        onClick={() => abrirNovoItem(d.agendaId)}
+                        aria-label="Novo item na agenda"
+                    />
+                </div>
+            );
+        }
         if (d.tipo !== 'passo' || !d.itemId) {
             return null;
         }
         const concluido = (d.backgroundColor || '').trim().toUpperCase() === '#22C55E';
         const busy = loadingExpand === d.agendaId;
-        if (concluido) {
-            return (
+        return (
+            <div className="flex align-items-center justify-content-start gap-1 flex-wrap pl-1">
+                {concluido ? (
+                    <Button
+                        type="button"
+                        icon="pi pi-replay"
+                        rounded
+                        severity="help"
+                        tooltip="Reabrir passo"
+                        tooltipOptions={{ position: 'left' }}
+                        disabled={busy}
+                        onClick={() => void reabrirPasso(d.agendaId, d.itemId!)}
+                        aria-label="Reabrir passo"
+                    />
+                ) : (
+                    <Button
+                        type="button"
+                        icon="pi pi-check-circle"
+                        rounded
+                        severity="success"
+                        tooltip="Concluir passo"
+                        tooltipOptions={{ position: 'left' }}
+                        disabled={busy}
+                        onClick={() => void concluirPasso(d.agendaId, d.itemId!)}
+                        aria-label="Concluir passo"
+                    />
+                )}
                 <Button
                     type="button"
-                    icon="pi pi-replay"
-                    label="Reabrir Passo"
-                    outlined
-                    size="small"
-                    className="vecontab-agenda-acao-passo"
+                    icon="pi pi-pencil"
+                    rounded
+                    severity="info"
+                    tooltip="Alterar"
+                    tooltipOptions={{ position: 'left' }}
                     disabled={busy}
-                    onClick={() => void reabrirPasso(d.agendaId, d.itemId!)}
+                    onClick={() =>
+                        setDialogEdit({
+                            agendaId: d.agendaId,
+                            itemId: d.itemId!,
+                            descricao: d.titulo,
+                            inicio: parseDataNoLocal(d.inicio),
+                            termino: parseDataNoLocal(d.fim || d.inicio),
+                        })
+                    }
+                    aria-label="Alterar item"
                 />
-            );
-        }
-        return (
-            <Button
-                type="button"
-                icon="pi pi-check-circle"
-                label="Concluir Passo"
-                outlined
-                size="small"
-                className="vecontab-agenda-acao-passo"
-                disabled={busy}
-                onClick={() => void concluirPasso(d.agendaId, d.itemId!)}
-            />
+                <Button
+                    type="button"
+                    icon="pi pi-trash"
+                    rounded
+                    severity="warning"
+                    tooltip="Excluir"
+                    tooltipOptions={{ position: 'left' }}
+                    disabled={busy}
+                    onClick={() => solicitarExcluirItemArvore(d.agendaId, d.itemId!)}
+                    aria-label="Excluir item"
+                />
+            </div>
         );
     };
 
@@ -722,6 +901,7 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
             <div className="col-12">
                 <div className="card vecontab-agenda-arvore-card">
                     <Toast ref={toast} />
+                    <ConfirmDialog />
                     <h1 className="text-2xl font-bold text-900 m-0 mb-3">Agenda em Árvore</h1>
                     <p className="text-600 mt-0 mb-4 line-height-3">
                         Primeiro nível: empresa e rotina com intervalo de datas. Expanda para ver os passos, o intervalo
@@ -752,8 +932,113 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                             style={{ width: '2.25rem', maxWidth: '2.25rem', textAlign: 'center', verticalAlign: 'middle' }}
                         />
                         <Column header="Período (início — fim)" body={periodoTemplate} style={{ minWidth: '220px' }} />
-                        <Column header="Ações" body={acoesTemplate} style={{ width: '180px' }} />
+                        <Column
+                            header="Ações"
+                            body={acoesTemplate}
+                            style={{ minWidth: '12.5rem', width: '12.5rem' }}
+                            bodyStyle={{ textAlign: 'left', paddingLeft: '0.35rem', paddingRight: '0.75rem' }}
+                        />
                     </TreeTable>
+                    <Dialog
+                        visible={dialogNovoAgendaId != null}
+                        onHide={() => setDialogNovoAgendaId(null)}
+                        header="Novo item na agenda"
+                        style={{ width: 'min(96vw, 32rem)' }}
+                        modal
+                        footer={
+                            <div className="flex flex-wrap align-items-center gap-2 justify-content-start pr-3">
+                                <Button type="button" label="Cancelar" text onClick={() => setDialogNovoAgendaId(null)} />
+                                <Button type="button" label="Incluir" icon="pi pi-check" onClick={() => void salvarNovoItemArvore()} />
+                            </div>
+                        }
+                    >
+                        <div className="p-fluid flex flex-column gap-3">
+                            <div className="field">
+                                <label htmlFor="arv-novo-desc">Descrição</label>
+                                <InputText
+                                    id="arv-novo-desc"
+                                    value={novoDescricao}
+                                    onChange={(e) => setNovoDescricao(e.target.value)}
+                                />
+                            </div>
+                            <div className="field">
+                                <label htmlFor="arv-novo-ini">Início</label>
+                                <Calendar
+                                    id="arv-novo-ini"
+                                    value={novoInicio}
+                                    onChange={(e) => setNovoInicio(e.value as Date | null)}
+                                    dateFormat="dd/mm/yy"
+                                    showIcon
+                                    appendTo={typeof document !== 'undefined' ? document.body : undefined}
+                                />
+                            </div>
+                            <div className="field">
+                                <label htmlFor="arv-novo-fim">Término</label>
+                                <Calendar
+                                    id="arv-novo-fim"
+                                    value={novoTermino}
+                                    onChange={(e) => setNovoTermino(e.value as Date | null)}
+                                    dateFormat="dd/mm/yy"
+                                    showIcon
+                                    appendTo={typeof document !== 'undefined' ? document.body : undefined}
+                                />
+                            </div>
+                        </div>
+                    </Dialog>
+                    <Dialog
+                        visible={dialogEdit != null}
+                        onHide={() => setDialogEdit(null)}
+                        header="Alterar item da agenda"
+                        style={{ width: 'min(96vw, 32rem)' }}
+                        modal
+                        footer={
+                            <div className="flex flex-wrap align-items-center gap-2 justify-content-start pr-3">
+                                <Button type="button" label="Cancelar" text onClick={() => setDialogEdit(null)} />
+                                <Button type="button" label="Salvar" icon="pi pi-check" onClick={() => void salvarEdicaoItemArvore()} />
+                            </div>
+                        }
+                    >
+                        {dialogEdit && (
+                            <div className="p-fluid flex flex-column gap-3">
+                                <div className="field">
+                                    <label htmlFor="arv-ed-desc">Descrição</label>
+                                    <InputText
+                                        id="arv-ed-desc"
+                                        value={dialogEdit.descricao}
+                                        onChange={(e) =>
+                                            setDialogEdit((prev) => (prev ? { ...prev, descricao: e.target.value } : null))
+                                        }
+                                    />
+                                </div>
+                                <div className="field">
+                                    <label htmlFor="arv-ed-ini">Início</label>
+                                    <Calendar
+                                        id="arv-ed-ini"
+                                        value={dialogEdit.inicio}
+                                        onChange={(e) =>
+                                            setDialogEdit((prev) => (prev ? { ...prev, inicio: e.value as Date | null } : null))
+                                        }
+                                        dateFormat="dd/mm/yy"
+                                        showIcon
+                                        appendTo={typeof document !== 'undefined' ? document.body : undefined}
+                                    />
+                                </div>
+                                <div className="field">
+                                    <label htmlFor="arv-ed-fim">Término</label>
+                                    <Calendar
+                                        id="arv-ed-fim"
+                                        value={dialogEdit.termino}
+                                        onChange={(e) =>
+                                            setDialogEdit((prev) => (prev ? { ...prev, termino: e.value as Date | null } : null))
+                                        }
+                                        dateFormat="dd/mm/yy"
+                                        showIcon
+                                        appendTo={typeof document !== 'undefined' ? document.body : undefined}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </Dialog>
                     <div className="vecontab-agenda-arvore-fab-wrap">
                         <Button
                             type="button"

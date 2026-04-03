@@ -7,49 +7,91 @@ import AgendaService from '../../services/cruds/AgendaService';
 import { Calendar as PRCalendar } from 'primereact/calendar';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
-import { Checkbox } from 'primereact/checkbox';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
-import { render } from '@fullcalendar/core/preact';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
-const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
+type AgendaEventRow = {
+  id: string;
+  title: string;
+  start: string;
+  end?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  borderColor?: string;
+};
 
-  if (typeof window === 'undefined') return null;
+function toISODateLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function mapDetalhesParaFC(rows: AgendaEventRow[]) {
+  return rows.map((e) => ({
+    id: e.id,
+    title: e.title,
+    start: (e.start || '').slice(0, 10),
+    end: (e.end || e.start || '').slice(0, 10),
+    allDay: true,
+    backgroundColor: e.backgroundColor,
+    borderColor: e.borderColor,
+    textColor: e.textColor,
+  }));
+}
+
+type SecondCalendarProps = {
+  eventData: { start?: Date | string } | null | undefined;
+  agenda_id: string;
+  isOpen: boolean;
+};
+
+const SecondCalendar = ({ eventData, agenda_id, isOpen }: SecondCalendarProps) => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
   const [events, setEvents] = useState<any[]>([]);
-
   const [isUpdating, setIsUpdating] = useState(false);
-  const [currentEvents, setCurrentEvents] = useState([]);
-  const [weekendsVisible, setWeekendsVisible] = useState(true); // Estado para controlar a visibilidade dos fins de semana
   const [eventDialog, setEventDialog] = useState(false);
   const [clickedEvent, setClickedEvent] = useState<any>(null);
-  const [changedEvent, setChangedEvent] = useState({ title: '', start: null, end: null, allDay: null });
+  const [changedEvent, setChangedEvent] = useState<{
+    title: string;
+    start: Date | null;
+    end: Date | null;
+  }>({ title: '', start: null, end: null });
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoDesc, setNovoDesc] = useState('');
+  const [novoInicio, setNovoInicio] = useState<Date | null>(null);
+  const [novoTermino, setNovoTermino] = useState<Date | null>(null);
   const calendarRef = useRef<any>(null);
   const toast = useRef<Toast>(null);
+  const agendaService = useRef(AgendaService());
 
-  const focusDate = eventData?.start ? new Date(eventData.start) : new Date();
+  const focusDate = eventData?.start ? new Date(eventData.start as string | Date) : new Date();
 
   useEffect(() => {
-    const agendaService = AgendaService();
-    const params = {
-      agenda_id: agenda_id
-    };
-
-    agendaService.getDetalhes(params)
-      .then((eventos) => setEvents(Array.isArray(eventos) ? eventos : []))
+    if (!agenda_id) {
+      return;
+    }
+    agendaService.current
+      .getDetalhes({ agenda_id })
+      .then((raw) => {
+        const list = Array.isArray(raw) ? raw : (raw as { events?: AgendaEventRow[] })?.events;
+        const arr = Array.isArray(list) ? (list as AgendaEventRow[]) : [];
+        setEvents(mapDetalhesParaFC(arr));
+      })
       .catch(() => setEvents([]));
-
     if (isUpdating) {
       setIsUpdating(false);
     }
-
   }, [agenda_id, isUpdating]);
 
   useEffect(() => {
     if (!isOpen) {
       return;
     }
-
     const timer = setTimeout(() => {
       const calendarApi = calendarRef.current?.getApi?.();
       if (calendarApi) {
@@ -57,95 +99,174 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
         calendarApi.updateSize();
       }
     }, 180);
-
     return () => clearTimeout(timer);
   }, [focusDate, isOpen, events.length]);
 
-  // const handleWeekendsToggle = () => {
-  //   setWeekendsVisible(!weekendsVisible);
-  // }
-
-  // const handleDateSelect = (selectInfo) => {
-  //   let title = prompt('Please enter a new title for your event')
-  //   let calendarApi = selectInfo.view.calendar
-
-  //   calendarApi.unselect() // clear date selection
-
-  //   if (title) {
-  //     calendarApi.addEvent({
-  //       //id: createEventId(),
-  //       title,
-  //       start: selectInfo.startStr,
-  //       end: selectInfo.endStr,
-  //       allDay: selectInfo.allDay
-  //     })
-  //   }
-  // }
-
-  // const handleEventClick = (e) => {
-  //   // if (confirm(`Are you sure you want to delete the event '${clickInfo.event.title}'`)) {
-  //   //   clickInfo.event.remove()
-  //   //setChangedEvent({ title, start, end, allDay: null });
-  //   const _changeEvent = e.event;
-  //   const { title, start, end } = e.event;
-  //   //setClickedEvent(e.event);
-  //   setEventDialog(true);
-  // }
-
+  const itemConcluido = (ev: any) =>
+    String(ev?.backgroundColor || '')
+      .trim()
+      .toUpperCase() === '#22C55E';
 
   const concluirPasso = async () => {
-    const agendaItemId = clickedEvent?._def?.publicId;
+    const agendaItemId = clickedEvent?.id;
     if (!agendaItemId || !agenda_id) {
-      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Passo da agenda inválido.', life: 3000 });
+      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Item inválido.', life: 3000 });
       return;
     }
-
     try {
-      const agendaService = AgendaService();
-      const response = await agendaService.concluirPasso({
+      const response = await agendaService.current.concluirPasso({
         agenda_id: String(agenda_id),
-        agenda_item_id: String(agendaItemId)
+        agenda_item_id: String(agendaItemId),
       });
-
-      toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Passo concluído manualmente.', life: 3000 });
-
+      toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Passo concluído.', life: 3000 });
       if (response?.data?.todos_passos_concluidos) {
-        toast.current?.show({ severity: 'info', summary: 'Rotina', detail: 'Todos os passos foram concluídos.', life: 4000 });
+        toast.current?.show({ severity: 'info', summary: 'Rotina', detail: 'Todos os passos concluídos.', life: 4000 });
       }
-
       setEventDialog(false);
       setIsUpdating(true);
-    } catch (error: any) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Erro',
-        detail: error?.message || 'Erro ao concluir passo.',
-        life: 4000
-      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao concluir.';
+      toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
     }
   };
 
-  const footer = (
-    <>
-      <Button type="button" label="Concluir Passo" icon="pi pi-check-circle" className="p-button-success p-button-text" onClick={concluirPasso} />
-    </>
-  );
-
-  const eventClick = (e) => {
-    const { title, start, end } = e.event;
-    setEventDialog(true);
-    setClickedEvent(e.event);
-    setChangedEvent({ title, start, end, allDay: null });
+  const reabrirPasso = async () => {
+    const agendaItemId = clickedEvent?.id;
+    if (!agendaItemId || !agenda_id) {
+      return;
+    }
+    try {
+      await agendaService.current.reabrirPasso({
+        agenda_id: String(agenda_id),
+        agenda_item_id: String(agendaItemId),
+      });
+      toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Passo reaberto.', life: 3000 });
+      setEventDialog(false);
+      setIsUpdating(true);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao reabrir.';
+      toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+    }
   };
 
-  function renderEventContent(eventInfo) {
-    render
-  }
+  const salvarAlteracaoItem = async () => {
+    const agendaItemId = clickedEvent?.id;
+    if (!agendaItemId || !agenda_id) {
+      return;
+    }
+    const di = changedEvent.start ? toISODateLocal(changedEvent.start) : '';
+    const df = changedEvent.end ? toISODateLocal(changedEvent.end) : di;
+    if (!changedEvent.title.trim() || !di) {
+      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Descrição e início são obrigatórios.', life: 3500 });
+      return;
+    }
+    try {
+      await agendaService.current.updateAgendaItem({
+        agenda_id: String(agenda_id),
+        agenda_item_id: String(agendaItemId),
+        descricao: changedEvent.title.trim(),
+        inicio: di,
+        termino: df,
+      });
+      toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Item atualizado.', life: 3000 });
+      setEventDialog(false);
+      setIsUpdating(true);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao salvar.';
+      toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+    }
+  };
+
+  const excluirItem = () => {
+    const agendaItemId = clickedEvent?.id;
+    if (!agendaItemId || !agenda_id) {
+      return;
+    }
+    confirmDialog({
+      message: 'Excluir este item da agenda? A tabela de passos não será alterada.',
+      header: 'Confirmar exclusão',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Excluir',
+      rejectLabel: 'Cancelar',
+      acceptClassName: 'p-button-danger',
+      accept: async () => {
+        try {
+          await agendaService.current.deleteAgendaItem(String(agenda_id), String(agendaItemId));
+          toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Item excluído.', life: 3000 });
+          setEventDialog(false);
+          setIsUpdating(true);
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : 'Erro ao excluir.';
+          toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+        }
+      },
+    });
+  };
+
+  const salvarNovoItem = async () => {
+    if (!agenda_id) {
+      return;
+    }
+    const di = novoInicio ? toISODateLocal(novoInicio) : '';
+    const df = novoTermino ? toISODateLocal(novoTermino) : di;
+    if (!novoDesc.trim() || !di) {
+      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Descrição e início são obrigatórios.', life: 3500 });
+      return;
+    }
+    try {
+      await agendaService.current.createAgendaItem({
+        agenda_id: String(agenda_id),
+        descricao: novoDesc.trim(),
+        inicio: di,
+        termino: df,
+      });
+      toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Item incluído na agenda.', life: 3000 });
+      setNovoOpen(false);
+      setNovoDesc('');
+      setNovoInicio(null);
+      setNovoTermino(null);
+      setIsUpdating(true);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao incluir.';
+      toast.current?.show({ severity: 'error', summary: 'Erro', detail: msg, life: 4000 });
+    }
+  };
+
+  const eventClick = (e: any) => {
+    const { title, start, end } = e.event;
+    setClickedEvent(e.event);
+    setChangedEvent({
+      title: title || '',
+      start: start ? new Date(start) : null,
+      end: end ? new Date(end) : null,
+    });
+    setEventDialog(true);
+  };
+
+  const detalheFooter = (
+    <div className="flex flex-wrap align-items-center gap-2 justify-content-start pr-3">
+      {itemConcluido(clickedEvent) ? (
+        <Button type="button" icon="pi pi-replay" rounded severity="help" tooltip="Reabrir passo" onClick={() => void reabrirPasso()} />
+      ) : (
+        <Button type="button" icon="pi pi-check-circle" rounded severity="success" tooltip="Concluir passo" onClick={() => void concluirPasso()} />
+      )}
+      <Button type="button" icon="pi pi-save" rounded severity="info" tooltip="Salvar alterações" onClick={() => void salvarAlteracaoItem()} />
+      <Button type="button" icon="pi pi-trash" rounded severity="warning" tooltip="Excluir item" onClick={excluirItem} />
+      <Button type="button" label="Fechar" text onClick={() => setEventDialog(false)} />
+    </div>
+  );
+
+  const novoFooter = (
+    <div className="flex flex-wrap align-items-center gap-2 justify-content-start pr-3">
+      <Button type="button" label="Cancelar" text onClick={() => setNovoOpen(false)} />
+      <Button type="button" label="Incluir" icon="pi pi-check" onClick={() => void salvarNovoItem()} />
+    </div>
+  );
 
   return (
-
     <div className="card calendar-demo">
       <Toast ref={toast} />
+      <ConfirmDialog />
       <FullCalendar
         ref={calendarRef}
         events={events}
@@ -157,59 +278,123 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }) => {
         selectable
         selectMirror
         dayMaxEvents
-        locale={'pt-br'}
-        timeZone={"UTC"}
+        locale="pt-br"
+        timeZone="UTC"
         buttonText={{
-          today: "Hoje",
-          month: "Mês",
-          week: "Semana",
-          day: "Dia",
-          list: "Lista",
+          today: 'Hoje',
+          month: 'Mês',
+          week: 'Semana',
+          day: 'Dia',
+          list: 'Lista',
           nextYear: 'Próximo ano',
           prevYear: 'Ano anterior',
           nextMonth: 'Próximo mês',
           prevMonth: 'Mês anterior',
           allDay: 'Dia inteiro',
-
         }}
-
         customButtons={{
-
-          btnAtualizar: {
-            text: "Atualizar",
-            click: function () {
-              setIsUpdating(true);
+          btnNovoItem: {
+            text: 'Novo item',
+            click: () => {
+              setNovoInicio(new Date());
+              setNovoTermino(new Date());
+              setNovoDesc('');
+              setNovoOpen(true);
             },
+          },
+          btnAtualizar: {
+            text: 'Atualizar',
+            click: () => setIsUpdating(true),
           },
         }}
         headerToolbar={{
-          left: "dayGridMonth,timeGridWeek,timeGridDay btnAtualizar",
-          center: "title",
-          right: "today prevYear,prev,next,nextYear",
+          left: 'dayGridMonth,timeGridWeek,timeGridDay btnNovoItem btnAtualizar',
+          center: 'title',
+          right: 'today prevYear,prev,next,nextYear',
         }}
         contentHeight={750}
-
       />
-      <Dialog visible={eventDialog && !!clickedEvent} style={{ width: '50%' }} header="Detalhes do Evento" footer={footer} modal closable onHide={() => setEventDialog(false)}>
-        <div className="p-fluid">
+      <Dialog
+        visible={eventDialog && !!clickedEvent}
+        style={{ width: 'min(96vw, 32rem)' }}
+        header="Item da agenda"
+        footer={detalheFooter}
+        modal
+        closable
+        onHide={() => setEventDialog(false)}
+      >
+        <div className="p-fluid flex flex-column gap-3">
           <div className="field">
-            <label htmlFor="title">Título</label>
-            <InputText id="title" value={changedEvent.title} onChange={(e) => setChangedEvent({ ...changedEvent, ...{ title: e.target.value } })} required autoFocus />
+            <label htmlFor="ag-diag-desc">Descrição</label>
+            <InputText
+              id="ag-diag-desc"
+              value={changedEvent.title}
+              onChange={(e) => setChangedEvent((prev) => ({ ...prev, title: e.target.value }))}
+            />
           </div>
           <div className="field">
-            <label htmlFor="start">De</label>
-            <PRCalendar id="start" value={changedEvent.start} onChange={(e) => setChangedEvent({ ...changedEvent, ...{ start: null } })} showTime appendTo={document.body} />
+            <label htmlFor="ag-diag-ini">Início</label>
+            <PRCalendar
+              id="ag-diag-ini"
+              value={changedEvent.start}
+              onChange={(e) => setChangedEvent((prev) => ({ ...prev, start: e.value as Date | null }))}
+              dateFormat="dd/mm/yy"
+              showIcon
+              appendTo={typeof document !== 'undefined' ? document.body : undefined}
+            />
           </div>
           <div className="field">
-            <label htmlFor="end">Até</label>
-            <PRCalendar id="end" value={changedEvent.end} onChange={(e) => setChangedEvent({ ...changedEvent, ...{ end: null } })} showTime appendTo={document.body} />
+            <label htmlFor="ag-diag-fim">Término</label>
+            <PRCalendar
+              id="ag-diag-fim"
+              value={changedEvent.end}
+              onChange={(e) => setChangedEvent((prev) => ({ ...prev, end: e.value as Date | null }))}
+              dateFormat="dd/mm/yy"
+              showIcon
+              appendTo={typeof document !== 'undefined' ? document.body : undefined}
+            />
+          </div>
+        </div>
+      </Dialog>
+      <Dialog
+        visible={novoOpen}
+        style={{ width: 'min(96vw, 32rem)' }}
+        header="Novo item na agenda"
+        footer={novoFooter}
+        modal
+        onHide={() => setNovoOpen(false)}
+      >
+        <div className="p-fluid flex flex-column gap-3">
+          <div className="field">
+            <label htmlFor="ag-novo-desc">Descrição</label>
+            <InputText id="ag-novo-desc" value={novoDesc} onChange={(e) => setNovoDesc(e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor="ag-novo-ini">Início</label>
+            <PRCalendar
+              id="ag-novo-ini"
+              value={novoInicio}
+              onChange={(e) => setNovoInicio(e.value as Date | null)}
+              dateFormat="dd/mm/yy"
+              showIcon
+              appendTo={typeof document !== 'undefined' ? document.body : undefined}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="ag-novo-fim">Término</label>
+            <PRCalendar
+              id="ag-novo-fim"
+              value={novoTermino}
+              onChange={(e) => setNovoTermino(e.value as Date | null)}
+              dateFormat="dd/mm/yy"
+              showIcon
+              appendTo={typeof document !== 'undefined' ? document.body : undefined}
+            />
           </div>
         </div>
       </Dialog>
     </div>
   );
-
-}
-
+};
 
 export default SecondCalendar;

@@ -208,6 +208,9 @@ func registerRoutes(
 	r.With(requireAuth).Get("/agendalist", agendaHandler.List)
 	r.With(requireAuth).Get("/agendadetalhes", agendaHandler.Detail)
 	r.With(requireAuth).Post("/agenda/concluir-passo", agendaHandler.ConcluirPasso)
+	r.With(requireAuth).Post("/agenda/item", agendaHandler.CreateAgendaItem)
+	r.With(requireAuth).Put("/agenda/item", agendaHandler.UpdateAgendaItem)
+	r.With(requireAuth).Delete("/agenda/item", agendaHandler.DeleteAgendaItem)
 	// Reabrir: mesmo payload que concluir; rota plana alinhada a /agendalist (aninhada mantida para simetria).
 	r.With(requireAuth).Post("/agendareabrirpasso", agendaHandler.ReabrirPasso)
 	r.With(requireAuth).Post("/agenda/reabrir-passo", agendaHandler.ReabrirPasso)

@@ -73,15 +73,15 @@ const Calendario = ({ dados }: CalendarioProps) => {
   const [changedEvent, setChangedEvent] = useState({ title: '', start: null, end: null });
   const [events, setEvents] = useState<any[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [rotina_id, setRotina_id] = useState(0);
-  const [agenda_id, setAgenda_id] = useState(0);
+  const [rotina_id, setRotina_id] = useState('');
+  const [agenda_id, setAgenda_id] = useState('');
 
   const eventClick = (e: any) => {
     const { title, start, end } = e.event;
     const rotinaId = e.event._def.extendedProps.rotina_id;
     const agendaId = e.event._def.publicId;
-    setRotina_id(rotinaId);
-    setAgenda_id(agendaId)
+    setRotina_id(rotinaId != null ? String(rotinaId) : '');
+    setAgenda_id(agendaId != null ? String(agendaId) : '');
     setChangedEvent({ title, start, end: null });
     setClickedEvent(e.event);
     setEventDialog(true);

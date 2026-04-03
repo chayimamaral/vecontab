@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/chayimamaral/vecontab/backend/internal/repository"
 )
@@ -13,6 +14,9 @@ type AgendaRepository interface {
 	DetailEvents(ctx context.Context, tenantID, agendaID string) ([]repository.AgendaEvent, error)
 	ConcluirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
 	ReabrirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
+	InsertAgendaItem(ctx context.Context, tenantID, agendaID, descricao, inicio, termino string) (string, error)
+	UpdateAgendaItem(ctx context.Context, tenantID, agendaID, itemID string, descricao, inicio, termino *string) error
+	DeleteAgendaItem(ctx context.Context, tenantID, agendaID, itemID string) error
 }
 
 type AgendaService struct {
@@ -75,4 +79,26 @@ func (s *AgendaService) ReabrirPasso(ctx context.Context, tenantID, agendaID, ag
 		AgendaItemID:          result.AgendaItemID,
 		TodosPassosConcluidos: result.TodosPassosConcluidos,
 	}, nil
+}
+
+type AgendaItemCriadoResponse struct {
+	AgendaID     string `json:"agenda_id"`
+	AgendaItemID string `json:"agenda_item_id"`
+}
+
+func (s *AgendaService) CreateAgendaItem(ctx context.Context, tenantID, agendaID, descricao, inicio, termino string) (AgendaItemCriadoResponse, error) {
+	agendaID = strings.TrimSpace(agendaID)
+	id, err := s.repo.InsertAgendaItem(ctx, tenantID, agendaID, descricao, inicio, termino)
+	if err != nil {
+		return AgendaItemCriadoResponse{}, err
+	}
+	return AgendaItemCriadoResponse{AgendaID: agendaID, AgendaItemID: id}, nil
+}
+
+func (s *AgendaService) UpdateAgendaItem(ctx context.Context, tenantID, agendaID, itemID string, descricao, inicio, termino *string) error {
+	return s.repo.UpdateAgendaItem(ctx, tenantID, agendaID, itemID, descricao, inicio, termino)
+}
+
+func (s *AgendaService) DeleteAgendaItem(ctx context.Context, tenantID, agendaID, itemID string) error {
+	return s.repo.DeleteAgendaItem(ctx, tenantID, agendaID, itemID)
 }

@@ -13,10 +13,13 @@ import (
 var errSentinelDB = errors.New("erro simulado do repositório")
 
 type mockAgendaRepository struct {
-	listEvents    func(ctx context.Context, tenantID string) ([]repository.AgendaEvent, error)
-	detailEvents  func(ctx context.Context, tenantID, agendaID string) ([]repository.AgendaEvent, error)
-	concluirPasso func(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
-	reabrirPasso  func(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
+	listEvents       func(ctx context.Context, tenantID string) ([]repository.AgendaEvent, error)
+	detailEvents     func(ctx context.Context, tenantID, agendaID string) ([]repository.AgendaEvent, error)
+	concluirPasso    func(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
+	reabrirPasso     func(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
+	insertAgendaItem func(ctx context.Context, tenantID, agendaID, descricao, inicio, termino string) (string, error)
+	updateAgendaItem func(ctx context.Context, tenantID, agendaID, itemID string, descricao, inicio, termino *string) error
+	deleteAgendaItem func(ctx context.Context, tenantID, agendaID, itemID string) error
 }
 
 func (m *mockAgendaRepository) ListEvents(ctx context.Context, tenantID string) ([]repository.AgendaEvent, error) {
@@ -45,6 +48,27 @@ func (m *mockAgendaRepository) ReabrirPasso(ctx context.Context, tenantID, agend
 		return m.reabrirPasso(ctx, tenantID, agendaID, agendaItemID)
 	}
 	return repository.ConcluirPassoResult{}, nil
+}
+
+func (m *mockAgendaRepository) InsertAgendaItem(ctx context.Context, tenantID, agendaID, descricao, inicio, termino string) (string, error) {
+	if m.insertAgendaItem != nil {
+		return m.insertAgendaItem(ctx, tenantID, agendaID, descricao, inicio, termino)
+	}
+	return "", nil
+}
+
+func (m *mockAgendaRepository) UpdateAgendaItem(ctx context.Context, tenantID, agendaID, itemID string, descricao, inicio, termino *string) error {
+	if m.updateAgendaItem != nil {
+		return m.updateAgendaItem(ctx, tenantID, agendaID, itemID, descricao, inicio, termino)
+	}
+	return nil
+}
+
+func (m *mockAgendaRepository) DeleteAgendaItem(ctx context.Context, tenantID, agendaID, itemID string) error {
+	if m.deleteAgendaItem != nil {
+		return m.deleteAgendaItem(ctx, tenantID, agendaID, itemID)
+	}
+	return nil
 }
 
 func TestAgendaService_List(t *testing.T) {

@@ -91,6 +91,35 @@ export default function AgendaService() {
       }
     },
 
+    createAgendaItem: async (payload: {
+      agenda_id: string;
+      descricao: string;
+      inicio: string;
+      termino?: string;
+    }) => {
+      const apiClient = setupAPIClient(undefined);
+      const response = await apiClient.post('/api/agenda/item', payload);
+      return response.data as { agenda_id: string; agenda_item_id: string };
+    },
+
+    updateAgendaItem: async (payload: {
+      agenda_id: string;
+      agenda_item_id: string;
+      descricao?: string;
+      inicio?: string;
+      termino?: string;
+    }) => {
+      const apiClient = setupAPIClient(undefined);
+      await apiClient.put('/api/agenda/item', payload);
+    },
+
+    deleteAgendaItem: async (agenda_id: string, agenda_item_id: string) => {
+      const apiClient = setupAPIClient(undefined);
+      await apiClient.delete('/api/agenda/item', {
+        params: { agenda_id, agenda_item_id },
+      });
+    },
+
   }
   // return {
   //   getAgendaList,
