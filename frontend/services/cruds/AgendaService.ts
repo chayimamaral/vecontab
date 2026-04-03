@@ -72,6 +72,25 @@ export default function AgendaService() {
       }
     },
 
+    reabrirPasso: async (payload: { agenda_id: string; agenda_item_id: string }) => {
+      try {
+        const apiClient = setupAPIClient(undefined);
+        const response = await apiClient.post('/api/agenda/reabrir-passo', payload);
+
+        return {
+          data: response.data
+        };
+      } catch (err) {
+        const axiosErr = err as AxiosError<{ error?: string; message?: string }>;
+        const message =
+          axiosErr.response?.data?.error ||
+          axiosErr.response?.data?.message ||
+          axiosErr.message ||
+          'Erro ao reabrir passo da agenda';
+        throw new Error(message);
+      }
+    },
+
   }
   // return {
   //   getAgendaList,

@@ -25,24 +25,41 @@ const AppMenu = () => {
                 items: [
                     { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
                     {
-                        label: 'Compromissos por Empresas',
+                        label: 'Compromissos',
                         icon: 'pi pi-fw pi-list',
-                        to: '/compromissos-empresas',
-                    },
-                    {
-                        label: 'Compromissos por Natureza',
-                        icon: 'pi pi-fw pi-sitemap',
-                        to: '/compromissos-por-natureza',
-                    },
-                    {
-                        label: 'Compromissos (Visão Corrida)',
-                        icon: 'pi pi-fw pi-table',
-                        to: '/compromissos-visao',
+                        items: [
+                            {
+                                label: 'Compromissos por empresas',
+                                icon: 'pi pi-fw pi-list',
+                                to: '/compromissos-empresas',
+                            },
+                            {
+                                label: 'Compromissos por natureza',
+                                icon: 'pi pi-fw pi-sitemap',
+                                to: '/compromissos-por-natureza',
+                            },
+                            {
+                                label: 'Compromissos (visão corrida)',
+                                icon: 'pi pi-fw pi-table',
+                                to: '/compromissos-visao',
+                            },
+                        ],
                     },
                     {
                         label: 'Agenda',
                         icon: 'pi pi-fw pi-calendar',
-                        to: '/agenda',
+                        items: [
+                            {
+                                label: 'Agenda (calendário)',
+                                icon: 'pi pi-fw pi-calendar',
+                                to: '/agenda',
+                            },
+                            {
+                                label: 'Agenda em Árvore',
+                                icon: 'pi pi-fw pi-sitemap',
+                                to: '/agenda-arvore',
+                            },
+                        ],
                     },
                     {
                         label: 'Manutenção de Empresas',

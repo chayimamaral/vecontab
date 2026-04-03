@@ -208,6 +208,7 @@ func registerRoutes(
 	r.With(requireAuth).Get("/agendalist", agendaHandler.List)
 	r.With(requireAuth).Get("/agendadetalhes", agendaHandler.Detail)
 	r.With(requireAuth).Post("/agenda/concluir-passo", agendaHandler.ConcluirPasso)
+	r.With(requireAuth).Post("/agenda/reabrir-passo", agendaHandler.ReabrirPasso)
 
 	r.With(requireAuth).Get("/obrigacoes", obrigacaoHandler.List)
 	r.With(requireAuth, requireAdmin).Post("/obrigacao", obrigacaoHandler.Create)

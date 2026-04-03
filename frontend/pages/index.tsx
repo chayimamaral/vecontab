@@ -79,11 +79,11 @@ const MODULOS: ModuloCard[] = [
         tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
     },
     {
-        future: true,
-        titulo: 'Compromissos do Dia',
-        descricao: 'Compromissos as empresas para o dia atual.',
-        icon: 'pi pi-calendar-clock',
-        tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
+        titulo: 'Agenda em Árvore',
+        descricao: 'Empresa e rotina no primeiro nível; expanda para ver passos, prazos e concluir itens como na agenda.',
+        href: '/agenda-arvore',
+        icon: 'pi pi-sitemap',
+        tooltip: 'Árvore PrimeReact: mesmas cores e endpoints da agenda em calendário.',
     },
 
 ];

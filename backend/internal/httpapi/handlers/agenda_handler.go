@@ -67,3 +67,26 @@ func (h *AgendaHandler) ConcluirPasso(w http.ResponseWriter, r *http.Request) {
 
 	render.WriteJSON(w, http.StatusOK, response)
 }
+
+func (h *AgendaHandler) ReabrirPasso(w http.ResponseWriter, r *http.Request) {
+	var payload agendaConcluirPassoPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		return
+	}
+
+	payload.AgendaID = strings.TrimSpace(payload.AgendaID)
+	payload.AgendaItemID = strings.TrimSpace(payload.AgendaItemID)
+	if payload.AgendaID == "" || payload.AgendaItemID == "" {
+		render.WriteError(w, http.StatusBadRequest, "agenda_id e agenda_item_id sao obrigatorios")
+		return
+	}
+
+	response, err := h.service.ReabrirPasso(r.Context(), middleware.TenantID(r.Context()), payload.AgendaID, payload.AgendaItemID)
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	render.WriteJSON(w, http.StatusOK, response)
+}

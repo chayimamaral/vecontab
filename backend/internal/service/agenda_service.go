@@ -12,6 +12,7 @@ type AgendaRepository interface {
 	ListEvents(ctx context.Context, tenantID string) ([]repository.AgendaEvent, error)
 	DetailEvents(ctx context.Context, tenantID, agendaID string) ([]repository.AgendaEvent, error)
 	ConcluirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
+	ReabrirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
 }
 
 type AgendaService struct {
@@ -52,6 +53,19 @@ func (s *AgendaService) Detail(ctx context.Context, tenantID, agendaID string) (
 
 func (s *AgendaService) ConcluirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (AgendaConcluirPassoResponse, error) {
 	result, err := s.repo.ConcluirPasso(ctx, tenantID, agendaID, agendaItemID)
+	if err != nil {
+		return AgendaConcluirPassoResponse{}, err
+	}
+
+	return AgendaConcluirPassoResponse{
+		AgendaID:              result.AgendaID,
+		AgendaItemID:          result.AgendaItemID,
+		TodosPassosConcluidos: result.TodosPassosConcluidos,
+	}, nil
+}
+
+func (s *AgendaService) ReabrirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (AgendaConcluirPassoResponse, error) {
+	result, err := s.repo.ReabrirPasso(ctx, tenantID, agendaID, agendaItemID)
 	if err != nil {
 		return AgendaConcluirPassoResponse{}, err
 	}

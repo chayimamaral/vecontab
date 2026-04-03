@@ -16,6 +16,7 @@ type mockAgendaRepository struct {
 	listEvents    func(ctx context.Context, tenantID string) ([]repository.AgendaEvent, error)
 	detailEvents  func(ctx context.Context, tenantID, agendaID string) ([]repository.AgendaEvent, error)
 	concluirPasso func(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
+	reabrirPasso  func(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error)
 }
 
 func (m *mockAgendaRepository) ListEvents(ctx context.Context, tenantID string) ([]repository.AgendaEvent, error) {
@@ -35,6 +36,13 @@ func (m *mockAgendaRepository) DetailEvents(ctx context.Context, tenantID, agend
 func (m *mockAgendaRepository) ConcluirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error) {
 	if m.concluirPasso != nil {
 		return m.concluirPasso(ctx, tenantID, agendaID, agendaItemID)
+	}
+	return repository.ConcluirPassoResult{}, nil
+}
+
+func (m *mockAgendaRepository) ReabrirPasso(ctx context.Context, tenantID, agendaID, agendaItemID string) (repository.ConcluirPassoResult, error) {
+	if m.reabrirPasso != nil {
+		return m.reabrirPasso(ctx, tenantID, agendaID, agendaItemID)
 	}
 	return repository.ConcluirPassoResult{}, nil
 }
@@ -199,6 +207,70 @@ func TestAgendaService_ConcluirPasso(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := service.NewAgendaService(tt.mock)
 			got, err := svc.ConcluirPasso(ctx, "t1", "ag-1", "ai-1")
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Fatal("esperava erro")
+				}
+				if !errors.Is(err, tt.wantErr) {
+					t.Fatalf("errors.Is: got %v, want %v", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got != tt.wantResp {
+				t.Fatalf("got %+v, want %+v", got, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestAgendaService_ReabrirPasso(t *testing.T) {
+	ctx := context.Background()
+	wantResult := repository.ConcluirPassoResult{
+		AgendaID:              "ag-1",
+		AgendaItemID:          "ai-1",
+		TodosPassosConcluidos: false,
+	}
+
+	tests := []struct {
+		name     string
+		mock     *mockAgendaRepository
+		wantResp service.AgendaConcluirPassoResponse
+		wantErr  error
+	}{
+		{
+			name: "sucesso mapeia resultado do repositório",
+			mock: &mockAgendaRepository{
+				reabrirPasso: func(_ context.Context, tenantID, agendaID, itemID string) (repository.ConcluirPassoResult, error) {
+					if tenantID != "t1" || agendaID != "ag-1" || itemID != "ai-1" {
+						t.Errorf("args tenant=%q agenda=%q item=%q", tenantID, agendaID, itemID)
+					}
+					return wantResult, nil
+				},
+			},
+			wantResp: service.AgendaConcluirPassoResponse{
+				AgendaID:              wantResult.AgendaID,
+				AgendaItemID:          wantResult.AgendaItemID,
+				TodosPassosConcluidos: wantResult.TodosPassosConcluidos,
+			},
+		},
+		{
+			name: "erro do banco propagado",
+			mock: &mockAgendaRepository{
+				reabrirPasso: func(context.Context, string, string, string) (repository.ConcluirPassoResult, error) {
+					return repository.ConcluirPassoResult{}, fmt.Errorf("reabrir passo da agenda: %w", errSentinelDB)
+				},
+			},
+			wantErr: errSentinelDB,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := service.NewAgendaService(tt.mock)
+			got, err := svc.ReabrirPasso(ctx, "t1", "ag-1", "ai-1")
 			if tt.wantErr != nil {
 				if err == nil {
 					t.Fatal("esperava erro")
