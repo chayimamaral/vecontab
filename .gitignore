@@ -7,3 +7,4 @@ backend/cmd/api/api-vecontab
 public-api/public-api
 backup/
 docs/
+migrations/

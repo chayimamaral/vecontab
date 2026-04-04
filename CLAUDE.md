@@ -8,7 +8,7 @@ Stack: Backend em Go (Golang), Frontend em React.
 
 Ambiente de Desenvolvimento: Fedora 43 (utilizar dnf para pacotes).
 
-Banco de Dados: PostgreSQL (utilizando driver pgx).
+Banco de Dados: PostgreSQL 18.3 (utilizando driver pgx).
 
 🛠 Princípios de Engenharia
 Arquitetura: Clean Architecture, SOLID e Domain-Driven Design (DDD).
@@ -17,7 +17,7 @@ Performance: Prioridade absoluta. Go é escolhido especificamente pela velocidad
 
 Acesso a Dados: Proibido o uso de ORMs. O controle deve ser total via SQL puro e drivers nativos para garantir otimização.
 
-Segurança: Basear estratégias de proteção de código no projeto MARE.
+Segurança: Basear estratégias de proteção de código no projeto VECONTAB.
 
 Legado: Compatibilidade mental com arquiteturas robustas (referência histórica: sistemas 8086/TK85).
 
@@ -43,6 +43,8 @@ Backend: go run cmd/api/main.go
 Frontend: npm run dev
 
 Banco: psql -h localhost -U [camaral] -d vecontab
+
+Migrations: sempre na pasta raiz do vecontab.
 
 Layout: botão "Atualizar" será sempre um ícone no canto inferior da página, nunca botão na parte superior.
   Exemplo: const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip='Atualizar' className="p-button-text" onClick={loadLazy_Rotina_Tal}
