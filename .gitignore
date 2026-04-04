@@ -5,3 +5,5 @@ Imagem colada*.png
 backend/cmd/api/api-mare
 backend/cmd/api/api-vecontab
 public-api/public-api
+backup/
+docs/
