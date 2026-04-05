@@ -22,13 +22,14 @@ type EmpresaMutationResponse struct {
 }
 
 type EmpresaInput struct {
-	ID          string `json:"id"`
-	Nome        string `json:"nome"`
-	MunicipioID string `json:"municipio_id"`
-	TenantID    string `json:"tenantid"`
-	RotinaID    string `json:"rotina_id"`
-	Cnaes       any    `json:"cnaes"`
-	Bairro      string `json:"bairro"`
+	ID         string `json:"id"`
+	Nome       string `json:"nome"`
+	TenantID   string `json:"tenantid"`
+	RotinaID   string `json:"rotina_id"`
+	Cnaes      any    `json:"cnaes"`
+	Bairro     string `json:"bairro"`
+	TipoPessoa string `json:"tipo_pessoa"`
+	Documento  string `json:"documento"`
 }
 
 func NewEmpresaService(repo *repository.EmpresaRepository) *EmpresaService {
@@ -46,12 +47,13 @@ func (s *EmpresaService) List(ctx context.Context, params repository.EmpresaList
 
 func (s *EmpresaService) Create(ctx context.Context, input EmpresaInput) (EmpresaMutationResponse, error) {
 	empresas, total, err := s.repo.Create(ctx, repository.EmpresaUpsertInput{
-		Nome:        input.Nome,
-		MunicipioID: input.MunicipioID,
-		TenantID:    input.TenantID,
-		RotinaID:    input.RotinaID,
-		Cnaes:       input.Cnaes,
-		Bairro:      input.Bairro,
+		Nome:       input.Nome,
+		TenantID:   input.TenantID,
+		RotinaID:   input.RotinaID,
+		Cnaes:      input.Cnaes,
+		Bairro:     input.Bairro,
+		TipoPessoa: input.TipoPessoa,
+		Documento:  input.Documento,
 	})
 	if err != nil {
 		return EmpresaMutationResponse{}, err
@@ -62,13 +64,14 @@ func (s *EmpresaService) Create(ctx context.Context, input EmpresaInput) (Empres
 
 func (s *EmpresaService) Update(ctx context.Context, input EmpresaInput) (EmpresaMutationResponse, error) {
 	empresas, total, err := s.repo.Update(ctx, repository.EmpresaUpsertInput{
-		ID:          input.ID,
-		Nome:        input.Nome,
-		MunicipioID: input.MunicipioID,
-		TenantID:    input.TenantID,
-		RotinaID:    input.RotinaID,
-		Cnaes:       input.Cnaes,
-		Bairro:      input.Bairro,
+		ID:         input.ID,
+		Nome:       input.Nome,
+		TenantID:   input.TenantID,
+		RotinaID:   input.RotinaID,
+		Cnaes:      input.Cnaes,
+		Bairro:     input.Bairro,
+		TipoPessoa: input.TipoPessoa,
+		Documento:  input.Documento,
 	})
 	if err != nil {
 		return EmpresaMutationResponse{}, err

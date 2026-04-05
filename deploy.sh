@@ -1,26 +1,10 @@
 #!/bin/bash
 
-# Não usamos set -e aqui para podermos fazer o resumo final mesmo com falhas
-BACKUP_DIR="$HOME/develop/go/vecontab/backup"
-mkdir -p "$BACKUP_DIR"
-BACKUP_FILE="vecontab_$(date +%Y%m%d_%H%M%S).tar.gz"
+# No início do deploy.sh
+./backup.sh
 
-echo "-------------------------------------------"
-echo "💾 GERANDO BACKUP DO CÓDIGO FONTE"
-echo "-------------------------------------------"
-
-# O git archive ignora node_modules, .next e binários automaticamente
-if git archive --format=tar.gz -o "$BACKUP_DIR/$BACKUP_FILE" HEAD; then
-    echo "✅ Backup criado: $BACKUP_FILE"
-    # Mantém apenas os últimos 10 backups para não lotar o SSD
-    (cd "$BACKUP_DIR" && ls -t vecontab_*.tar.gz | tail -n +11 | xargs rm -f 2>/dev/null)
-else
-    echo "⚠️ Falha ao gerar backup local. Verifique se há alterações não commitadas."
-fi
-echo "-------------------------------------------"
-
-echo ""
-
+# Se o backup falhar e você quiser parar o deploy:
+./backup.sh || { echo "Backup falhou, deploy cancelado"; exit 1; }
 
 if ! systemctl is-active --quiet docker; then
     echo "❌ ERRO: O serviço Docker não está rodando no Fedora."
@@ -28,6 +12,7 @@ if ! systemctl is-active --quiet docker; then
     exit 1
 fi
 
+# Não usamos set -e aqui para podermos fazer o resumo final mesmo com falhas
 set +e
 
 START_TIME=$(date +%s)

@@ -18,22 +18,31 @@ type EmpresaHandler struct {
 
 type empresaEnvelope struct {
 	Params struct {
-		ID        string `json:"id"`
-		Nome      string `json:"nome"`
-		Municipio struct {
+		ID          string `json:"id"`
+		Nome        string `json:"nome"`
+		Municipio   struct {
 			ID string `json:"id"`
 		} `json:"municipio"`
-		TenantID string `json:"tenantid"`
-		Rotina   struct {
+		TenantID    string `json:"tenantid"`
+		Rotina      struct {
 			ID string `json:"id"`
 		} `json:"rotina"`
-		Cnaes  any    `json:"cnaes"`
-		Bairro string `json:"bairro"`
+		Cnaes       any    `json:"cnaes"`
+		Bairro      string `json:"bairro"`
+		TipoPessoa  string `json:"tipo_pessoa"`
+		Documento   string `json:"documento"`
 	} `json:"params"`
 }
 
 func NewEmpresaHandler(service *service.EmpresaService) *EmpresaHandler {
 	return &EmpresaHandler{service: service}
+}
+
+func parseTipoPessoaPayload(s string) string {
+	if strings.ToUpper(strings.TrimSpace(s)) == "PF" {
+		return "PF"
+	}
+	return "PJ"
 }
 
 func (h *EmpresaHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -63,18 +72,28 @@ func (h *EmpresaHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tenantID := middleware.TenantID(r.Context())
-	if payload.Params.Nome == "" || payload.Params.Municipio.ID == "" || tenantID == "" || payload.Params.Rotina.ID == "" {
-		render.WriteError(w, http.StatusBadRequest, "Favor informar todos os dados!")
+	tp := parseTipoPessoaPayload(payload.Params.TipoPessoa)
+	if payload.Params.Nome == "" || tenantID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o nome!")
+		return
+	}
+	if tp == "PJ" && strings.TrimSpace(payload.Params.Rotina.ID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Rotina obrigatoria para pessoa juridica")
+		return
+	}
+	if tp == "PF" && strings.TrimSpace(payload.Params.Documento) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Documento (CPF) obrigatorio para pessoa fisica")
 		return
 	}
 
 	response, err := h.service.Create(r.Context(), service.EmpresaInput{
-		Nome:        payload.Params.Nome,
-		MunicipioID: payload.Params.Municipio.ID,
-		TenantID:    tenantID,
-		RotinaID:    payload.Params.Rotina.ID,
-		Cnaes:       payload.Params.Cnaes,
-		Bairro:      payload.Params.Bairro,
+		Nome:       payload.Params.Nome,
+		TenantID:   tenantID,
+		RotinaID:   payload.Params.Rotina.ID,
+		Cnaes:      payload.Params.Cnaes,
+		Bairro:     payload.Params.Bairro,
+		TipoPessoa: tp,
+		Documento:  payload.Params.Documento,
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
@@ -91,19 +110,30 @@ func (h *EmpresaHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if payload.Params.Nome == "" || payload.Params.Municipio.ID == "" {
-		render.WriteError(w, http.StatusBadRequest, "Favor informar todos os dados!")
+	tenantID := middleware.TenantID(r.Context())
+	tp := parseTipoPessoaPayload(payload.Params.TipoPessoa)
+	if payload.Params.Nome == "" || tenantID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Favor informar o nome!")
+		return
+	}
+	if tp == "PJ" && strings.TrimSpace(payload.Params.Rotina.ID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Rotina obrigatoria para pessoa juridica")
+		return
+	}
+	if tp == "PF" && strings.TrimSpace(payload.Params.Documento) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Documento (CPF) obrigatorio para pessoa fisica")
 		return
 	}
 
 	response, err := h.service.Update(r.Context(), service.EmpresaInput{
-		ID:          payload.Params.ID,
-		Nome:        payload.Params.Nome,
-		MunicipioID: payload.Params.Municipio.ID,
-		TenantID:    middleware.TenantID(r.Context()),
-		RotinaID:    payload.Params.Rotina.ID,
-		Cnaes:       payload.Params.Cnaes,
-		Bairro:      payload.Params.Bairro,
+		ID:         payload.Params.ID,
+		Nome:       payload.Params.Nome,
+		TenantID:   tenantID,
+		RotinaID:   payload.Params.Rotina.ID,
+		Cnaes:      payload.Params.Cnaes,
+		Bairro:     payload.Params.Bairro,
+		TipoPessoa: tp,
+		Documento:  payload.Params.Documento,
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())

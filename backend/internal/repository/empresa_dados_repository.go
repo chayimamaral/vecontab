@@ -15,6 +15,7 @@ import (
 type EmpresaDadosUpsertInput struct {
 	EmpresaID        string
 	TenantID         string
+	MunicipioID      string
 	CNPJ             string
 	Endereco         string
 	EmailContato     string
@@ -79,9 +80,11 @@ func (r *EmpresaDadosRepository) GetByEmpresa(ctx context.Context, empresaID, te
 	const q = `
 		SELECT e.id,
 			ed.cnpj, ed.endereco, ed.email_contato, ed.telefone, ed.telefone2,
-			ed.data_abertura, ed.data_encerramento, ed.observacao
+			ed.data_abertura, ed.data_encerramento, ed.observacao,
+			COALESCE(m.id::text, ''), COALESCE(m.nome, '')
 		FROM public.empresa e
 		LEFT JOIN public.empresa_dados ed ON ed.empresa_id = e.id
+		LEFT JOIN public.municipio m ON m.id = COALESCE(e.municipio_id, ed.municipio_id)
 		WHERE e.id = $1 AND e.tenant_id = $2 AND e.ativo = true`
 
 	row := r.pool.QueryRow(ctx, q, empresaID, tenantID)
@@ -91,8 +94,9 @@ func (r *EmpresaDadosRepository) GetByEmpresa(ctx context.Context, empresaID, te
 		cnpj, endereco, email, tel1, tel2     pgtype.Text
 		dataAber, dataEnc                     pgtype.Date
 		obs                                   pgtype.Text
+		mID, mNome                            string
 	)
-	if err := row.Scan(&id, &cnpj, &endereco, &email, &tel1, &tel2, &dataAber, &dataEnc, &obs); err != nil {
+	if err := row.Scan(&id, &cnpj, &endereco, &email, &tel1, &tel2, &dataAber, &dataEnc, &obs, &mID, &mNome); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("empresa nao encontrada")
 		}
@@ -109,6 +113,10 @@ func (r *EmpresaDadosRepository) GetByEmpresa(ctx context.Context, empresaID, te
 		DataAbertura:     datePtr(dataAber),
 		DataEncerramento: datePtr(dataEnc),
 		Observacao:       textPtr(obs),
+		Municipio: domain.EmpresaRef{
+			ID:   mID,
+			Nome: mNome,
+		},
 	}
 	return out, nil
 }
@@ -127,15 +135,29 @@ func (r *EmpresaDadosRepository) Upsert(ctx context.Context, in EmpresaDadosUpse
 		return err
 	}
 
+	var mid any
+	if s := strings.TrimSpace(in.MunicipioID); s != "" {
+		mid = s
+	} else {
+		mid = nil
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("iniciar transacao dados complementares: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	const q = `
 		INSERT INTO public.empresa_dados (
-			empresa_id, cnpj, endereco, email_contato, telefone, telefone2,
+			empresa_id, municipio_id, cnpj, endereco, email_contato, telefone, telefone2,
 			data_abertura, data_encerramento, observacao, atualizado_em
 		)
-		SELECT $1::text, $2, $3, $4, $5, $6, $7::date, $8::date, $9, NOW()
+		SELECT $1::text, $2, $3, $4, $5, $6, $7, $8::date, $9::date, $10, NOW()
 		FROM public.empresa e
-		WHERE e.id = $1 AND e.tenant_id = $10 AND e.ativo = true
+		WHERE e.id = $1 AND e.tenant_id = $11 AND e.ativo = true
 		ON CONFLICT (empresa_id) DO UPDATE SET
+			municipio_id = EXCLUDED.municipio_id,
 			cnpj = EXCLUDED.cnpj,
 			endereco = EXCLUDED.endereco,
 			email_contato = EXCLUDED.email_contato,
@@ -146,8 +168,9 @@ func (r *EmpresaDadosRepository) Upsert(ctx context.Context, in EmpresaDadosUpse
 			observacao = EXCLUDED.observacao,
 			atualizado_em = NOW()`
 
-	tag, err := r.pool.Exec(ctx, q,
+	tag, err := tx.Exec(ctx, q,
 		in.EmpresaID,
+		mid,
 		strOrNil(in.CNPJ),
 		strOrNil(in.Endereco),
 		strOrNil(in.EmailContato),
@@ -163,6 +186,19 @@ func (r *EmpresaDadosRepository) Upsert(ctx context.Context, in EmpresaDadosUpse
 	}
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("empresa nao encontrada ou sem permissao")
+	}
+
+	if _, err := tx.Exec(ctx, `
+		UPDATE public.empresa e
+		SET municipio_id = $2
+		WHERE e.id = $1 AND e.tenant_id = $3 AND e.ativo = true`,
+		in.EmpresaID, mid, in.TenantID,
+	); err != nil {
+		return fmt.Errorf("espelhar municipio na empresa: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("confirmar dados complementares: %w", err)
 	}
 	return nil
 }

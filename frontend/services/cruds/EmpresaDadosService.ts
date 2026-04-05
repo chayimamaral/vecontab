@@ -11,6 +11,7 @@ export default function EmpresaDadosService() {
 
   const save = async (params: {
     id: string;
+    municipio_id?: string;
     cnpj?: string;
     endereco?: string;
     email_contato?: string;

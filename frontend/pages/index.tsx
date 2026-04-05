@@ -23,11 +23,18 @@ type ModuloCard = ModuloAtivo | ModuloFuturo;
 
 const MODULOS: ModuloCard[] = [
     {
+        titulo: 'Cadastro de Clientes',
+        descricao: 'Criar, alterar e excluir clientes PJ: município, rotina e CNAEs.',
+        href: '/clientes',
+        icon: 'pi pi-users',
+        tooltip: 'Menu Operações → Cadastros Operacionais → Clientes.',
+    },
+    {
         titulo: 'Manutenção de Empresas',
-        descricao: 'Cadastro de empresas, rotinas e geração de compromissos após conclusão dos passos.',
+        descricao: 'Dados complementares, iniciar processo e gerar compromissos após conclusão dos passos.',
         href: '/empresas',
         icon: 'pi pi-building',
-        tooltip: 'CRUD de empresas e fluxo de abertura.',
+        tooltip: 'Operações sobre empresas já cadastradas; cadastro em Clientes.',
     },
     {
         future: true,

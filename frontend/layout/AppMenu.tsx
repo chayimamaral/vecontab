@@ -110,6 +110,11 @@ const AppMenu = () => {
                                         icon: 'pi pi-fw pi-table',
                                         to: '/feriados',
                                     },
+                                    {
+                                        label: 'Clientes',
+                                        icon: 'pi pi-fw pi-id-card',
+                                        to: '/clientes',
+                                    },
                                 ],
                             },
                             {

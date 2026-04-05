@@ -96,10 +96,11 @@ func (r *EmpresaCompromissoRepository) GerarCompromissosGeral(ctx context.Contex
 func (r *EmpresaCompromissoRepository) loadGeracaoContext(ctx context.Context, empresaID, tenantID string) (empresaGeracaoContext, error) {
 	var out empresaGeracaoContext
 	err := r.pool.QueryRow(ctx, `
-		SELECT e.id, e.tenant_id, e.municipio_id, m.ufid, COALESCE(NULLIF(TRIM(e.bairro), ''), ''),
+		SELECT e.id, e.tenant_id, COALESCE(e.municipio_id, ed.municipio_id), m.ufid, COALESCE(NULLIF(TRIM(e.bairro), ''), ''),
 		       COALESCE(NULLIF(TRIM(r.tipo_empresa_id), ''), '')
 		FROM public.empresa e
-		INNER JOIN public.municipio m ON m.id = e.municipio_id
+		LEFT JOIN public.empresa_dados ed ON ed.empresa_id = e.id
+		INNER JOIN public.municipio m ON m.id = COALESCE(e.municipio_id, ed.municipio_id)
 		INNER JOIN public.rotinas r ON r.id = e.rotina_id AND r.ativo = true
 		WHERE e.id = $1 AND e.tenant_id = $2 AND e.ativo = true`,
 		empresaID, tenantID,

@@ -18,6 +18,8 @@ type EmpresaTipoEmpresaRef struct {
 type EmpresaListItem struct {
 	ID                  string                `json:"id"`
 	Nome                string                `json:"nome"`
+	TipoPessoa          string                `json:"tipo_pessoa"`
+	Documento           string                `json:"documento"`
 	Municipio           EmpresaRef            `json:"municipio"`
 	Rotina              EmpresaRotinaRef      `json:"rotina"`
 	TipoEmpresa         EmpresaTipoEmpresaRef `json:"tipo_empresa"`

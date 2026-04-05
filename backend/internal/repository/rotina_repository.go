@@ -255,10 +255,15 @@ ORDER BY %s`, strings.Join(whereParts, " AND "), orderBy, argIndex, argIndex+1, 
 }
 
 func (r *RotinaRepository) ListLite(ctx context.Context, municipioID string) ([]domain.RotinaLiteItem, int64, error) {
+	if strings.TrimSpace(municipioID) == "" {
+		return r.listRotinasLiteAll(ctx)
+	}
 	rows, err := r.pool.Query(ctx, `
-SELECT r.id, r.descricao, COALESCE(r.tipo_empresa_id, ''), COALESCE(te.id::text, ''), COALESCE(te.descricao, '')
+SELECT r.id, r.descricao, COALESCE(r.tipo_empresa_id::text, ''), COALESCE(te.id::text, ''), COALESCE(te.descricao, ''),
+	COALESCE(m.id::text, ''), COALESCE(m.nome, '')
 FROM public.rotinas r
 LEFT JOIN public.tipoempresa te ON te.id = r.tipo_empresa_id
+INNER JOIN public.municipio m ON m.id = r.municipio_id
 WHERE r.ativo = true AND r.municipio_id = $1
 ORDER BY r.descricao ASC`, municipioID)
 	if err != nil {
@@ -268,8 +273,8 @@ ORDER BY r.descricao ASC`, municipioID)
 
 	rotinas := make([]domain.RotinaLiteItem, 0)
 	for rows.Next() {
-		var id, descricao, tipoEmpresaID, teid, tedesc string
-		if err := rows.Scan(&id, &descricao, &tipoEmpresaID, &teid, &tedesc); err != nil {
+		var id, descricao, tipoEmpresaID, teid, tedesc, mid, mnome string
+		if err := rows.Scan(&id, &descricao, &tipoEmpresaID, &teid, &tedesc, &mid, &mnome); err != nil {
 			return nil, 0, fmt.Errorf("scan rotina lite: %w", err)
 		}
 		rotinas = append(rotinas, domain.RotinaLiteItem{
@@ -279,6 +284,53 @@ ORDER BY r.descricao ASC`, municipioID)
 			TipoEmpresa: domain.RotinaTipoEmpresaRef{
 				ID:        teid,
 				Descricao: tedesc,
+			},
+			Municipio: domain.RotinaMunicipioRef{
+				ID:   mid,
+				Nome: mnome,
+			},
+		})
+	}
+
+	var total int64
+	if err := r.pool.QueryRow(ctx, `SELECT count(*) FROM public.rotinas WHERE ativo = true`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count rotinas: %w", err)
+	}
+
+	return rotinas, total, nil
+}
+
+func (r *RotinaRepository) listRotinasLiteAll(ctx context.Context) ([]domain.RotinaLiteItem, int64, error) {
+	rows, err := r.pool.Query(ctx, `
+SELECT r.id, r.descricao, COALESCE(r.tipo_empresa_id::text, ''), COALESCE(te.id::text, ''), COALESCE(te.descricao, ''),
+	COALESCE(m.id::text, ''), COALESCE(m.nome, '')
+FROM public.rotinas r
+LEFT JOIN public.tipoempresa te ON te.id = r.tipo_empresa_id
+INNER JOIN public.municipio m ON m.id = r.municipio_id
+WHERE r.ativo = true
+ORDER BY m.nome ASC, r.descricao ASC`)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list rotinas lite todas: %w", err)
+	}
+	defer rows.Close()
+
+	rotinas := make([]domain.RotinaLiteItem, 0)
+	for rows.Next() {
+		var id, descricao, tipoEmpresaID, teid, tedesc, mid, mnome string
+		if err := rows.Scan(&id, &descricao, &tipoEmpresaID, &teid, &tedesc, &mid, &mnome); err != nil {
+			return nil, 0, fmt.Errorf("scan rotina lite: %w", err)
+		}
+		rotinas = append(rotinas, domain.RotinaLiteItem{
+			ID:            id,
+			Descricao:     descricao,
+			TipoEmpresaID: tipoEmpresaID,
+			TipoEmpresa: domain.RotinaTipoEmpresaRef{
+				ID:        teid,
+				Descricao: tedesc,
+			},
+			Municipio: domain.RotinaMunicipioRef{
+				ID:   mid,
+				Nome: mnome,
 			},
 		})
 	}

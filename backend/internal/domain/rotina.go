@@ -41,6 +41,7 @@ type RotinaLiteItem struct {
 	Descricao     string               `json:"descricao"`
 	TipoEmpresaID string               `json:"tipo_empresa_id"`
 	TipoEmpresa   RotinaTipoEmpresaRef `json:"tipo_empresa"`
+	Municipio     RotinaMunicipioRef   `json:"municipio"`
 }
 
 type RotinaMutationItem struct {

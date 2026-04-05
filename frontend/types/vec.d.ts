@@ -64,6 +64,8 @@ declare namespace Vec {
 
     type EmpresaDados = {
         empresa_id?: string;
+        municipio_id?: string;
+        municipio?: MunicipioLite;
         cnpj?: string;
         endereco?: string;
         email_contato?: string;
@@ -77,6 +79,10 @@ declare namespace Vec {
     type Empresa = {
         id?: string;
         nome?: string;
+        /** PF | PJ — coluna public.empresa.tipo_pessoa */
+        tipo_pessoa?: string;
+        /** CPF (PF) ou CNPJ opcional (PJ); coluna public.empresa.documento */
+        documento?: string;
         cnpj?: string;
         ie?: string;
         im?: string;
@@ -127,6 +133,9 @@ declare namespace Vec {
         descricao?: string;
         tipo_empresa_id?: string;
         tipo_empresa?: TipoEmpresaLite;
+        municipio?: MunicipioLite;
+        /** Rótulo para dropdown quando a lista reúne rotinas de vários municípios */
+        lista_label?: string;
     }
 
     type RotinaItem = {

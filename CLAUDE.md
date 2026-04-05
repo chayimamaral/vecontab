@@ -2,13 +2,17 @@ CLAUDE.md - Diretrizes do Projeto vecontab
 📌 Contexto do Projeto
 Nome: vecontab (ou vecontab_go)
 
-Objetivo: Sistema contábil/financeiro de alta performance.
+Objetivo: Sistema de Controle de Passos para Manutenção de Empresas (abertura, alterações, manutenções, encerramento, etc), Controle de Compromissos (Tributos, Taxas, Obrigações Financeiras, etc), Controle de PF (IRRF, etc).
+Objetivo a curto prazo: consumir API's para geração de Boletos, DARF's, DAS'S, etc.
 
 Stack: Backend em Go (Golang), Frontend em React.
 
 Ambiente de Desenvolvimento: Fedora 43 (utilizar dnf para pacotes).
 
-Banco de Dados: PostgreSQL 18.3 (utilizando driver pgx).
+Banco de Dados: PostgreSQL 18.3 (utilizando driver pgx); Claude tem permissão para executar migrations quando pertinente.
+Banco: psql -h localhost -U [camaral] -d vecontab
+
+Migrations: sempre na pasta raiz do vecontab.
 
 🛠 Princípios de Engenharia
 Arquitetura: Clean Architecture, SOLID e Domain-Driven Design (DDD).
@@ -18,8 +22,6 @@ Performance: Prioridade absoluta. Go é escolhido especificamente pela velocidad
 Acesso a Dados: Proibido o uso de ORMs. O controle deve ser total via SQL puro e drivers nativos para garantir otimização.
 
 Segurança: Basear estratégias de proteção de código no projeto VECONTAB.
-
-Legado: Compatibilidade mental com arquiteturas robustas (referência histórica: sistemas 8086/TK85).
 
 📝 Padrões de Código e Escrita
 Nomenclatura (Ortografia): Seguir a regra gramatical de que o "ç" nunca é utilizado antes de "e" ou "i". Em nomes de variáveis ou funções, o som de "s" antes destas vogais deve ser garantido pelo "c" simples. 
@@ -42,10 +44,12 @@ Instalação: sudo dnf install [pacote]
 Backend: go run cmd/api/main.go
 Frontend: npm run dev
 
-Banco: psql -h localhost -U [camaral] -d vecontab
-
-Migrations: sempre na pasta raiz do vecontab.
-
 Layout: botão "Atualizar" será sempre um ícone no canto inferior da página, nunca botão na parte superior.
   Exemplo: const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip='Atualizar' className="p-button-text" onClick={loadLazy_Rotina_Tal}
 Os botões nas linhas das tables ou treetables, deverão seguir o modelo em Municípios (quando aplicável).
+
+Usuários: temos 3 tipos de usuários:
+  SUPER: sou eu, chayimamaral, o dono do vecontab, que é um aplicativo SaaS que será alugado;
+  ADMIN: o usuário administrador da empresa de contabilidade, com maiores poderes de usuário, sempre separado por tenant, e que incluirá novos usuário no mesmo tenant que o próprio;
+  USER: serão os usuários do mesmo escritório de contabilidade, mas com poderes restritos;
+

@@ -18,6 +18,7 @@ type EmpresaDadosHandler struct {
 type empresaDadosEnvelope struct {
 	Params struct {
 		ID               string `json:"id"`
+		MunicipioID      string `json:"municipio_id"`
 		CNPJ             string `json:"cnpj"`
 		Endereco         string `json:"endereco"`
 		EmailContato     string `json:"email_contato"`
@@ -66,6 +67,7 @@ func (h *EmpresaDadosHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 	err := h.service.Save(r.Context(), repository.EmpresaDadosUpsertInput{
 		EmpresaID:        id,
 		TenantID:         middleware.TenantID(r.Context()),
+		MunicipioID:      strings.TrimSpace(payload.Params.MunicipioID),
 		CNPJ:             payload.Params.CNPJ,
 		Endereco:         payload.Params.Endereco,
 		EmailContato:     payload.Params.EmailContato,

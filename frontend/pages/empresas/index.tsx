@@ -3,7 +3,6 @@ import { Column } from 'primereact/column';
 import { DataTable, DataTableFilterMeta } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
@@ -13,23 +12,8 @@ import setupAPIClient from '../../components/api/api';
 import { Vec } from '../../types/types';
 
 import { Dropdown } from 'primereact/dropdown';
-import MunicipioService from '../../services/cruds/MunicipioService';
 import EmpresaService from '../../services/cruds/EmpresaService';
-import RotinaService from '../../services/cruds/RotinaService';
 import EmpresaCompromissoService from '../../services/cruds/EmpresaCompromissoService';
-import EmpresaDadosService from '../../services/cruds/EmpresaDadosService';
-import { Chips } from "primereact/chips";
-
-type ChipsChangeEvent<T> = {
-  originalEvent: Event;
-  value: T;
-  target: {
-    name: string;
-    id: string;
-    value: T;
-  };
-};
-
 interface LazyTableState {
   totalRecords: number;
   first: number;
@@ -72,48 +56,17 @@ const Empresas = ({ dados }) => {
     cep: '',
     tenantid: '',
     cnaes: [],
-    bairro: '',
-    iniciado: false
+    iniciado: false,
+    passos_concluidos: false,
+    compromissos_gerados: false,
   };
-
-  let emptyMunicipio: Vec.MunicipioLite = {
-    id: '',
-    nome: ''
-  }
-
-  let emptyRotina: Vec.Rotina = {
-    id: '',
-    descricao: ''
-  }
 
   const [empresas, setEmpresas] = useState([]);
 
-  const [municipios, setMunicipios] = useState<Vec.MunicipioLite[]>([]);
-  const [municipio, setMunicipio] = useState<Vec.MunicipioLite>(emptyMunicipio);
-
-  const [rotinas, setRotinas] = useState<Vec.RotinaLite[]>([]);
-  const [rotina, setRotina] = useState<Vec.RotinaLite>(emptyRotina);
   const [gerarCompromissosDialog, setGerarCompromissosDialog] = useState(false);
   const [dataBaseGeracao, setDataBaseGeracao] = useState(() => new Date().toISOString().slice(0, 10));
 
-  const [dadosComplementaresDialog, setDadosComplementaresDialog] = useState(false);
-  const [empresaDadosRef, setEmpresaDadosRef] = useState<Vec.Empresa | null>(null);
-  const [empresaDadosForm, setEmpresaDadosForm] = useState<Vec.EmpresaDados>({
-    cnpj: '',
-    endereco: '',
-    email_contato: '',
-    telefone: '',
-    telefone2: '',
-    data_abertura: '',
-    data_encerramento: '',
-    observacao: '',
-  });
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  const [empresaDialog, setEmpresaDialog] = useState(false);
-  const [deleteEmpresaDialog, setDeleteEmpresaDialog] = useState(false);
   const [empresa, setEmpresa] = useState<Vec.Empresa>(emptyEmpresa);
-  const [submitted, setSubmitted] = useState(false);
   const [globalFilter, setGlobalFilter] = useState<string>('');
   const toast = useRef<Toast>(null);
 
@@ -143,34 +96,11 @@ const Empresas = ({ dados }) => {
   });
 
   useEffect(() => {
-    const mid = municipio?.id?.trim?.() ?? '';
-    if (mid) {
-      loadLazyRotinasForMunicipio(municipio);
-    } else {
-      setRotinas([]);
-    }
-  }, [municipio]);
-
-  useEffect(() => {
-    loadLazyMunicipios();
     loadLazyEmpresa();
-  }, []);
-
-  useEffect(() => {
-    const api = setupAPIClient(undefined);
-    api
-      .get('/api/usuariorole')
-      .then((r) => setUserRole(r.data?.logado?.role ?? null))
-      .catch(() => setUserRole(null));
   }, []);
 
   const empresaService = EmpresaService();
   const empresaCompromissoService = EmpresaCompromissoService();
-  const empresaDadosService = EmpresaDadosService();
-
-  const podeEditarDadosComplementares =
-    userRole === 'ADMIN' || userRole === 'USER';
-
   const loadLazyEmpresa = () => {
     setLazyState(prevState => ({
       ...prevState,
@@ -188,46 +118,6 @@ const Empresas = ({ dados }) => {
       .finally(() => setLoading(false));
 
   }
-
-  async function handleCnaesChange(event): Promise<void> {
-    const value: string[] = Array.isArray(event.value) ? [...event.value] : [];
-
-    let prevLen = 0;
-    setEmpresa((prev) => {
-      prevLen = Array.isArray(prev.cnaes) ? prev.cnaes.length : 0;
-      return { ...prev, cnaes: value };
-    });
-
-    if (value.length === 0 || value.length <= prevLen) {
-      return;
-    }
-
-    const last = value[value.length - 1];
-    const isValid = await validaCnae(last);
-    if (!isValid) {
-      setEmpresa((prev) => ({ ...prev, cnaes: value.slice(0, -1) }));
-    }
-  }
-
-  const loadLazyMunicipios = () => {
-    const municipioService = MunicipioService();
-    municipioService.getMunicipiosLite().then(({ data }) => {
-      setMunicipios(data?.municipios);
-    })
-  }
-
-  /** Sempre passe o município explícito: evita race com setState (req. com id vazio sobrescrevendo a lista). */
-  const loadLazyRotinasForMunicipio = (m: Vec.MunicipioLite) => {
-    const rotinaService = RotinaService();
-    const id = m?.id?.trim?.() ?? '';
-    if (!id) {
-      setRotinas([]);
-      return;
-    }
-    rotinaService.getRotinasLite({ id }).then(({ data }) => {
-      setRotinas(data?.rotinas ?? []);
-    });
-  };
 
   const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip='Atualizar' className="p-button-text" onClick={loadLazyEmpresa} />;
 
@@ -274,23 +164,6 @@ const Empresas = ({ dados }) => {
     setLazyState(event)
   };
 
-  const openNew = () => {
-    setEmpresa(emptyEmpresa);
-    setMunicipio(emptyMunicipio);
-    setRotina(emptyRotina);
-    setSubmitted(false);
-    setEmpresaDialog(true);
-  };
-
-  const hideDialog = () => {
-    setSubmitted(false);
-    setEmpresaDialog(false);
-  };
-
-  const hideDeleteEmpresaDialog = () => {
-    setDeleteEmpresaDialog(false);
-  };
-
   function handleBuscaEmpresa(event, value: string): void {
     if (event.key === 'Enter') {
       if (value !== '') {
@@ -303,170 +176,16 @@ const Empresas = ({ dados }) => {
 
   function handleClear(e): void {
     if (!e.target.value) {
-      setLazyState({ ...lazyState, filters: { descricao: { value: '', matchMode: 'contains' } } });
-    }
-  }
-
-  function onRotinaChange(selectedValue: Vec.RotinaLite) {
-    setRotina(selectedValue);
-    setEmpresa((prev) => ({
-      ...prev,
-      rotina: {
-        id: selectedValue?.id ?? '',
-        descricao: selectedValue?.descricao ?? '',
-      },
-      tipo_empresa:
-        selectedValue?.tipo_empresa?.id != null && selectedValue.tipo_empresa.id !== ''
-          ? {
-              id: selectedValue.tipo_empresa.id,
-              descricao: selectedValue.tipo_empresa.descricao ?? '',
-            }
-          : { id: '', descricao: '' },
-    }));
-  }
-
-  const saveEmpresa = (event: any) => {
-    empresa.tenantid = tenantid;
-    empresa.municipio = municipio;
-    empresa.rotina = rotina;
-    setSubmitted(true);
-    if (empresa?.nome?.trim()) {
-      let _empresa = {
-        ...empresa,
-        cnaes: Array.isArray(empresa.cnaes) ? [...empresa.cnaes] : [],
-      };
-
-      if (empresa.id) {
-        empresaService.updateEmpresa(_empresa)
-          .then(() => {
-            toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Empresa Atualizada', life: 3000 });
-          })
-          .catch((error) => {
-            toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao atualizar a empresa', life: 3000 });
-          })
-          .finally(() => {
-            //setLoading(false);
-            setEmpresaDialog(false);
-            setEmpresa(emptyEmpresa);
-            loadLazyEmpresa();
-          });
-      } else {
-        empresaService.createEmpresa(_empresa)
-          .then((response) => {
-            if (response && response.data) {
-              setEmpresas(response.data.empresas);
-              setTotalRecords(response.data.totalRecords);
-            }
-            toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Empresa Criada', life: 3000 });
-          })
-          .catch((error) => {
-            toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao criar a empresa', life: 3000 });
-          })
-          .finally(() => {
-            //setLoading(false);
-            setEmpresaDialog(false);
-            setEmpresa(emptyEmpresa);
-            loadLazyEmpresa();
-          });
-      }
-    } else {
-      if (empresa.nome === '') {
-        toast.current?.show({ severity: 'warn', summary: 'Alerta', detail: 'Preencha o nome da empresa', life: 3000 });
-      }
-      if (empresa.municipio.id === '') {
-        toast.current?.show({ severity: 'warn', summary: 'Alerta', detail: 'Selecione o município da empresa', life: 3000 });
-      }
-      if (empresa.rotina.id === '') {
-        toast.current?.show({ severity: 'warn', summary: 'Alerta', detail: 'Selecione a rotina da empresa', life: 3000 });
-      }
-    }
-    setSubmitted(false);
-  };
-
-  const editEmpresa = (empresa: Vec.Empresa) => {
-    setMunicipio(empresa.municipio)
-    setRotina(empresa.rotina)
-    const rawCnaes = empresa.cnaes as unknown;
-    const cnaesArr = Array.isArray(rawCnaes)
-      ? rawCnaes.map((c) => String(c).replace(/\D/g, '')).filter(Boolean)
-      : [];
-    setEmpresa({
-      ...empresa,
-      municipio: empresa.municipio,
-      rotina: empresa.rotina,
-      bairro: empresa.bairro ?? '',
-      cnaes: cnaesArr,
-    });
-    setEmpresaDialog(true);
-  };
-
-  const confirmDeleteEmpresa = (empresa: Vec.Empresa) => {
-    setEmpresa(empresa);
-    setDeleteEmpresaDialog(true);
-  };
-
-  const deleteEmpresa = (event: any) => {
-    setSubmitted(true);
-
-    if (empresa?.nome?.trim()) {
-      let _empresa = { ...empresa };
-
-      if (empresa.id) {
-        empresaService.deleteEmpresa(_empresa)
-          .then(() => {
-            toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Empresa Excluída', life: 3000 });
-          })
-          .catch((error) => {
-            toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao excluir a empresa', life: 5000 });
-          })
-          .finally(() => {
-            setDeleteEmpresaDialog(false);
-            setEmpresa(emptyEmpresa);
-            loadLazyEmpresa();
-          });
-      }
-    }
-  };
-
-  const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, campo: string) => {
-    const val = (e.target && e.target.value) || '';
-    let _empresa = { ...empresa };
-    _empresa[`${campo}`] = val;
-
-    setEmpresa(_empresa);
-  };
-
-  function onMunicipioChange(selectedValue: Vec.MunicipioLite) {
-    setMunicipio(selectedValue);
-    setRotina(emptyRotina);
-    setEmpresa((prev) => ({
-      ...prev,
-      municipio: selectedValue ?? { id: '', nome: '' },
-      rotina: { id: '', descricao: '' },
-      tipo_empresa: { id: '', descricao: '' },
-    }));
-    loadLazyRotinasForMunicipio(selectedValue ?? { id: '', nome: '' });
-  }
-
-  async function validaCnae(cnae: string): Promise<boolean> {
-    const empresaService = EmpresaService();
-    try {
-      const data = await empresaService.validaCnae(cnae);
-      return data.data.cnaeValido;
-    } catch (error) {
-      toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao validar o CNAE', life: 3000 });
-      return false;
+      setLazyState({ ...lazyState, filters: { nome: { value: '', matchMode: 'contains' } } });
     }
   }
 
   const leftToolbarTemplate = () => {
     return (
-      <React.Fragment>
-        <div className="my-2">
-          <Button label="Criar" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
-          {/* estou <Button label="Deletar" icon="pi pi-trash" severity="danger" onClick={confirmDeleteSelected} disabled={!selectedPassos || !selectedPassos.length} /> */}
-        </div>
-      </React.Fragment>
+      <p className="text-600 m-0 text-sm">
+        Cadastro de clientes e dados complementares (município, contatos) em{' '}
+        <strong>Operações → Cadastros Operacionais → Clientes</strong>.
+      </p>
     );
   };
 
@@ -480,10 +199,11 @@ const Empresas = ({ dados }) => {
   };
 
   const municipioBodyTemplate = (rowData: Vec.Empresa) => {
+    const n = rowData.municipio?.nome?.trim();
     return (
       <>
         <span className="p-column-title">Município</span>
-        {rowData.municipio?.nome}
+        {n ? n : '—'}
       </>
     );
   };
@@ -589,80 +309,6 @@ const Empresas = ({ dados }) => {
     setGerarCompromissosDialog(true);
   }
 
-  function openDadosComplementares(row: Vec.Empresa): void {
-    if (!row?.id) {
-      return;
-    }
-    setEmpresaDadosRef(row);
-    setEmpresaDadosForm({
-      cnpj: '',
-      endereco: '',
-      email_contato: '',
-      telefone: '',
-      telefone2: '',
-      data_abertura: '',
-      data_encerramento: '',
-      observacao: '',
-    });
-    setDadosComplementaresDialog(true);
-    empresaDadosService
-      .getByEmpresa(row.id)
-      .then(({ data }) => {
-        setEmpresaDadosForm({
-          cnpj: data?.cnpj ?? '',
-          endereco: data?.endereco ?? '',
-          email_contato: data?.email_contato ?? '',
-          telefone: data?.telefone ?? '',
-          telefone2: data?.telefone2 ?? '',
-          data_abertura: data?.data_abertura ?? '',
-          data_encerramento: data?.data_encerramento ?? '',
-          observacao: data?.observacao ?? '',
-        });
-      })
-      .catch(() => {
-        toast.current?.show({
-          severity: 'error',
-          summary: 'Erro',
-          detail: 'Não foi possível carregar os dados complementares.',
-          life: 3500,
-        });
-      });
-  }
-
-  function saveDadosComplementares(): void {
-    if (!empresaDadosRef?.id || !podeEditarDadosComplementares) {
-      return;
-    }
-    empresaDadosService
-      .save({
-        id: empresaDadosRef.id,
-        cnpj: empresaDadosForm.cnpj,
-        endereco: empresaDadosForm.endereco,
-        email_contato: empresaDadosForm.email_contato,
-        telefone: empresaDadosForm.telefone,
-        telefone2: empresaDadosForm.telefone2,
-        data_abertura: empresaDadosForm.data_abertura,
-        data_encerramento: empresaDadosForm.data_encerramento,
-        observacao: empresaDadosForm.observacao,
-      })
-      .then(() => {
-        toast.current?.show({
-          severity: 'success',
-          summary: 'Sucesso',
-          detail: 'Dados complementares gravados.',
-          life: 3000,
-        });
-        setDadosComplementaresDialog(false);
-      })
-      .catch((err) => {
-        const msg =
-          err?.response?.data?.error ??
-          err?.response?.data?.message ??
-          'Erro ao gravar dados complementares.';
-        toast.current?.show({ severity: 'error', summary: 'Erro', detail: String(msg), life: 4500 });
-      });
-  }
-
   function confirmarGerarCompromissos(): void {
     if (!empresa?.id) {
       toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Empresa inválida.', life: 3500 });
@@ -705,17 +351,6 @@ const Empresas = ({ dados }) => {
 
     return (
       <>
-        <Button icon="pi pi-pencil" tooltip='Alterar' tooltipOptions={{ position: 'left' }} rounded severity="success" className="mr-2" onClick={() => editEmpresa(rowData)} />
-        <Button
-          icon="pi pi-book"
-          tooltip="Dados complementares"
-          tooltipOptions={{ position: 'left' }}
-          rounded
-          severity="secondary"
-          className="mr-2"
-          onClick={() => openDadosComplementares(rowData)}
-        />
-        <Button icon="pi pi-trash" tooltip='Excluir' tooltipOptions={{ position: 'left' }} rounded severity="warning" onClick={() => confirmDeleteEmpresa(rowData)} />
         <Button icon="pi pi-eye" tooltip='Iniciar Processo' tooltipOptions={{ position: 'left' }} rounded severity="info" disabled={isButtonDisabled} onClick={() => handleIniciarProcesso(rowData)} className="ml-2" />
         <Button icon="pi pi-check-circle" tooltip='Gerar Compromissos' tooltipOptions={{ position: 'left' }} rounded severity="help" disabled={isConcluirDisabled} onClick={() => handleConcluirProcesso(rowData)} className="ml-2" />
       </>
@@ -724,35 +359,15 @@ const Empresas = ({ dados }) => {
 
   const header = (
     <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-      <h5 className="m-0">Manutenção de Empresas</h5>
+      <div>
+        <h5 className="m-0">Manutenção de Empresas</h5>
+        <p className="m-0 mt-1 text-600 text-sm">Processo e compromissos. Cadastro e dados complementares em Clientes.</p>
+      </div>
       <span className="block mt-2 md:mt-0 p-input-icon-left">
         <i className="pi pi-search" />
-        <InputText type="search" onKeyDown={(e) => handleBuscaEmpresa(e, e.currentTarget.value)} onChange={handleClear} placeholder="Procurar Empresa..." tooltip='Digite o nome da Empresa e tecle Enter' tooltipOptions={{ position: 'left' }} />
+        <InputText type="search" onKeyDown={(e) => handleBuscaEmpresa(e, e.currentTarget.value)} onChange={handleClear} placeholder="Procurar por nome..." tooltip='Digite o nome e tecle Enter' tooltipOptions={{ position: 'left' }} />
       </span>
     </div>
-  );
-
-  const empresaDialogFooter = (
-    <>
-      <Button label="Cancelar" icon="pi pi-times" text onClick={hideDialog} />
-      <Button label="Salvar" icon="pi pi-check" text onClick={saveEmpresa} />
-    </>
-  );
-
-  const deleteEmpresaDialogFooter = (
-    <>
-      <Button label="Não" icon="pi pi-times" text onClick={hideDeleteEmpresaDialog} />
-      <Button label="Sim" icon="pi pi-check" text onClick={deleteEmpresa} />
-    </>
-  );
-
-  const dadosComplementaresDialogFooter = (
-    <>
-      <Button label="Fechar" icon="pi pi-times" text onClick={() => setDadosComplementaresDialog(false)} />
-      {podeEditarDadosComplementares && (
-        <Button label="Salvar" icon="pi pi-check" text onClick={saveDadosComplementares} />
-      )}
-    </>
   );
 
   const gerarCompromissosDialogFooter = (
@@ -767,21 +382,6 @@ const Empresas = ({ dados }) => {
       />
     </>
   );
-
-  const customChip = (item: string) => {
-    if (item.length !== 7) {
-      return "Formato Inválido"
-    }
-    const [n1, n2, n3, n4, n5, n6, n7] = item.split('');
-
-    return (
-      <div>
-        <span>
-          {n1}{n2}.{n3}{n4}-{n5}/{n6}{n7}
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div className="grid crud-demo" >
@@ -822,202 +422,6 @@ const Empresas = ({ dados }) => {
             <Column field="tipo_empresa" header="Tipo de Empresa" body={tipoEmpresaBodyTemplate} headerStyle={{ minWidth: '12rem' }}></Column>
             <Column body={actionBodyTemplate} header="Ações" headerStyle={{ minWidth: '10rem' }}></Column>
           </DataTable>
-
-          <Dialog visible={empresaDialog} style={{ width: '550px' }} header="Detalhe da Empresa" modal className="p-fluid" footer={empresaDialogFooter} onHide={hideDialog}>
-            <div className="field">
-              <label htmlFor="nome_">Nome</label>
-              <InputText id="nome_" value={empresa.nome} type='text' onChange={(e) => onInputChange(e, 'nome')} required autoFocus className={classNames({ 'p-invalid': submitted && !empresa.nome })} />
-              {submitted && !empresa.nome && <small className="p-invalid">Descrição da Empresa é obrigatório.</small>}
-            </div>
-
-            <div className="field">
-              <label htmlFor="ddmunicipio">Municipio</label>
-              <span className='p-float-label'>
-                <Dropdown
-                  id="ddmunicipio"
-                  value={empresa.municipio}
-                  options={municipios}
-                  onChange={(e) => onMunicipioChange(e.value)}
-                  optionLabel='nome'
-                  dataKey='id'
-                  placeholder='Selecione um Município'
-                  emptyMessage='Nenhum Município encontrado'
-                  disabled={empresa?.iniciado === true}
-                />
-                {submitted && !empresa.municipio && <small className="p-invalid">Municipio do Feriado é obrigatório.</small>}
-              </span>
-            </div>
-            <div className="field">
-              <label htmlFor="ddrotina">Rotina</label>
-              <span className='p-float-label'>
-                <Dropdown
-                  id="ddrotina"
-                  value={empresa.rotina}
-                  options={rotinas}
-                  onChange={(e) => onRotinaChange(e.value)}
-                  optionLabel='descricao'
-                  dataKey='id'
-                  placeholder='Selecione uma Rotina'
-                  emptyMessage='Nenhuma Rotina encontrada'
-                  disabled={empresa?.iniciado === true}
-                />
-                {submitted && !empresa.rotina && <small className="p-invalid">Rotina é obrigatório.</small>}
-              </span>
-            </div>
-            <div className="field">
-              <label htmlFor="bairro_">Bairro</label>
-              <InputText
-                id="bairro_"
-                value={empresa.bairro ?? ''}
-                type="text"
-                onChange={(e) => onInputChange(e, 'bairro')}
-                disabled={empresa?.iniciado === true}
-                placeholder="Obrigatório para compromissos por bairro (quando cadastrados)"
-              />
-            </div>
-            <div className="p-fluid field">
-              <label htmlFor="ddtag">CNAE's</label>
-              <Chips
-                id='ddtag'
-                value={empresa.cnaes} onChange={handleCnaesChange}
-                itemTemplate={(cnae: string) => (
-                  <div className="p-d-flex p-ai-center p-flex-wrap">
-                    <div className="p-mr-2">{cnae.replace(/(\d{2})(\d{2})(\d{1})(\d{2})/, '$1.$2-$3/$4')}</div>
-                  </div>
-                )}
-                keyfilter="alphanum" />
-            </div>
-
-          </Dialog>
-
-          <Dialog visible={deleteEmpresaDialog} style={{ width: '450px' }} header="Confirma a exclusão ?" modal footer={deleteEmpresaDialogFooter} onHide={hideDeleteEmpresaDialog} className="red-header">
-            <div className="flex align-items-center justify-content-center">
-              <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem', color: '#d6551e' }} />
-              {empresa && (
-                <span>
-                  Tem certeza que quer deletar <b>{empresa.nome}</b>?
-                </span>
-              )}
-            </div>
-          </Dialog>
-
-          <Dialog
-            visible={dadosComplementaresDialog}
-            style={{ width: '560px' }}
-            header={
-              empresaDadosRef?.nome
-                ? `Dados complementares — ${empresaDadosRef.nome}`
-                : 'Dados complementares'
-            }
-            modal
-            className="p-fluid"
-            footer={dadosComplementaresDialogFooter}
-            onHide={() => setDadosComplementaresDialog(false)}
-          >
-            {!podeEditarDadosComplementares && (
-              <p className="text-600 text-sm mb-3">
-                Somente perfis Admin e Usuário alteram estes campos (perfil Super não mantém dados complementares).
-              </p>
-            )}
-            <div className="field">
-              <label htmlFor="edcnpj">CNPJ</label>
-              <InputText
-                id="edcnpj"
-                value={empresaDadosForm.cnpj ?? ''}
-                onChange={(e) => setEmpresaDadosForm((f) => ({ ...f, cnpj: e.target.value }))}
-                disabled={!podeEditarDadosComplementares}
-                className="w-full"
-                maxLength={18}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="edendereco">Endereço</label>
-              <InputTextarea
-                id="edendereco"
-                value={empresaDadosForm.endereco ?? ''}
-                onChange={(e) => setEmpresaDadosForm((f) => ({ ...f, endereco: e.target.value }))}
-                disabled={!podeEditarDadosComplementares}
-                rows={3}
-                className="w-full"
-                autoResize
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="edemail">E-mail de contato</label>
-              <InputText
-                id="edemail"
-                type="email"
-                value={empresaDadosForm.email_contato ?? ''}
-                onChange={(e) => setEmpresaDadosForm((f) => ({ ...f, email_contato: e.target.value }))}
-                disabled={!podeEditarDadosComplementares}
-                className="w-full"
-              />
-            </div>
-            <div className="formgrid grid">
-              <div className="field col-12 md:col-6">
-                <label htmlFor="edtel1">Telefone</label>
-                <InputText
-                  id="edtel1"
-                  value={empresaDadosForm.telefone ?? ''}
-                  onChange={(e) => setEmpresaDadosForm((f) => ({ ...f, telefone: e.target.value }))}
-                  disabled={!podeEditarDadosComplementares}
-                  className="w-full"
-                  maxLength={40}
-                />
-              </div>
-              <div className="field col-12 md:col-6">
-                <label htmlFor="edtel2">Telefone 2</label>
-                <InputText
-                  id="edtel2"
-                  value={empresaDadosForm.telefone2 ?? ''}
-                  onChange={(e) => setEmpresaDadosForm((f) => ({ ...f, telefone2: e.target.value }))}
-                  disabled={!podeEditarDadosComplementares}
-                  className="w-full"
-                  maxLength={40}
-                />
-              </div>
-            </div>
-            <div className="formgrid grid">
-              <div className="field col-12 md:col-6">
-                <label htmlFor="edaber">Data de abertura</label>
-                <input
-                  id="edaber"
-                  type="date"
-                  className="p-inputtext p-component w-full"
-                  value={empresaDadosForm.data_abertura ?? ''}
-                  disabled={!podeEditarDadosComplementares}
-                  onChange={(e) =>
-                    setEmpresaDadosForm((f) => ({ ...f, data_abertura: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="field col-12 md:col-6">
-                <label htmlFor="edenc">Data de encerramento</label>
-                <input
-                  id="edenc"
-                  type="date"
-                  className="p-inputtext p-component w-full"
-                  value={empresaDadosForm.data_encerramento ?? ''}
-                  disabled={!podeEditarDadosComplementares}
-                  onChange={(e) =>
-                    setEmpresaDadosForm((f) => ({ ...f, data_encerramento: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-            <div className="field">
-              <label htmlFor="edobs">Observações</label>
-              <InputTextarea
-                id="edobs"
-                value={empresaDadosForm.observacao ?? ''}
-                onChange={(e) => setEmpresaDadosForm((f) => ({ ...f, observacao: e.target.value }))}
-                disabled={!podeEditarDadosComplementares}
-                rows={3}
-                className="w-full"
-                autoResize
-              />
-            </div>
-          </Dialog>
 
           <Dialog
             visible={gerarCompromissosDialog}
