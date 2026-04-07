@@ -42,8 +42,8 @@ func (s *TenantService) Detail(ctx context.Context, id string) (TenantDetailResp
 	return TenantDetailResponse{Tenant: tenant}, nil
 }
 
-func (s *TenantService) Update(ctx context.Context, id, nome, contato string, active bool) (domain.TenantEntity, error) {
-	tenant, err := s.repo.Update(ctx, id, nome, contato, active)
+func (s *TenantService) Update(ctx context.Context, id, nome, contato, plano string, active bool) (domain.TenantEntity, error) {
+	tenant, err := s.repo.Update(ctx, id, nome, contato, plano, active)
 	if err != nil {
 		return domain.TenantEntity{}, err
 	}

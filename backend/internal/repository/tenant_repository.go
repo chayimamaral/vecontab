@@ -70,15 +70,18 @@ func (r *TenantRepository) Detail(ctx context.Context, id string) (domain.Tenant
 	return tenant, nil
 }
 
-func (r *TenantRepository) Update(ctx context.Context, id, nome, contato string, active bool) (domain.TenantEntity, error) {
+func (r *TenantRepository) Update(ctx context.Context, id, nome, contato, plano string, active bool) (domain.TenantEntity, error) {
 	const query = `
 		UPDATE public.tenant
-		SET nome = $1, active = $2, contato = $3
-		WHERE id::text = $4
+		SET nome = $1,
+		    active = $2,
+		    contato = $3,
+		    plano = CASE WHEN BTRIM($4) = '' THEN plano ELSE $4::public.planos END
+		WHERE id::text = $5
 		RETURNING id, COALESCE(nome, ''), COALESCE(contato, ''), COALESCE(active, false), COALESCE(plano::text, '')`
 
 	var tenant domain.TenantEntity
-	if err := r.pool.QueryRow(ctx, query, nome, active, contato, id).Scan(
+	if err := r.pool.QueryRow(ctx, query, nome, active, contato, plano, id).Scan(
 		&tenant.ID,
 		&tenant.Nome,
 		&tenant.Contato,

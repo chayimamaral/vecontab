@@ -210,7 +210,7 @@ const Clientes = ({ dados }) => {
   const empresaService = EmpresaService();
   const empresaDadosService = EmpresaDadosService();
 
-  const podeCadastrarClientes = userRole === 'ADMIN' || userRole === 'SUPER';
+  const podeCadastrarClientes = userRole === 'ADMIN';
   const podeEditarDadosComplementares = userRole === 'ADMIN' || userRole === 'USER';
 
   const fetchEmpresasPayload = (payload: LazyTableState) => {

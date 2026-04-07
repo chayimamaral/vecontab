@@ -24,6 +24,7 @@ type tenantUpdatePayload struct {
 	Nome    string `json:"nome"`
 	Active  bool   `json:"active"`
 	Contato string `json:"contato"`
+	Plano   string `json:"plano"`
 }
 
 type tenantDetailPayload struct {
@@ -104,7 +105,12 @@ func (h *TenantHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.service.Update(r.Context(), payload.ID, payload.Nome, payload.Contato, payload.Active)
+	payload.Plano = strings.ToUpper(strings.TrimSpace(payload.Plano))
+	if role != "SUPER" {
+		payload.Plano = ""
+	}
+
+	response, err := h.service.Update(r.Context(), payload.ID, payload.Nome, payload.Contato, payload.Plano, payload.Active)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
