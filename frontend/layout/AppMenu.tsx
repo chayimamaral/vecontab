@@ -164,7 +164,7 @@ const AppMenu = () => {
                 ],
             },
             {
-                label: 'Pages',
+                label: 'Diversos',
                 icon: 'pi pi-fw pi-briefcase',
                 to: '/pages',
                 items: [
@@ -189,6 +189,31 @@ const AppMenu = () => {
                                 label: 'Operações',
                                 icon: 'pi pi-fw pi-list',
                                 to: '/monitor',
+                            },
+                        ],
+                    },
+                    {
+                        label: 'Configurações',
+                        icon: 'pi pi-fw pi-cog',
+                        visible: userRole === 'SUPER' || userRole === 'ADMIN',
+                        items: [
+                            {
+                                label: 'API Integra Contador',
+                                icon: 'pi pi-fw pi-key',
+                                to: '/configuracoes/api-integra-contador',
+                                visible: userRole === 'SUPER',
+                            },
+                            {
+                                label: 'Geração de Guias',
+                                icon: 'pi pi-fw pi-file',
+                                to: '/configuracoes/geracao-guias',
+                                visible: userRole === 'ADMIN',
+                            },
+                            {
+                                label: 'Certificado Digital',
+                                icon: 'pi pi-fw pi-shield',
+                                to: '/configuracoes/certificado-digital',
+                                visible: userRole === 'ADMIN',
                             },
                         ],
                     },

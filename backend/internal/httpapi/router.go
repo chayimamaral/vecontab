@@ -57,6 +57,7 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	monitorOperacaoRepo := repository.NewMonitorOperacaoRepository(pool)
 	monitorOperacaoService := service.NewMonitorOperacaoService(monitorOperacaoRepo)
 	rotinaPFService := service.NewRotinaPFService(repository.NewRotinaPFRepository(pool))
+	configuracaoIntegracaoService := service.NewConfiguracaoIntegracaoService(repository.NewConfiguracaoIntegracaoRepository(pool))
 
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
@@ -80,6 +81,7 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	empresaDadosHandler := handlers.NewEmpresaDadosHandler(empresaDadosService)
 	clienteHandler := handlers.NewClienteHandler(clienteService)
 	rotinaPFHandler := handlers.NewRotinaPFHandler(rotinaPFService)
+	configuracaoIntegracaoHandler := handlers.NewConfiguracaoIntegracaoHandler(configuracaoIntegracaoService)
 	requireAuth := apiMiddleware.RequireAuth(tokenService)
 	requireAdmin := apiMiddleware.RequireAnyRole("ADMIN", "SUPER")
 	requireAdminOrUser := apiMiddleware.RequireAnyRole("ADMIN", "USER")
@@ -89,9 +91,9 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 		render.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, requireAuth, requireAdmin, requireAdminOrUser, requireSuper)
+	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, configuracaoIntegracaoHandler, requireAuth, requireAdmin, requireAdminOrUser, requireSuper)
 	r.Route("/api", func(api chi.Router) {
-		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, requireAuth, requireAdmin, requireAdminOrUser, requireSuper)
+		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, configuracaoIntegracaoHandler, requireAuth, requireAdmin, requireAdminOrUser, requireSuper)
 	})
 
 	return r
@@ -121,6 +123,7 @@ func registerRoutes(
 	empresaCompromissoHandler *handlers.EmpresaCompromissoHandler,
 	clienteHandler *handlers.ClienteHandler,
 	monitorOperacaoHandler *handlers.MonitorOperacaoHandler,
+	configuracaoIntegracaoHandler *handlers.ConfiguracaoIntegracaoHandler,
 	requireAuth func(http.Handler) http.Handler,
 	requireAdmin func(http.Handler) http.Handler,
 	requireAdminOrUser func(http.Handler) http.Handler,
@@ -255,4 +258,9 @@ func registerRoutes(
 	r.With(requireAuth).Post("/empresacompromissos/manual", empresaCompromissoHandler.CreateManual)
 	r.With(requireAuth).Put("/empresacompromissos/status", empresaCompromissoHandler.UpdateStatus)
 	r.With(requireAuth).Put("/empresacompromissos/item", empresaCompromissoHandler.UpdateItem)
+
+	r.With(requireAuth).Get("/chavessuper", configuracaoIntegracaoHandler.GetChavesSuper)
+	r.With(requireAuth).Put("/chavessuper", configuracaoIntegracaoHandler.SaveChavesSuper)
+	r.With(requireAuth).Get("/tenant-configuracoes", configuracaoIntegracaoHandler.GetTenantConfiguracoes)
+	r.With(requireAuth).Put("/tenant-configuracoes", configuracaoIntegracaoHandler.SaveTenantConfiguracoes)
 }
