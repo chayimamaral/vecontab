@@ -154,7 +154,9 @@ const Rotinas = () => {
         sortField: '',
         sortOrder: 1,
         filters: {
-            descricao: { value: '', matchMode: 'contains' }
+            descricao: { value: '', matchMode: 'contains' },
+            municipio: { value: '', matchMode: 'equals' },
+            tipo_empresa: { value: '', matchMode: 'equals' }
         }
     });
     useEffect(() => {
@@ -226,7 +228,13 @@ const Rotinas = () => {
 
     function handleClear(e: React.ChangeEvent<HTMLInputElement>): void {
         if (!e.target.value) {
-            setLazyState({ ...lazyState, filters: { descricao: { value: '', matchMode: 'contains' } } });
+            setLazyState({
+                ...lazyState,
+                filters: {
+                    ...lazyState.filters,
+                    descricao: { value: '', matchMode: 'contains' }
+                }
+            });
         }
     }
 
@@ -333,12 +341,70 @@ const Rotinas = () => {
     function handleBuscaRotina(event: React.KeyboardEvent<HTMLInputElement>, value: string): void {
         if (event.key === 'Enter') {
             if (value !== '') {
-                setLazyState({ ...lazyState, filters: { descricao: { value: value, matchMode: 'contains' } } });
+                setLazyState({
+                    ...lazyState,
+                    filters: {
+                        ...lazyState.filters,
+                        descricao: { value: value, matchMode: 'contains' }
+                    }
+                });
             } else {
-                setLazyState({ ...lazyState, filters: { descricao: { value: '', matchMode: 'contains' } } });
+                setLazyState({
+                    ...lazyState,
+                    filters: {
+                        ...lazyState.filters,
+                        descricao: { value: '', matchMode: 'contains' }
+                    }
+                });
             }
         }
     }
+
+    const municipioFilterTemplate = () => (
+        <Dropdown
+            value={(lazyState.filters?.municipio as any)?.value ?? ''}
+            options={municipiosQuery}
+            optionLabel="nome"
+            optionValue="id"
+            onChange={(e) =>
+                setLazyState((prev) => ({
+                    ...prev,
+                    first: 0,
+                    page: 1,
+                    filters: {
+                        ...prev.filters,
+                        municipio: { value: e.value ?? '', matchMode: 'equals' },
+                    },
+                }))
+            }
+            placeholder="Todos"
+            showClear
+            className="p-column-filter"
+        />
+    );
+
+    const tipoEmpresaFilterTemplate = () => (
+        <Dropdown
+            value={(lazyState.filters?.tipo_empresa as any)?.value ?? ''}
+            options={tiposEmpresaQuery}
+            optionLabel="descricao"
+            optionValue="id"
+            onChange={(e) =>
+                setLazyState((prev) => ({
+                    ...prev,
+                    first: 0,
+                    page: 1,
+                    filters: {
+                        ...prev.filters,
+                        tipo_empresa: { value: e.value ?? '', matchMode: 'equals' },
+                    },
+                }))
+            }
+            placeholder="Todos"
+            showClear
+            className="p-column-filter"
+        />
+    );
 
     const saveRotina = () => {
         setSubmitted(true);
@@ -779,7 +845,7 @@ const Rotinas = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Cadastro de Rotinas</h5>
+            <h5 className="m-0">Cadastro de Processos</h5>
             {/* <Button icon="pi pi-plus" label="Expandir Todos" onClick={expandAll} text />
             <Button icon="pi pi-minus" label="Contrair Todos" onClick={collapseAll} text /> */}
             <span className="block mt-2 md:mt-0 p-input-icon-left">
@@ -844,9 +910,28 @@ const Rotinas = () => {
                     >
                         {/* <Column expander={allowExpansion} style={{ width: '5rem' }} /> */}
                         <Column field="descricao" header="Descrição" sortable body={descricaoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="municipio" header="Municipio" sortable body={municipioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="tipo_empresa" header="Enquadramento Jurídico" body={tipoEmpresaBodyTemplate} headerStyle={{ minWidth: '12rem' }}></Column>
-                        <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column
+                            field="municipio"
+                            header="Municipio"
+                            sortable
+                            body={municipioBodyTemplate}
+                            headerStyle={{ minWidth: '15rem' }}
+                            showFilterMenu={false}
+                            filter
+                            filterField="municipio"
+                            filterElement={municipioFilterTemplate}
+                        />
+                        <Column
+                            field="tipo_empresa"
+                            header="Enquadramento Jurídico"
+                            body={tipoEmpresaBodyTemplate}
+                            headerStyle={{ minWidth: '12rem' }}
+                            showFilterMenu={false}
+                            filter
+                            filterField="tipo_empresa"
+                            filterElement={tipoEmpresaFilterTemplate}
+                        />
+                        <Column header="Ações" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
                     <Dialog visible={passoDialog} style={{ width: '1000px', height: '1000px' }} header={`Manutenção de Passos - ${empresaSelecionada}`} modal className="p-fluid" footer={passoDialogFooter} onHide={hidePassoDialog}>

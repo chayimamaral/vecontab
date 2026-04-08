@@ -16,6 +16,8 @@ type RotinaListParams struct {
 	SortField string
 	SortOrder int
 	Descricao string
+	MunicipioID string
+	TipoEmpresaID string
 }
 
 type RotinaInput struct {
@@ -55,6 +57,16 @@ func (r *RotinaRepository) List(ctx context.Context, params RotinaListParams) ([
 	if strings.TrimSpace(params.Descricao) != "" {
 		whereParts = append(whereParts, fmt.Sprintf("r.descricao ILIKE $%d", argIndex))
 		args = append(args, "%"+strings.TrimSpace(params.Descricao)+"%")
+		argIndex++
+	}
+	if strings.TrimSpace(params.MunicipioID) != "" {
+		whereParts = append(whereParts, fmt.Sprintf("r.municipio_id = $%d", argIndex))
+		args = append(args, strings.TrimSpace(params.MunicipioID))
+		argIndex++
+	}
+	if strings.TrimSpace(params.TipoEmpresaID) != "" {
+		whereParts = append(whereParts, fmt.Sprintf("r.tipo_empresa_id = $%d", argIndex))
+		args = append(args, strings.TrimSpace(params.TipoEmpresaID))
 		argIndex++
 	}
 

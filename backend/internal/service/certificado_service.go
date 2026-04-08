@@ -42,8 +42,8 @@ func (s *CertificadoService) Configurado() bool {
 	return s != nil && len(s.key) == certseal.KeySize
 }
 
-// UpsertPFX valida o PKCS#12, extrai validade (e metadados básicos) e persiste cifrado.
-func (s *CertificadoService) UpsertPFX(ctx context.Context, tenantID, empresaID string, pfx []byte, senhaPlana, cnpjHint, titularHint string) error {
+// UpsertPFX valida o PKCS#12, extrai validade (e metadados básicos) e persiste cifrado por tenant.
+func (s *CertificadoService) UpsertPFX(ctx context.Context, tenantID string, pfx []byte, senhaPlana, cnpjHint, titularHint string) error {
 	if s == nil || s.repo == nil {
 		return fmt.Errorf("repositorio nao configurado")
 	}
@@ -51,10 +51,10 @@ func (s *CertificadoService) UpsertPFX(ctx context.Context, tenantID, empresaID 
 		return ErrChaveCriptografiaNaoConfigurada
 	}
 	tid := strings.TrimSpace(tenantID)
-	eid := strings.TrimSpace(empresaID)
-	if tid == "" || eid == "" {
-		return fmt.Errorf("tenant e empresa obrigatorios")
+	if tid == "" {
+		return fmt.Errorf("tenant obrigatorio")
 	}
+	senhaPlana = strings.TrimSpace(senhaPlana)
 	if len(pfx) == 0 || senhaPlana == "" {
 		return fmt.Errorf("pfx e senha obrigatorios")
 	}
@@ -82,11 +82,12 @@ func (s *CertificadoService) UpsertPFX(ctx context.Context, tenantID, empresaID 
 
 	row := &domain.Certificado{
 		Tenant:       tid,
-		EmpresaID:    eid,
 		PFXCifrado:   pfxSealed,
 		SenhaCifrada: senhaSealed,
 		CNPJ:         cnpj,
 		TitularNome:  nome,
+		EmitidoPor:   strings.TrimSpace(leaf.Issuer.CommonName),
+		ValidadeDe:   leaf.NotBefore,
 		ValidadeAte:  leaf.NotAfter,
 		Ativo:        true,
 	}
@@ -94,11 +95,11 @@ func (s *CertificadoService) UpsertPFX(ctx context.Context, tenantID, empresaID 
 }
 
 // MaterialEmMemoria decifra PFX e senha; o chamador deve chamar CertificadoMaterial.Zero() após uso.
-func (s *CertificadoService) MaterialEmMemoria(ctx context.Context, tenantID, empresaID string) (*domain.CertificadoMaterial, error) {
+func (s *CertificadoService) MaterialEmMemoria(ctx context.Context, tenantID string) (*domain.CertificadoMaterial, error) {
 	if !s.Configurado() {
 		return nil, ErrChaveCriptografiaNaoConfigurada
 	}
-	row, err := s.repo.GetAtivoPorEmpresa(ctx, tenantID, empresaID)
+	row, err := s.repo.GetAtivoPorTenant(ctx, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +126,17 @@ func (s *CertificadoService) MaterialEmMemoria(ctx context.Context, tenantID, em
 	return out, nil
 }
 
+// ResumoPorTenant retorna metadados persistidos do certificado ativo do tenant.
+func (s *CertificadoService) ResumoPorTenant(ctx context.Context, tenantID string) (*domain.Certificado, error) {
+	if s == nil || s.repo == nil {
+		return nil, fmt.Errorf("repositorio nao configurado")
+	}
+	return s.repo.GetResumoAtivoPorTenant(ctx, tenantID)
+}
+
 // TLSClientCertificate monta tls.Certificate para mTLS (ex.: SERPRO) a partir do material decifrado.
 func (s *CertificadoService) TLSClientCertificate(ctx context.Context, tenantID, empresaID string) (tls.Certificate, func(), error) {
-	mat, err := s.MaterialEmMemoria(ctx, tenantID, empresaID)
+	mat, err := s.MaterialEmMemoria(ctx, tenantID)
 	if err != nil {
 		return tls.Certificate{}, nil, err
 	}

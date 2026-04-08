@@ -266,5 +266,6 @@ func registerRoutes(
 	r.With(requireAuth).Put("/chavessuper", configuracaoIntegracaoHandler.SaveChavesSuper)
 	r.With(requireAuth).Get("/tenant-configuracoes", configuracaoIntegracaoHandler.GetTenantConfiguracoes)
 	r.With(requireAuth).Put("/tenant-configuracoes", configuracaoIntegracaoHandler.SaveTenantConfiguracoes)
+	r.With(requireAuth).Get("/certificado-digital", configuracaoIntegracaoHandler.GetCertificadoDigital)
 	r.With(requireAuth, requireAdmin).Post("/certificado-digital/upload", configuracaoIntegracaoHandler.UploadCertificadoDigital)
 }

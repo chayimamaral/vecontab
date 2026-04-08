@@ -416,7 +416,7 @@ const Passos = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Cadastro de Passos</h5>
+            <h5 className="m-0">Cadastro de Etapas dos Processos</h5>
             {/* <div className=" flex justify-content-center">
                 <Dropdown value={selectedTipo} onChange={(e) => handleTipoChange(e.value)} options={tipos} optionLabel="name"
                     editable className="w-full md:w-14rem" defaultValue='Variável' defaultChecked />
@@ -488,7 +488,8 @@ const Passos = () => {
                         <Column field='tipopasso' header='Tipo de Passo' body={renderTipoPasso} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="municipio" header="Municipio" body={municipioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field='link' header='Link Externo' headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column header="Ações" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+
                     </DataTable>
 
                     <Dialog visible={passoDialog} style={{ width: '550px' }} header="Detalhe do Passo" modal className="p-fluid" footer={passoDialogFooter} onHide={hideDialog}>

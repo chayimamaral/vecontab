@@ -67,6 +67,16 @@ func (h *ConfiguracaoIntegracaoHandler) GetTenantConfiguracoes(w http.ResponseWr
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// Complementa com o certificado ativo do tenant (fonte oficial do A1).
+	if h.certService != nil {
+		cert, certErr := h.certService.ResumoPorTenant(r.Context(), tenantID)
+		if certErr == nil && cert != nil {
+			resp.TipoCertificado = "A1"
+			resp.NomeCertificado = strings.TrimSpace(cert.TitularNome)
+			resp.EmitidoPara = strings.TrimSpace(cert.TitularNome)
+			resp.ValidadeAte = cert.ValidadeAte.Format("2006-01-02")
+		}
+	}
 	render.WriteJSON(w, http.StatusOK, map[string]any{"configuracoes": resp})
 }
 
@@ -103,14 +113,9 @@ func (h *ConfiguracaoIntegracaoHandler) UploadCertificadoDigital(w http.Response
 		render.WriteError(w, http.StatusBadRequest, "multipart invalido")
 		return
 	}
-	empresaID := strings.TrimSpace(r.FormValue("empresa_id"))
 	senha := r.FormValue("senha_certificado")
 	cnpj := strings.TrimSpace(r.FormValue("cnpj"))
 	titular := strings.TrimSpace(r.FormValue("titular_nome"))
-	if empresaID == "" {
-		render.WriteError(w, http.StatusBadRequest, "empresa_id obrigatorio")
-		return
-	}
 
 	file, _, err := r.FormFile("arquivo")
 	if err != nil {
@@ -125,11 +130,11 @@ func (h *ConfiguracaoIntegracaoHandler) UploadCertificadoDigital(w http.Response
 		return
 	}
 	tenantID := middleware.TenantID(r.Context())
-	if err := h.certService.UpsertPFX(r.Context(), tenantID, empresaID, pfxBytes, senha, cnpj, titular); err != nil {
+	if err := h.certService.UpsertPFX(r.Context(), tenantID, pfxBytes, senha, cnpj, titular); err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	mat, err := h.certService.MaterialEmMemoria(r.Context(), tenantID, empresaID)
+	mat, err := h.certService.MaterialEmMemoria(r.Context(), tenantID)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -144,4 +149,43 @@ func (h *ConfiguracaoIntegracaoHandler) UploadCertificadoDigital(w http.Response
 			"validade_ate":     mat.ValidadeAte.Format("2006-01-02"),
 		},
 	})
+}
+
+func (h *ConfiguracaoIntegracaoHandler) GetCertificadoDigital(w http.ResponseWriter, r *http.Request) {
+	role := strings.ToUpper(strings.TrimSpace(middleware.Role(r.Context())))
+	if role != "ADMIN" && role != "SUPER" {
+		render.WriteError(w, http.StatusForbidden, "Somente ADMIN/SUPER")
+		return
+	}
+	if h.certService == nil {
+		render.WriteJSON(w, http.StatusOK, map[string]any{"certificado": map[string]any{}})
+		return
+	}
+	tenantID := middleware.TenantID(r.Context())
+	cert, err := h.certService.ResumoPorTenant(r.Context(), tenantID)
+	if err != nil || cert == nil {
+		render.WriteJSON(w, http.StatusOK, map[string]any{"certificado": map[string]any{}})
+		return
+	}
+	render.WriteJSON(w, http.StatusOK, map[string]any{
+		"certificado": map[string]any{
+			"tipo_certificado": "A1",
+			// Regra da tela: Nome = emissor/razao; Emitido para/por = titular.
+			"nome_certificado": strings.TrimSpace(firstNonEmpty(cert.EmitidoPor, cert.TitularNome)),
+			"emitido_para":     strings.TrimSpace(cert.TitularNome),
+			"emitido_por":      strings.TrimSpace(cert.TitularNome),
+			"cnpj":             strings.TrimSpace(cert.CNPJ),
+			"validade_de":      cert.ValidadeDe.Format("2006-01-02"),
+			"validade_ate":     cert.ValidadeAte.Format("2006-01-02"),
+		},
+	})
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }

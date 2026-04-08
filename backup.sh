@@ -31,9 +31,4 @@ else
     echo "⚠️ Falha ao gerar o arquivo de backup."
     exit 1
 fi
-echo "-------------------------------------------"
-echo ""
-echo "🧹 Faxina final: Removendo caches de build antigos (liberando espaço)..."
-docker builder prune -f
-echo ""
-echo "-------------------------------------------"
+

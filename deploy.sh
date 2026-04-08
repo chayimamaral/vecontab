@@ -1,5 +1,8 @@
 #!/bin/bash
 
+START_TIME=$(date +%s)
+START_DATE=$(date +"%H:%M:%S")
+
 # No início do deploy.sh
 #./backup.sh
 
@@ -87,4 +90,10 @@ echo "-------------------------------------------"
 # Opcional: Apagar logs apenas se deram sucesso, manter se falharam
 # rm -f "$BACKEND_LOG" "$FRONTEND_LOG"
 
+echo "-------------------------------------------"
+echo ""
+echo "🧹 Faxina final: Removendo caches de build antigos (liberando espaço)..."
+docker builder prune -f
+echo ""
+echo "-------------------------------------------"
 echo ""

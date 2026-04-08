@@ -2,7 +2,7 @@ import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { Toast } from 'primereact/toast';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import setupAPIClient from '../../components/api/api';
 import { withAuthServerSideProps } from '../../components/utils/crudUtils';
 import { GetServerSidePropsContext } from 'next';
@@ -20,18 +20,21 @@ export default function GeracaoGuiasPage() {
         gerar_darf_dctfweb_por_procuracao: false,
     });
 
-    const { refetch, isFetching } = useQuery({
+    const { data, refetch, isFetching } = useQuery({
         queryKey: ['tenant-config-geracao-guias'],
         queryFn: async () => {
             const { data } = await api.get('/api/tenant-configuracoes');
-            const cfg = data?.configuracoes ?? {};
-            setForm({
-                gerar_das_por_procuracao: Boolean(cfg.gerar_das_por_procuracao),
-                gerar_darf_dctfweb_por_procuracao: Boolean(cfg.gerar_darf_dctfweb_por_procuracao),
-            });
-            return cfg;
+            return data?.configuracoes ?? {};
         },
     });
+
+    useEffect(() => {
+        if (!data) return;
+        setForm({
+            gerar_das_por_procuracao: Boolean(data.gerar_das_por_procuracao),
+            gerar_darf_dctfweb_por_procuracao: Boolean(data.gerar_darf_dctfweb_por_procuracao),
+        });
+    }, [data]);
 
     const save = async () => {
         try {

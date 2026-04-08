@@ -44,6 +44,8 @@ func (h *RotinaHandler) List(w http.ResponseWriter, r *http.Request) {
 		SortField: r.URL.Query().Get("sortField"),
 		SortOrder: parseIntRotina(r.URL.Query().Get("sortOrder"), 1),
 		Descricao: parseDescricaoFilterRotina(r.URL.Query().Get("filters")),
+		MunicipioID: parseMunicipioFilterRotina(r.URL.Query().Get("filters")),
+		TipoEmpresaID: parseTipoEmpresaFilterRotina(r.URL.Query().Get("filters")),
 	}
 
 	response, err := h.service.List(r.Context(), params)
@@ -62,6 +64,8 @@ func (h *RotinaHandler) ListRotinas(w http.ResponseWriter, r *http.Request) {
 		SortField: r.URL.Query().Get("sortField"),
 		SortOrder: parseIntRotina(r.URL.Query().Get("sortOrder"), 1),
 		Descricao: parseDescricaoFilterRotina(r.URL.Query().Get("filters")),
+		MunicipioID: parseMunicipioFilterRotina(r.URL.Query().Get("filters")),
+		TipoEmpresaID: parseTipoEmpresaFilterRotina(r.URL.Query().Get("filters")),
 	}
 
 	response, err := h.service.ListRotinas(r.Context(), params)
@@ -364,6 +368,40 @@ func parseDescricaoFilterRotina(raw string) string {
 	var payload filtersPayload
 	if err := json.Unmarshal([]byte(raw), &payload); err == nil {
 		return payload.Descricao.Value
+	}
+	return ""
+}
+
+func parseMunicipioFilterRotina(raw string) string {
+	type filtersPayload struct {
+		Municipio struct {
+			Value string `json:"value"`
+		} `json:"municipio"`
+	}
+
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
+	var payload filtersPayload
+	if err := json.Unmarshal([]byte(raw), &payload); err == nil {
+		return strings.TrimSpace(payload.Municipio.Value)
+	}
+	return ""
+}
+
+func parseTipoEmpresaFilterRotina(raw string) string {
+	type filtersPayload struct {
+		TipoEmpresa struct {
+			Value string `json:"value"`
+		} `json:"tipo_empresa"`
+	}
+
+	if strings.TrimSpace(raw) == "" {
+		return ""
+	}
+	var payload filtersPayload
+	if err := json.Unmarshal([]byte(raw), &payload); err == nil {
+		return strings.TrimSpace(payload.TipoEmpresa.Value)
 	}
 	return ""
 }

@@ -4,7 +4,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import setupAPIClient from '../../components/api/api';
 import { withAuthServerSideProps } from '../../components/utils/crudUtils';
 import { GetServerSidePropsContext } from 'next';
@@ -12,7 +12,6 @@ import { GetServerSidePropsContext } from 'next';
 type CertConfig = {
     tipo_certificado: string;
     senha_certificado: string;
-    empresa_id: string;
     nome_certificado: string;
     emitido_para: string;
     emitido_por: string;
@@ -33,7 +32,6 @@ export default function CertificadoDigitalPage() {
     const [form, setForm] = useState<CertConfig>({
         tipo_certificado: '',
         senha_certificado: '',
-        empresa_id: '',
         nome_certificado: '',
         emitido_para: '',
         emitido_por: '',
@@ -41,32 +39,37 @@ export default function CertificadoDigitalPage() {
         validade_ate: '',
     });
 
-    const { refetch, isFetching } = useQuery({
-        queryKey: ['tenant-config-certificado-digital'],
+    const { data, refetch, isFetching } = useQuery({
+        queryKey: ['certificado-digital-tenant'],
         queryFn: async () => {
-            const { data } = await api.get('/api/tenant-configuracoes');
-            const cfg = data?.configuracoes ?? {};
-            setForm((prev) => ({
-                ...prev,
-                tipo_certificado: cfg.tipo_certificado ?? '',
-                senha_certificado: cfg.senha_certificado ?? '',
-                empresa_id: '',
-                nome_certificado: cfg.nome_certificado ?? '',
-                emitido_para: cfg.emitido_para ?? '',
-                emitido_por: cfg.emitido_por ?? '',
-                validade_de: cfg.validade_de ?? '',
-                validade_ate: cfg.validade_ate ?? '',
-            }));
-            return cfg;
+            const { data } = await api.get('/api/certificado-digital');
+            return data?.certificado ?? {};
         },
     });
+
+    useEffect(() => {
+        if (!data) return;
+        setForm((prev) => ({
+            ...prev,
+            tipo_certificado: data.tipo_certificado ?? 'A1',
+            senha_certificado: '',
+            nome_certificado: data.nome_certificado ?? '',
+            emitido_para: data.emitido_para ?? '',
+            emitido_por: data.emitido_por ?? '',
+            validade_de: data.validade_de ?? '',
+            validade_ate: data.validade_ate ?? '',
+        }));
+    }, [data]);
 
     const save = async () => {
         try {
             if (certFile) {
+                if (!form.senha_certificado.trim()) {
+                    toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Informe a senha do certificado digital.', life: 4000 });
+                    return;
+                }
                 const body = new FormData();
                 body.append('arquivo', certFile);
-                body.append('empresa_id', form.empresa_id.trim());
                 body.append('senha_certificado', form.senha_certificado);
                 if (form.emitido_para.trim()) {
                     body.append('titular_nome', form.emitido_para.trim());
@@ -75,11 +78,11 @@ export default function CertificadoDigitalPage() {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
             }
-            await api.put('/api/tenant-configuracoes', form);
             toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Certificado salvo', life: 3000 });
             await refetch();
         } catch (e: any) {
-            toast.current?.show({ severity: 'error', summary: 'Erro', detail: e?.response?.data?.message || 'Falha ao salvar', life: 4000 });
+            const apiError = e?.response?.data?.error || e?.response?.data?.message || 'Falha ao salvar';
+            toast.current?.show({ severity: 'error', summary: 'Erro', detail: apiError, life: 7000 });
         }
     };
 
@@ -123,12 +126,6 @@ export default function CertificadoDigitalPage() {
                 <Card>
                     <h3 className="text-left mt-0 mb-4">Certificado Digital (ADMIN)</h3>
                     <div className="grid align-items-center mb-3">
-                        <div className="col-12 md:col-4 text-right"><label htmlFor="empresa_id">ID do Cliente</label></div>
-                        <div className="col-12 md:col-6">
-                            <InputText id="empresa_id" value={form.empresa_id} onChange={(e) => setForm((prev) => ({ ...prev, empresa_id: e.target.value }))} placeholder="UUID da empresa para vincular o certificado" className="w-full p-inputtext-sm" />
-                        </div>
-                    </div>
-                    <div className="grid align-items-center mb-3">
                         <div className="col-12 md:col-4 text-right"><label htmlFor="tipo">Tipo de Certificado</label></div>
                         <div className="col-12 md:col-6">
                             <Dropdown id="tipo" options={tipos} value={form.tipo_certificado} onChange={(e) => setForm((prev) => ({ ...prev, tipo_certificado: e.value ?? '' }))} placeholder="Selecione" className="w-full p-inputtext-sm" />
@@ -138,7 +135,13 @@ export default function CertificadoDigitalPage() {
                         <div className="col-12 md:col-4 text-right"><label htmlFor="arquivo_nome">Arquivo .pfx</label></div>
                         <div className="col-12 md:col-6">
                             <div className="p-inputgroup">
-                                <InputText id="arquivo_nome" value={certFile?.name ?? ''} readOnly placeholder="Selecione o arquivo PFX" className="p-inputtext-sm" />
+                                <InputText
+                                    id="arquivo_nome"
+                                    value={certFile?.name ?? (form.validade_ate ? 'Certificado carregado' : '')}
+                                    readOnly
+                                    placeholder="Selecione o arquivo PFX"
+                                    className="p-inputtext-sm"
+                                />
                                 <Button icon="pi pi-upload" type="button" onClick={openFilePicker} tooltip="Selecionar arquivo PFX" size="small" />
                             </div>
                             <input ref={fileInputRef} type="file" accept=".pfx,application/x-pkcs12" style={{ display: 'none' }} onChange={onFileChange} />

@@ -3,7 +3,7 @@ import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import setupAPIClient from '../../components/api/api';
 import { withAuthServerSideProps } from '../../components/utils/crudUtils';
 import { GetServerSidePropsContext } from 'next';
@@ -23,14 +23,17 @@ export default function ApiIntegraContadorPage() {
         queryFn: async () => {
             const { data } = await api.get('/api/chavessuper');
             const ch = data?.chaves ?? {};
-            const parsed: Chaves = {
+            return {
                 consumer_key: ch.consumer_key ?? '',
                 consumer_secret: ch.consumer_secret ?? '',
             };
-            setForm(parsed);
-            return parsed;
         },
     });
+
+    useEffect(() => {
+        if (!data) return;
+        setForm(data);
+    }, [data]);
 
     const save = async () => {
         if (!form.consumer_key.trim() || !form.consumer_secret.trim()) {

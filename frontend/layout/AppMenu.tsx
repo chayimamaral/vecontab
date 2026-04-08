@@ -81,16 +81,6 @@ const AppMenu = () => {
                                 icon: 'pi pi-fw pi-bookmark',
                                 items: [
                                     {
-                                        label: 'Municípios',
-                                        icon: 'pi pi-fw pi-building',
-                                        to: '/municipios',
-                                    },
-                                    {
-                                        label: 'Estados',
-                                        icon: 'pi pi-fw pi-flag',
-                                        to: '/estados',
-                                    },
-                                    {
                                         label: 'Clientes',
                                         icon: 'pi pi-fw pi-id-card',
                                         to: '/clientes',
@@ -99,6 +89,16 @@ const AppMenu = () => {
                                         label: 'Feriados',
                                         icon: 'pi pi-fw pi-table',
                                         to: '/feriados',
+                                    },
+                                    {
+                                        label: 'Municípios',
+                                        icon: 'pi pi-fw pi-building',
+                                        to: '/municipios',
+                                    },
+                                    {
+                                        label: 'Estados',
+                                        icon: 'pi pi-fw pi-flag',
+                                        to: '/estados',
                                     },
                                 ],
                             },
