@@ -5,6 +5,10 @@ import AppMenuitem from './AppMenuitem';
 import { MenuProvider } from './context/menucontext';
 import { AppMenuItem } from '../types/types';
 import setupAPIClient from '../components/api/api';
+// Onde está o nome: logoIntegra
+// Onde está o local: '../assets/logo_integracontador_limpo.avif'
+import logoIntegra from '../public/logo_integracontador.avif';
+import { options } from '@fullcalendar/core/preact';
 
 const AppMenu = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -197,10 +201,10 @@ const AppMenu = () => {
             icon: 'pi pi-fw pi-cog',
             visible: userRole === 'SUPER' || userRole === 'ADMIN' || userRole === 'USER',
             items: [
-              {
-                label: 'Integra Contador - Serpro',
-                icon: 'pi pi-fw pi-database',
-                items: [
+                            {
+                            label: 'Integra Contador - Serpro',
+                            iconSrc: '/logo_serpro.svg',
+                            items: [
                   {
                     label: 'API Integra Contador',
                     icon: 'pi pi-fw pi-key',

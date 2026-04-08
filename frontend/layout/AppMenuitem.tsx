@@ -51,6 +51,20 @@ const AppMenuitem = (props: AppMenuItemProps) => {
         else setActiveMenu(key);
     };
 
+    const menuIcon =
+        item!.iconSrc != null && item!.iconSrc !== '' ? (
+            <img
+                src={item!.iconSrc}
+                alt=""
+                className="layout-menuitem-icon layout-menuitem-icon-img"
+                width={24}
+                height={24}
+                decoding="async"
+            />
+        ) : (
+            <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
+        );
+
     const subMenu = item!.items && item!.visible !== false && (
         <CSSTransition nodeRef={subMenuRef} timeout={{ enter: 1000, exit: 450 }} classNames="layout-submenu" in={props.root ? true : active} key={item!.label}>
             <ul ref={subMenuRef}>
@@ -66,7 +80,7 @@ const AppMenuitem = (props: AppMenuItemProps) => {
             {props.root && item!.visible !== false && <div className="layout-menuitem-root-text">{item!.label}</div>}
             {(!item!.to || item!.items) && item!.visible !== false ? (
                 <a href={item!.url} onClick={(e) => itemClick(e)} className={classNames(item!.class, 'p-ripple')} target={item!.target} tabIndex={0}>
-                    <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
+                    {menuIcon}
                     <span className="layout-menuitem-text">{item!.label}</span>
                     {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
                     <Ripple />
@@ -75,7 +89,7 @@ const AppMenuitem = (props: AppMenuItemProps) => {
 
             {item!.to && !item!.items && item!.visible !== false ? (
                 <Link href={item!.to} replace={item!.replaceUrl} target={item!.target} onClick={(e) => itemClick(e)} className={classNames(item!.class, 'p-ripple', { 'active-route': isActiveRoute })} tabIndex={0}>
-                    <i className={classNames('layout-menuitem-icon', item!.icon)}></i>
+                    {menuIcon}
                     <span className="layout-menuitem-text">{item!.label}</span>
                     {item!.items && <i className="pi pi-fw pi-angle-down layout-submenu-toggler"></i>}
                     <Ripple />

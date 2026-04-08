@@ -66,6 +66,13 @@
                 margin-right: .5rem;
             }
 
+            .layout-menuitem-icon-img {
+                width: 1.5rem;
+                height: 1.5rem;
+                object-fit: contain;
+                flex-shrink: 0;
+            }
+
             .layout-submenu-toggler {
                 font-size: 75%;
                 margin-left: auto;

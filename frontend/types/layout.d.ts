@@ -91,6 +91,8 @@ export interface MenuModel {
 }
 
 export interface AppMenuItem extends MenuModel {
+    /** Caminho público (ex.: `/logo.svg`) para ícone em imagem; se definido, tem prioridade sobre `icon`. */
+    iconSrc?: string;
     items?: AppMenuItem[];
     badge?: 'UPDATED' | 'NEW';
     badgeClass?: string;
