@@ -1,6 +1,12 @@
 # Local scratch images
 Imagem colada*.png
 
+# Scripts de automação
+gitsave.sh
+backup.sh
+bkp_db.sh
+deploy.sh
+
 # Binários locais do backend (go build -o)
 backend/cmd/api/api-mare
 backend/cmd/api/api-vecontab
@@ -18,4 +24,3 @@ docs/Serpro.Componentes.AutenticacaoLoja.Dotnet/
 
 migrations/
 vec_prospect/
-gitsave.sh
