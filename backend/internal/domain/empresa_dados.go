@@ -3,6 +3,7 @@ package domain
 type EmpresaDadosItem struct {
 	EmpresaID        string     `json:"empresa_id"`
 	CNPJ             *string    `json:"cnpj,omitempty"`
+	CapitalSocial    *float64   `json:"capital_social,omitempty"`
 	Endereco         *string    `json:"endereco,omitempty"`
 	Numero           *string    `json:"numero,omitempty"`
 	CEP              *string    `json:"cep,omitempty"`

@@ -201,10 +201,10 @@ const AppMenu = () => {
             icon: 'pi pi-fw pi-cog',
             visible: userRole === 'SUPER' || userRole === 'ADMIN' || userRole === 'USER',
             items: [
-                            {
-                            label: 'Integra Contador - Serpro',
-                            iconSrc: '/logo_serpro.svg',
-                            items: [
+              {
+                label: 'Integra Contador - Serpro',
+                iconSrc: '/microservice-icon.svg',
+                items: [
                   {
                     label: 'API Integra Contador',
                     icon: 'pi pi-fw pi-key',

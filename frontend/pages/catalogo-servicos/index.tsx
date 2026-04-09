@@ -324,6 +324,16 @@ export default function CatalogoServicosPage() {
                         <Column header="Descrição" body={descricaoTemplate} field="descricao" style={{ minWidth: '16rem' }} />
                         {podeManter && <Column header="Ações" body={acoesTemplate} style={{ width: '8rem' }} />}
                     </TreeTable>
+                    <div className="flex justify-content-start mt-2">
+                        <Button
+                            type="button"
+                            icon="pi pi-refresh"
+                            tooltip="Atualizar"
+                            className="p-button-text"
+                            loading={isFetching}
+                            onClick={() => void refetch()}
+                        />
+                    </div>
                     <Dialog
                         visible={dialogVisible}
                         onHide={() => {
@@ -417,29 +427,11 @@ export default function CatalogoServicosPage() {
                             </div>
                         </div>
                     </Dialog>
-                    <div className="vecontab-catalogo-servico-fab-wrap">
-                        <Button
-                            type="button"
-                            icon="pi pi-refresh"
-                            tooltip="Atualizar"
-                            tooltipOptions={{ position: 'left' }}
-                            className="p-button-rounded p-button-text"
-                            loading={isFetching}
-                            onClick={() => void refetch()}
-                        />
-                    </div>
                 </div>
             </div>
             <style jsx global>{`
                 .vecontab-catalogo-servico-card {
                     position: relative;
-                    padding-bottom: 3rem;
-                }
-                .vecontab-catalogo-servico-fab-wrap {
-                    position: absolute;
-                    right: 1rem;
-                    bottom: 0.75rem;
-                    z-index: 2;
                 }
                 :global(.p-treetable .p-treetable-tbody > tr.vecontab-catalogo-linha-inativa > td) {
                     opacity: 0.72;

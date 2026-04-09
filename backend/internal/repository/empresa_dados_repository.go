@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ type EmpresaDadosUpsertInput struct {
 	MunicipioID      string
 	Bairro           string
 	CNPJ             string
+	CapitalSocial    *float64
 	Endereco         string
 	Numero           string
 	CEP              string
@@ -82,7 +84,9 @@ func (r *EmpresaDadosRepository) GetByEmpresa(ctx context.Context, empresaID, te
 
 	const q = `
 		SELECT e.id,
-			ed.cnpj, ed.endereco, ed.numero, ed.cep, ed.email_contato, ed.telefone, ed.telefone2,
+			ed.cnpj,
+			ed.capital_social::float8,
+			ed.endereco, ed.numero, ed.cep, ed.email_contato, ed.telefone, ed.telefone2,
 			ed.data_abertura, ed.data_encerramento, ed.observacao,
 			COALESCE(m.id::text, ''), COALESCE(m.nome, '')
 		FROM public.empresa e
@@ -96,11 +100,12 @@ func (r *EmpresaDadosRepository) GetByEmpresa(ctx context.Context, empresaID, te
 	var (
 		id                                             string
 		cnpj, endereco, numero, cep, email, tel1, tel2 pgtype.Text
+		capitalSocial                                  sql.NullFloat64
 		dataAber, dataEnc                              pgtype.Date
 		obs                                            pgtype.Text
 		mID, mNome                                     string
 	)
-	if err := row.Scan(&id, &cnpj, &endereco, &numero, &cep, &email, &tel1, &tel2, &dataAber, &dataEnc, &obs, &mID, &mNome); err != nil {
+	if err := row.Scan(&id, &cnpj, &capitalSocial, &endereco, &numero, &cep, &email, &tel1, &tel2, &dataAber, &dataEnc, &obs, &mID, &mNome); err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("empresa nao encontrada")
 		}
@@ -123,6 +128,10 @@ func (r *EmpresaDadosRepository) GetByEmpresa(ctx context.Context, empresaID, te
 			ID:   mID,
 			Nome: mNome,
 		},
+	}
+	if capitalSocial.Valid {
+		v := capitalSocial.Float64
+		out.CapitalSocial = &v
 	}
 	return out, nil
 }
@@ -147,6 +156,12 @@ func (r *EmpresaDadosRepository) Upsert(ctx context.Context, in EmpresaDadosUpse
 	} else {
 		mid = nil
 	}
+	var cap any
+	if in.CapitalSocial != nil {
+		cap = *in.CapitalSocial
+	} else {
+		cap = nil
+	}
 
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -156,15 +171,16 @@ func (r *EmpresaDadosRepository) Upsert(ctx context.Context, in EmpresaDadosUpse
 
 	const q = `
 		INSERT INTO public.clientes_dados (
-			cliente_id, municipio_id, cnpj, endereco, numero, cep, email_contato, telefone, telefone2,
+			cliente_id, municipio_id, cnpj, capital_social, endereco, numero, cep, email_contato, telefone, telefone2,
 			data_abertura, data_encerramento, observacao, atualizado_em
 		)
-		SELECT e.cliente_id, $2, $3, $4, $5, $6, $7, $8, $9, $10::date, $11::date, $12, NOW()
+		SELECT e.cliente_id, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::date, $12::date, $13, NOW()
 		FROM public.empresa e
-		WHERE e.id = $1 AND e.tenant_id = $13 AND e.ativo = true
+		WHERE e.id = $1 AND e.tenant_id = $14 AND e.ativo = true
 		ON CONFLICT (cliente_id) DO UPDATE SET
 			municipio_id = EXCLUDED.municipio_id,
 			cnpj = EXCLUDED.cnpj,
+			capital_social = EXCLUDED.capital_social,
 			endereco = EXCLUDED.endereco,
 			numero = EXCLUDED.numero,
 			cep = EXCLUDED.cep,
@@ -180,6 +196,7 @@ func (r *EmpresaDadosRepository) Upsert(ctx context.Context, in EmpresaDadosUpse
 		in.EmpresaID,
 		mid,
 		strOrNil(in.CNPJ),
+		cap,
 		strOrNil(in.Endereco),
 		strOrNil(in.Numero),
 		strOrNil(in.CEP),

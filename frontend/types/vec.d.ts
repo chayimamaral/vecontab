@@ -16,7 +16,6 @@ declare namespace Vec {
     type TipoEmpresa = {
         id?: string;
         descricao?: string;
-        capital?: number;
         anual?: number;
     }
 
@@ -67,6 +66,8 @@ declare namespace Vec {
         municipio_id?: string;
         municipio?: MunicipioLite;
         cnpj?: string;
+        /** Capital social (PJ); coluna public.clientes_dados.capital_social */
+        capital_social?: number | null;
         endereco?: string;
         numero?: string;
         cep?: string;

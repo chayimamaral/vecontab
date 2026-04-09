@@ -1043,9 +1043,8 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                         <Button
                             type="button"
                             icon="pi pi-refresh"
-                            className="p-button-rounded p-button-text vecontab-agenda-arvore-btn-atualizar"
+                            className="p-button-text"
                             tooltip="Atualizar"
-                            tooltipOptions={{ position: 'left' }}
                             loading={loading}
                             onClick={() => void carregarRaizes()}
                             aria-label="Atualizar lista da agenda"
@@ -1179,13 +1178,9 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                 }
                 .vecontab-agenda-arvore-fab-wrap {
                     position: absolute;
-                    right: 1rem;
+                    left: 1rem;
                     bottom: 0.75rem;
                     z-index: 2;
-                }
-                :global(.vecontab-agenda-arvore-btn-atualizar.p-button.p-button-text) {
-                    width: 2.5rem;
-                    height: 2.5rem;
                 }
             `}</style>
         </div>

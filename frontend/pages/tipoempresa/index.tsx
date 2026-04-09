@@ -381,10 +381,6 @@ const TipoEmpresa = () => {
         return formatCurrency(rowData.anual);
     };
 
-    const capitalBodyTemplate = (rowData) => {
-        return formatCurrency(rowData.capital);
-    };
-
     return (
         <div className="grid crud-demo">
             <div className="col-12">
@@ -420,7 +416,6 @@ const TipoEmpresa = () => {
                     //paginatorRight={paginatorRight}
                     >
                         <Column field="descricao" header="Descrição" sortable body={descricaoBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="capital" header="Capital Social" dataType='numeric' body={capitalBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="anual" header="Faturamento Anual" dataType='numeric' body={anualBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
 
@@ -431,10 +426,6 @@ const TipoEmpresa = () => {
                             <label htmlFor="descricao">Descrição</label>
                             <InputText id="descricao" value={tipoEmpresa.descricao} type='text' onChange={(e) => onInputChange(e, 'descricao')} required autoFocus className={classNames({ 'p-invalid': submitted && !tipoEmpresa.descricao })} />
                             {submitted && !tipoEmpresa.descricao && <small className="p-invalid">Descrição do Enquadramento Jurídico é obrigatória.</small>}
-                        </div>
-                        <div className="field">
-                            <label htmlFor="capital">Capital Social</label>
-                            <InputNumber id="capital" value={tipoEmpresa.capital} type='currency' onChange={(e) => onNumberChange(e, 'capital')} mode="currency" currency="BRL" minFractionDigits={2} maxFractionDigits={7} />
                         </div>
                         <div className="field">
                             <label htmlFor="anual">Faturamento Anual</label>

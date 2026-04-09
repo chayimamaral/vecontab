@@ -29,7 +29,6 @@ func (r *TipoEmpresaRepository) List(ctx context.Context, params TipoEmpresaList
 	orderBy := "descricao ASC"
 	allowed := map[string]string{
 		"descricao": "descricao",
-		"capital":   "capital",
 		"anual":     "anual",
 		"id":        "id",
 	}
@@ -55,7 +54,7 @@ func (r *TipoEmpresaRepository) List(ctx context.Context, params TipoEmpresaList
 	args = append(args, params.Rows, params.First)
 
 	query := fmt.Sprintf(
-		"SELECT id, descricao, COALESCE(capital, 0), COALESCE(anual, 0), ativo FROM public.tipoempresa WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d",
+		"SELECT id, descricao, COALESCE(anual, 0), ativo FROM public.tipoempresa WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d",
 		whereClause,
 		orderBy,
 		argIndex,
@@ -71,7 +70,7 @@ func (r *TipoEmpresaRepository) List(ctx context.Context, params TipoEmpresaList
 	tipos := make([]domain.TipoEmpresa, 0)
 	for rows.Next() {
 		var t domain.TipoEmpresa
-		if err := rows.Scan(&t.ID, &t.Descricao, &t.Capital, &t.Anual, &t.Ativo); err != nil {
+		if err := rows.Scan(&t.ID, &t.Descricao, &t.Anual, &t.Ativo); err != nil {
 			return nil, 0, fmt.Errorf("scan tipoempresa: %w", err)
 		}
 		tipos = append(tipos, t)
@@ -87,13 +86,13 @@ func (r *TipoEmpresaRepository) List(ctx context.Context, params TipoEmpresaList
 	return tipos, total, nil
 }
 
-func (r *TipoEmpresaRepository) Create(ctx context.Context, descricao string, capital, anual float64) ([]domain.TipoEmpresa, int64, error) {
+func (r *TipoEmpresaRepository) Create(ctx context.Context, descricao string, anual float64) ([]domain.TipoEmpresa, int64, error) {
 	const query = `
-		INSERT INTO public.tipoempresa (descricao, capital, anual)
-		VALUES ($1, $2, $3)
-		RETURNING id, descricao, capital, anual, ativo`
+		INSERT INTO public.tipoempresa (descricao, anual)
+		VALUES ($1, $2)
+		RETURNING id, descricao, anual, ativo`
 
-	rows, err := r.pool.Query(ctx, query, descricao, capital, anual)
+	rows, err := r.pool.Query(ctx, query, descricao, anual)
 	if err != nil {
 		return nil, 0, fmt.Errorf("create tipoempresa: %w", err)
 	}
@@ -102,7 +101,7 @@ func (r *TipoEmpresaRepository) Create(ctx context.Context, descricao string, ca
 	tipos := make([]domain.TipoEmpresa, 0)
 	for rows.Next() {
 		var t domain.TipoEmpresa
-		if err := rows.Scan(&t.ID, &t.Descricao, &t.Capital, &t.Anual, &t.Ativo); err != nil {
+		if err := rows.Scan(&t.ID, &t.Descricao, &t.Anual, &t.Ativo); err != nil {
 			return nil, 0, fmt.Errorf("scan created tipoempresa: %w", err)
 		}
 		tipos = append(tipos, t)
@@ -116,14 +115,14 @@ func (r *TipoEmpresaRepository) Create(ctx context.Context, descricao string, ca
 	return tipos, total, nil
 }
 
-func (r *TipoEmpresaRepository) Update(ctx context.Context, id, descricao string, capital, anual float64) ([]domain.TipoEmpresa, int64, error) {
+func (r *TipoEmpresaRepository) Update(ctx context.Context, id, descricao string, anual float64) ([]domain.TipoEmpresa, int64, error) {
 	const query = `
 		UPDATE public.tipoempresa
-		SET descricao = $1, capital = $2, anual = $3
-		WHERE id = $4
-		RETURNING id, descricao, capital, anual, ativo`
+		SET descricao = $1, anual = $2
+		WHERE id = $3
+		RETURNING id, descricao, anual, ativo`
 
-	rows, err := r.pool.Query(ctx, query, descricao, capital, anual, id)
+	rows, err := r.pool.Query(ctx, query, descricao, anual, id)
 	if err != nil {
 		return nil, 0, fmt.Errorf("update tipoempresa: %w", err)
 	}
@@ -132,7 +131,7 @@ func (r *TipoEmpresaRepository) Update(ctx context.Context, id, descricao string
 	tipos := make([]domain.TipoEmpresa, 0)
 	for rows.Next() {
 		var t domain.TipoEmpresa
-		if err := rows.Scan(&t.ID, &t.Descricao, &t.Capital, &t.Anual, &t.Ativo); err != nil {
+		if err := rows.Scan(&t.ID, &t.Descricao, &t.Anual, &t.Ativo); err != nil {
 			return nil, 0, fmt.Errorf("scan updated tipoempresa: %w", err)
 		}
 		tipos = append(tipos, t)
@@ -151,7 +150,7 @@ func (r *TipoEmpresaRepository) Delete(ctx context.Context, id string) ([]domain
 		UPDATE public.tipoempresa
 		SET ativo = false
 		WHERE id = $1
-		RETURNING id, descricao, capital, anual, ativo`
+		RETURNING id, descricao, anual, ativo`
 
 	rows, err := r.pool.Query(ctx, query, id)
 	if err != nil {
@@ -162,7 +161,7 @@ func (r *TipoEmpresaRepository) Delete(ctx context.Context, id string) ([]domain
 	tipos := make([]domain.TipoEmpresa, 0)
 	for rows.Next() {
 		var t domain.TipoEmpresa
-		if err := rows.Scan(&t.ID, &t.Descricao, &t.Capital, &t.Anual, &t.Ativo); err != nil {
+		if err := rows.Scan(&t.ID, &t.Descricao, &t.Anual, &t.Ativo); err != nil {
 			return nil, 0, fmt.Errorf("scan deleted tipoempresa: %w", err)
 		}
 		tipos = append(tipos, t)

@@ -19,7 +19,6 @@ type tipoEmpresaEnvelope struct {
 	Params struct {
 		ID        string  `json:"id"`
 		Descricao string  `json:"descricao"`
-		Capital   float64 `json:"capital"`
 		Anual     float64 `json:"anual"`
 	} `json:"params"`
 }
@@ -58,7 +57,7 @@ func (h *TipoEmpresaHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.service.Create(r.Context(), payload.Params.Descricao, payload.Params.Capital, payload.Params.Anual)
+	response, err := h.service.Create(r.Context(), payload.Params.Descricao, payload.Params.Anual)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -79,7 +78,7 @@ func (h *TipoEmpresaHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.service.Update(r.Context(), payload.Params.ID, payload.Params.Descricao, payload.Params.Capital, payload.Params.Anual)
+	response, err := h.service.Update(r.Context(), payload.Params.ID, payload.Params.Descricao, payload.Params.Anual)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return

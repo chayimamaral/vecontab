@@ -5,6 +5,7 @@ import { DataTable, DataTableFilterMeta } from 'primereact/datatable';
 import type { PaginatorTemplate } from 'primereact/paginator';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import { InputNumber } from 'primereact/inputnumber';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
@@ -142,6 +143,8 @@ const Clientes = ({ dados }: { dados: string }) => {
     email_contato: string;
     telefone: string;
     telefone2: string;
+    /** PJ; gravado em clientes_dados.capital_social */
+    capital_social: number | null;
     data_abertura: string;
     data_encerramento: string;
     observacao: string;
@@ -154,6 +157,7 @@ const Clientes = ({ dados }: { dados: string }) => {
     email_contato: '',
     telefone: '',
     telefone2: '',
+    capital_social: null,
     data_abertura: '',
     data_encerramento: '',
     observacao: '',
@@ -529,21 +533,25 @@ const Clientes = ({ dados }: { dados: string }) => {
 
   const onlyDigits = (s: string) => String(s ?? '').replace(/\D/g, '');
 
-  const buildPayloadDados = (empresaId: string) => ({
-    id: empresaId,
-    municipio_id: (empresa.municipio?.id ?? '').trim(),
-    bairro: (empresa.bairro ?? '').trim(),
-    cnpj: '',
-    endereco: clienteExtra.logradouro.trim(),
-    numero: clienteExtra.numero.trim(),
-    cep: onlyDigits(clienteExtra.cep),
-    email_contato: clienteExtra.email_contato.trim(),
-    telefone: clienteExtra.telefone.trim(),
-    telefone2: clienteExtra.telefone2.trim(),
-    data_abertura: clienteExtra.data_abertura.trim(),
-    data_encerramento: clienteExtra.data_encerramento.trim(),
-    observacao: clienteExtra.observacao.trim(),
-  });
+  const buildPayloadDados = (empresaId: string) => {
+    const pf = (empresa.tipo_pessoa ?? 'PJ').toUpperCase() === 'PF';
+    return {
+      id: empresaId,
+      municipio_id: (empresa.municipio?.id ?? '').trim(),
+      bairro: (empresa.bairro ?? '').trim(),
+      cnpj: '',
+      endereco: clienteExtra.logradouro.trim(),
+      numero: clienteExtra.numero.trim(),
+      cep: onlyDigits(clienteExtra.cep),
+      email_contato: clienteExtra.email_contato.trim(),
+      telefone: clienteExtra.telefone.trim(),
+      telefone2: clienteExtra.telefone2.trim(),
+      capital_social: pf ? null : (clienteExtra.capital_social ?? null),
+      data_abertura: clienteExtra.data_abertura.trim(),
+      data_encerramento: clienteExtra.data_encerramento.trim(),
+      observacao: clienteExtra.observacao.trim(),
+    };
+  };
 
   const saveEmpresa = (event: any) => {
     empresa.tenantid = tenantid;
@@ -727,6 +735,7 @@ const Clientes = ({ dados }: { dados: string }) => {
 
     if (row.id) {
       empresaDadosService.getByEmpresa(row.id).then(({ data }) => {
+        const cap = data?.capital_social;
         setClienteExtra({
           logradouro: data?.endereco ?? '',
           numero: data?.numero ?? '',
@@ -734,6 +743,7 @@ const Clientes = ({ dados }: { dados: string }) => {
           email_contato: data?.email_contato ?? '',
           telefone: data?.telefone ?? '',
           telefone2: data?.telefone2 ?? '',
+          capital_social: typeof cap === 'number' && !Number.isNaN(cap) ? cap : null,
           data_abertura: data?.data_abertura ?? '',
           data_encerramento: data?.data_encerramento ?? '',
           observacao: data?.observacao ?? '',
@@ -1284,6 +1294,31 @@ const Clientes = ({ dados }: { dados: string }) => {
                 />
               </div>
             </div>
+
+            {!isClientePF && (
+              <div className="field">
+                <label htmlFor="cap_social">Capital social</label>
+                <InputNumber
+                  id="cap_social"
+                  inputId="cap_social"
+                  value={clienteExtra.capital_social ?? undefined}
+                  onChange={(e) =>
+                    setClienteExtra((x) => ({
+                      ...x,
+                      capital_social: e.value === null || e.value === undefined ? null : Number(e.value),
+                    }))
+                  }
+                  mode="currency"
+                  currency="BRL"
+                  locale="pt-BR"
+                  minFractionDigits={2}
+                  maxFractionDigits={7}
+                  className="w-full"
+                  disabled={!podeEditarComplementosCliente}
+                />
+                <small className="text-600">Por cliente (PJ). O enquadramento jurídico mantém apenas faturamento anual de referência.</small>
+              </div>
+            )}
 
             <div className="formgrid grid">
               <div className="field col-12 md:col-6">

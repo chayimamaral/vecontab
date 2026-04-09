@@ -14,6 +14,7 @@ export default function EmpresaDadosService() {
     municipio_id?: string;
     bairro?: string;
     cnpj?: string;
+    capital_social?: number | null;
     endereco?: string;
     numero?: string;
     cep?: string;

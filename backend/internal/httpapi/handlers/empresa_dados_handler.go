@@ -21,6 +21,7 @@ type empresaDadosEnvelope struct {
 		MunicipioID      string `json:"municipio_id"`
 		Bairro           string `json:"bairro"`
 		CNPJ             string `json:"cnpj"`
+		CapitalSocial    *float64 `json:"capital_social"`
 		Endereco         string `json:"endereco"`
 		Numero           string `json:"numero"`
 		CEP              string `json:"cep"`
@@ -73,6 +74,7 @@ func (h *EmpresaDadosHandler) Upsert(w http.ResponseWriter, r *http.Request) {
 		MunicipioID:      strings.TrimSpace(payload.Params.MunicipioID),
 		Bairro:           payload.Params.Bairro,
 		CNPJ:             payload.Params.CNPJ,
+		CapitalSocial:    payload.Params.CapitalSocial,
 		Endereco:         payload.Params.Endereco,
 		Numero:           payload.Params.Numero,
 		CEP:              payload.Params.CEP,

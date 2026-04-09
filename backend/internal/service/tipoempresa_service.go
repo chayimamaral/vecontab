@@ -33,8 +33,8 @@ func (s *TipoEmpresaService) List(ctx context.Context, params repository.TipoEmp
 	return TipoEmpresaListResponse{TiposEmpresa: tipos, TotalRecords: total}, nil
 }
 
-func (s *TipoEmpresaService) Create(ctx context.Context, descricao string, capital, anual float64) (TipoEmpresaListResponse, error) {
-	tipos, total, err := s.repo.Create(ctx, descricao, capital, anual)
+func (s *TipoEmpresaService) Create(ctx context.Context, descricao string, anual float64) (TipoEmpresaListResponse, error) {
+	tipos, total, err := s.repo.Create(ctx, descricao, anual)
 	if err != nil {
 		return TipoEmpresaListResponse{}, err
 	}
@@ -42,8 +42,8 @@ func (s *TipoEmpresaService) Create(ctx context.Context, descricao string, capit
 	return TipoEmpresaListResponse{TiposEmpresa: tipos, TotalRecords: total}, nil
 }
 
-func (s *TipoEmpresaService) Update(ctx context.Context, id, descricao string, capital, anual float64) (TipoEmpresaListResponse, error) {
-	tipos, total, err := s.repo.Update(ctx, id, descricao, capital, anual)
+func (s *TipoEmpresaService) Update(ctx context.Context, id, descricao string, anual float64) (TipoEmpresaListResponse, error) {
+	tipos, total, err := s.repo.Update(ctx, id, descricao, anual)
 	if err != nil {
 		return TipoEmpresaListResponse{}, err
 	}

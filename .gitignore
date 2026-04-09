@@ -6,6 +6,10 @@ gitsave.sh
 backup.sh
 bkp_db.sh
 deploy.sh
+*.EF.md
+*.especificacao.migrations
+*.sh
+*.py
 
 # Binários locais do backend (go build -o)
 backend/cmd/api/api-mare

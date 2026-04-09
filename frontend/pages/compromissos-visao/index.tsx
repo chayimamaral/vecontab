@@ -184,6 +184,8 @@ export default function CompromissosVisaoPage() {
         queryFn: load,
     });
 
+    const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip="Atualizar" className="p-button-text" onClick={() => void refetch()} />;
+
     const { data: empresaOptions = empresaOptionsFallback } = useQuery<SelectOption[]>({
         queryKey: ['compromissos-visao-form-options'],
         queryFn: async () => {
@@ -430,6 +432,7 @@ export default function CompromissosVisaoPage() {
                 loading={isFetching}
                 rowClassName={rowClassName}
                 paginator
+                paginatorLeft={paginatorLeft}
                 rows={rows}
                 first={first}
                 onPage={onPage}
