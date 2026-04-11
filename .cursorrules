@@ -1,5 +1,9 @@
 Projeto: vecontab (ERP contábil/fiscal)
-
+- Trata-se de um aplicativo SaaS que pertence à empresa VEC Sistemas.
+- Todos os usuários SUPER fazem parte da VEC Sistemas.
+- A própria VEC Sistemas terá e será um tenant principal, que não aparecerá como Contabilidade ou Cliente de Contabilidade.
+- As configurações principais de Integração com API's serão da VEC Sistemas.
+  
 Escopo e stack oficial
 - Backend: Go (Golang), arquitetura Clean Architecture + SOLID + DDD.
 - Frontend: React com Next.js 16 + TypeScript + PrimeReact/PrimeFlex + React Query.

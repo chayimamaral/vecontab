@@ -1,7 +1,9 @@
 package domain
 
+// ChavesSuper credencial OAuth Serpro (Integra Contador), no tenant da VEC Sistemas (usuários SUPER).
+// Manutenção apenas SUPER; todos os SUPER compartilham o mesmo tenant_id.
 type ChavesSuper struct {
-	TenantID       string `json:"tenant_id"`
+	TenantID       string `json:"tenant_id,omitempty"`
 	ConsumerKey    string `json:"consumer_key"`
 	ConsumerSecret string `json:"consumer_secret"`
 }

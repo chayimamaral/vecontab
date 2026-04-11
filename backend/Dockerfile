@@ -1,7 +1,7 @@
 # ==========================================
 # Estágio 1: Compilação (Builder)
 # ==========================================
-FROM golang:1.26.1-alpine AS builder
+FROM golang:1.26.2-alpine AS builder
 
 # Instala git e certificados (necessários para baixar dependências via HTTPS)
 RUN apk add --no-cache git ca-certificates

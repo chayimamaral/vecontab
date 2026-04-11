@@ -23,12 +23,16 @@ export default function App({ Component, pageProps }: Props) {
                     queries: {
                         refetchOnWindowFocus: false,
                         retry: 1,
-                        // Adicionando os 5 minutos de cache "fresco"
-                        staleTime: 1000 * 60 * 5, 
-                        // Opcional: tempo que o dado fica em memória após sumir da tela (v5)
+                        /**
+                         * staleTime 0: dados nascem obsoletos — ao montar a página, refetch típico.
+                         * Evita perfil/permissões “congelados” (ex.: usuariorole null em cache por minutos).
+                         * gcTime mantém resultado em memória após desmontar (dedupe, voltar à página).
+                         * “Zero cache” absoluto não existe no TanStack; para ainda mais agressivo use gcTime: 0.
+                         */
+                        staleTime: 0,
                         gcTime: 1000 * 60 * 10,
-                    }
-                }
+                    },
+                },
             })
     );
 

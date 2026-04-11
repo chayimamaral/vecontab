@@ -17,6 +17,7 @@ type TenantHandler struct {
 type tenantCreatePayload struct {
 	Nome    string `json:"nome"`
 	Contato string `json:"contato"`
+	Plano   string `json:"plano"`
 }
 
 type tenantUpdatePayload struct {
@@ -47,7 +48,7 @@ func (h *TenantHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.service.Create(r.Context(), payload.Nome, payload.Contato)
+	response, err := h.service.Create(r.Context(), payload.Nome, payload.Contato, payload.Plano)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return

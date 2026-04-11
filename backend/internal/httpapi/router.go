@@ -157,6 +157,8 @@ func registerRoutes(
 	r.With(requireAuth).Get("/tenant", tenantHandler.Detail)
 	r.With(requireAuth, requireAdmin).Put("/tenant", tenantHandler.Update)
 	r.With(requireAuth).Get("/tenants", tenantHandler.List)
+	r.With(requireAuth, requireSuper).Get("/tenant-dados", registroHandler.TenantDadosDetail)
+	r.With(requireAuth, requireSuper).Put("/tenant-dados", registroHandler.TenantDadosUpdate)
 
 	r.Post("/session", authHandler.Login)
 	r.With(requireAuth).Get("/me", userHandler.Me)
@@ -282,8 +284,8 @@ func registerRoutes(
 	r.With(requireAuth).Put("/empresacompromissos/status", empresaCompromissoHandler.UpdateStatus)
 	r.With(requireAuth).Put("/empresacompromissos/item", empresaCompromissoHandler.UpdateItem)
 
-	r.With(requireAuth).Get("/chavessuper", configuracaoIntegracaoHandler.GetChavesSuper)
-	r.With(requireAuth).Put("/chavessuper", configuracaoIntegracaoHandler.SaveChavesSuper)
+	r.With(requireAuth, requireSuper).Get("/chavessuper", configuracaoIntegracaoHandler.GetChavesSuper)
+	r.With(requireAuth, requireSuper).Put("/chavessuper", configuracaoIntegracaoHandler.SaveChavesSuper)
 	r.With(requireAuth).Get("/tenant-configuracoes", configuracaoIntegracaoHandler.GetTenantConfiguracoes)
 	r.With(requireAuth).Put("/tenant-configuracoes", configuracaoIntegracaoHandler.SaveTenantConfiguracoes)
 	r.With(requireAuth).Get("/certificado-digital", configuracaoIntegracaoHandler.GetCertificadoDigital)

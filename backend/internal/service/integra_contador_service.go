@@ -95,14 +95,14 @@ func (s *IntegraContadorService) Authenticate(ctx context.Context, tenantID stri
 		return IntegraAuthOutput{}, fmt.Errorf("certificado digital nao configurado")
 	}
 
-	chaves, err := s.configRepo.GetChavesSuper(ctx, tenantID)
+	chaves, err := s.configRepo.GetChavesIntegraTenantPlataforma(ctx)
 	if err != nil {
-		return IntegraAuthOutput{}, fmt.Errorf("falha ao obter chaves do tenant: %w", err)
+		return IntegraAuthOutput{}, fmt.Errorf("falha ao obter chaves Integra Contador: %w", err)
 	}
 	consumerKey := strings.TrimSpace(chaves.ConsumerKey)
 	consumerSecret := strings.TrimSpace(chaves.ConsumerSecret)
 	if consumerKey == "" || consumerSecret == "" {
-		return IntegraAuthOutput{}, fmt.Errorf("consumer key/secret nao cadastrados para o tenant")
+		return IntegraAuthOutput{}, fmt.Errorf("consumer key/secret nao cadastrados para o tenant da VEC Sistemas (SUPER > Integra Contador - Serpro)")
 	}
 
 	tlsCert, cleanup, err := s.certSvc.TLSClientCertificate(ctx, tenantID, "")

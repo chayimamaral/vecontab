@@ -22,11 +22,6 @@ func NewConfiguracaoIntegracaoHandler(service *service.ConfiguracaoIntegracaoSer
 }
 
 func (h *ConfiguracaoIntegracaoHandler) GetChavesSuper(w http.ResponseWriter, r *http.Request) {
-	role := strings.ToUpper(strings.TrimSpace(middleware.Role(r.Context())))
-	if role != "SUPER" {
-		render.WriteError(w, http.StatusForbidden, "Somente SUPER")
-		return
-	}
 	tenantID := middleware.TenantID(r.Context())
 	resp, err := h.service.GetChavesSuper(r.Context(), tenantID)
 	if err != nil {
@@ -37,11 +32,6 @@ func (h *ConfiguracaoIntegracaoHandler) GetChavesSuper(w http.ResponseWriter, r 
 }
 
 func (h *ConfiguracaoIntegracaoHandler) SaveChavesSuper(w http.ResponseWriter, r *http.Request) {
-	role := strings.ToUpper(strings.TrimSpace(middleware.Role(r.Context())))
-	if role != "SUPER" {
-		render.WriteError(w, http.StatusForbidden, "Somente SUPER")
-		return
-	}
 	var payload domain.ChavesSuper
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		render.WriteError(w, http.StatusBadRequest, "JSON invalido")

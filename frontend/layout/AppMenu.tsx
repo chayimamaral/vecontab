@@ -185,6 +185,18 @@ const AppMenu = () => {
             ],
           },
           {
+            label: 'Tenants',
+            icon: 'pi pi-fw pi-server',
+            visible: userRole === 'SUPER',
+            items: [
+              {
+                label: 'Manutenção',
+                icon: 'pi pi-fw pi-table',
+                to: '/tenants',
+              },
+            ],
+          },
+          {
             label: 'Monitor',
             icon: 'pi pi-fw pi-chart-line',
             visible: podeVerMonitor,
@@ -206,7 +218,7 @@ const AppMenu = () => {
                 iconSrc: '/microservice-icon.svg',
                 items: [
                   {
-                    label: 'API Integra Contador',
+                    label: 'Chave de Autenticação',
                     icon: 'pi pi-fw pi-key',
                     to: '/configuracoes/api-integra-contador',
                     visible: userRole === 'SUPER',

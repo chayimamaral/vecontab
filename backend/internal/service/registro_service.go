@@ -63,6 +63,28 @@ func (s *RegistroService) Detail(ctx context.Context, tenantID string) (DadosCom
 	return mapDadosComplementares(record), nil
 }
 
+func (s *RegistroService) UpdateByTenantID(ctx context.Context, tenantID string, input RegistroUpdateInput) (DadosComplementaresResponse, error) {
+	record, err := s.repo.UpdateByTenantID(ctx, tenantID, repository.RegistroUpdateInput{
+		CNPJ:        input.CNPJ,
+		CEP:         input.CEP,
+		Endereco:    input.Endereco,
+		Bairro:      input.Bairro,
+		Cidade:      input.Cidade,
+		Estado:      input.Estado,
+		Telefone:    input.Telefone,
+		Email:       input.Email,
+		IE:          input.IE,
+		IM:          input.IM,
+		RazaoSocial: input.RazaoSocial,
+		Fantasia:    input.Fantasia,
+		Observacoes: input.Observacoes,
+	})
+	if err != nil {
+		return DadosComplementaresResponse{}, err
+	}
+	return mapDadosComplementares(record), nil
+}
+
 func (s *RegistroService) Update(ctx context.Context, userID string, input RegistroUpdateInput) (DadosComplementaresResponse, error) {
 	record, err := s.repo.UpdateByUser(ctx, userID, repository.RegistroUpdateInput{
 		CNPJ:        input.CNPJ,

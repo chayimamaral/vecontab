@@ -10,7 +10,7 @@ deploy.sh
 *.especificacao.migrations
 *.sh
 *.py
-
+.cursorrules
 # Binários locais do backend (go build -o)
 backend/cmd/api/api-mare
 backend/cmd/api/api-vecontab
@@ -28,3 +28,11 @@ docs/Serpro.Componentes.AutenticacaoLoja.Dotnet/
 
 migrations/
 vec_prospect/
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.sln.dotSettings.user
+.vs/

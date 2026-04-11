@@ -136,7 +136,7 @@ func (r *UserRepository) TenantID(ctx context.Context, userID string) (domain.Us
 	return domain.UserTenantIDResponse{TenantID: tenantID}, nil
 }
 
-func (r *UserRepository) ListByTenant(ctx context.Context, role, tenantID string, first, rows int, sortField string, sortOrder int, nomeFilter string) ([]domain.UserListItem, int64, error) {
+func (r *UserRepository) ListByTenant(ctx context.Context, role, tenantID string, filterTenantID string, first, rows int, sortField string, sortOrder int, nomeFilter string) ([]domain.UserListItem, int64, error) {
 	whereParts := []string{"u.active = true"}
 	args := make([]any, 0)
 	argIndex := 1
@@ -144,8 +144,15 @@ func (r *UserRepository) ListByTenant(ctx context.Context, role, tenantID string
 	requesterRole := strings.ToUpper(strings.TrimSpace(role))
 	switch requesterRole {
 	case "SUPER":
-		// SUPER visualiza todos os ADMIN (de todos os tenants)
-		whereParts = append(whereParts, "u.role = 'ADMIN'")
+		if strings.TrimSpace(filterTenantID) != "" {
+			whereParts = append(whereParts, "u.role IN ('ADMIN', 'USER')")
+			whereParts = append(whereParts, fmt.Sprintf("u.tenantid::text = $%d", argIndex))
+			args = append(args, strings.TrimSpace(filterTenantID))
+			argIndex++
+		} else {
+			// SUPER sem filtro: todos os ADMIN (todos os tenants)
+			whereParts = append(whereParts, "u.role = 'ADMIN'")
+		}
 	default:
 		// ADMIN visualiza ADMIN e USER apenas do seu tenant
 		whereParts = append(whereParts, "u.role IN ('ADMIN', 'USER')")

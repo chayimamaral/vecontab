@@ -10,13 +10,14 @@ import (
 )
 
 type ListUsersInput struct {
-	First     int
-	Rows      int
-	SortField string
-	SortOrder int
-	Nome      string
-	TenantID  string
-	Role      string
+	First          int
+	Rows           int
+	SortField      string
+	SortOrder      int
+	Nome           string
+	TenantID       string
+	Role           string
+	FilterTenantID string
 }
 
 type CreateUserInput struct {
@@ -45,8 +46,8 @@ type TotalRecordsResponse struct {
 
 type ListUsersResponse struct {
 	Usuarios     []domain.UserListItem `json:"usuarios,omitempty"`
-	TotalRecords *TotalRecordsResponse     `json:"totalRecords,omitempty"`
-	Error        string                    `json:"error,omitempty"`
+	TotalRecords *TotalRecordsResponse `json:"totalRecords,omitempty"`
+	Error        string                `json:"error,omitempty"`
 }
 
 type CreateUserResponse struct {
@@ -78,6 +79,7 @@ func (s *UserService) List(ctx context.Context, input ListUsersInput) (ListUsers
 		ctx,
 		input.Role,
 		input.TenantID,
+		strings.TrimSpace(input.FilterTenantID),
 		input.First,
 		input.Rows,
 		input.SortField,

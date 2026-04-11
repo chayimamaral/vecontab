@@ -59,14 +59,23 @@ func (h *UserHandler) TenantID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
+	filterTenantID := strings.TrimSpace(r.URL.Query().Get("tenantId"))
+	if filterTenantID == "" {
+		filterTenantID = strings.TrimSpace(r.URL.Query().Get("tenant_id"))
+	}
+	if strings.ToUpper(strings.TrimSpace(middleware.Role(r.Context()))) != "SUPER" {
+		filterTenantID = ""
+	}
+
 	input := service.ListUsersInput{
-		First:     parseIntUser(r.URL.Query().Get("first"), 0),
-		Rows:      parseIntUser(r.URL.Query().Get("rows"), 25),
-		SortField: r.URL.Query().Get("sortField"),
-		SortOrder: parseIntUser(r.URL.Query().Get("sortOrder"), 1),
-		Nome:      parseNomeFilterUser(r.URL.Query().Get("filters")),
-		TenantID:  middleware.TenantID(r.Context()),
-		Role:      middleware.Role(r.Context()),
+		First:          parseIntUser(r.URL.Query().Get("first"), 0),
+		Rows:           parseIntUser(r.URL.Query().Get("rows"), 25),
+		SortField:      r.URL.Query().Get("sortField"),
+		SortOrder:      parseIntUser(r.URL.Query().Get("sortOrder"), 1),
+		Nome:           parseNomeFilterUser(r.URL.Query().Get("filters")),
+		TenantID:       middleware.TenantID(r.Context()),
+		Role:           middleware.Role(r.Context()),
+		FilterTenantID: filterTenantID,
 	}
 
 	response, err := h.service.List(r.Context(), input)

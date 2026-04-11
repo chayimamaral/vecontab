@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/chayimamaral/vecontab/backend/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -155,6 +156,65 @@ func (r *RegistroRepository) UpdateByUser(ctx context.Context, userID string, in
 	})
 	if err != nil {
 		return domain.DadosComplementaresRecord{}, fmt.Errorf("update registro: %w", err)
+	}
+	return record, nil
+}
+
+func (r *RegistroRepository) UpdateByTenantID(ctx context.Context, tenantID string, input RegistroUpdateInput) (domain.DadosComplementaresRecord, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return domain.DadosComplementaresRecord{}, fmt.Errorf("tenant id obrigatorio")
+	}
+
+	const ensureRow = `
+		INSERT INTO public.tenant_dados (tenantid)
+		SELECT $1::uuid
+		WHERE NOT EXISTS (SELECT 1 FROM public.tenant_dados td WHERE td.tenantid::text = $1)`
+
+	if _, err := r.pool.Exec(ctx, ensureRow, tenantID); err != nil {
+		return domain.DadosComplementaresRecord{}, fmt.Errorf("ensure tenant_dados: %w", err)
+	}
+
+	const query = `
+		UPDATE public.tenant_dados
+		SET cnpj = $1,
+			cep = $2,
+			endereco = $3,
+			bairro = $4,
+			cidade = $5,
+			estado = $6,
+			telefone = $7,
+			email = $8,
+			ie = $9,
+			im = $10,
+			razaosocial = $11,
+			fantasia = $12,
+			observacoes = $13
+		WHERE tenantid::text = $14
+		RETURNING tenantid, cnpj, cep, endereco, bairro, cidade, estado, telefone, email, ie, im, razaosocial, fantasia, observacoes`
+
+	record, err := scanDadosComplementares(tenantID, func(dest ...any) error {
+		return r.pool.QueryRow(
+			ctx,
+			query,
+			input.CNPJ,
+			input.CEP,
+			input.Endereco,
+			input.Bairro,
+			input.Cidade,
+			input.Estado,
+			input.Telefone,
+			input.Email,
+			input.IE,
+			input.IM,
+			input.RazaoSocial,
+			input.Fantasia,
+			input.Observacoes,
+			tenantID,
+		).Scan(dest...)
+	})
+	if err != nil {
+		return domain.DadosComplementaresRecord{}, fmt.Errorf("update tenant_dados: %w", err)
 	}
 	return record, nil
 }

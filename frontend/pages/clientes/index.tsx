@@ -7,6 +7,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputTextarea } from 'primereact/inputtextarea';
+import { ProgressSpinner } from 'primereact/progressspinner';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
@@ -264,22 +265,27 @@ const Clientes = ({ dados }: { dados: string }) => {
     loadRotinasPF();
   }, [empresaDialog, empresa.tipo_pessoa]);
 
-  const { data: userRole = null } = useQuery<string | null>({
+  const {
+    data: userRole = null,
+    isLoading: userRoleLoading,
+    isError: userRoleError,
+    refetch: refetchUserRole,
+  } = useQuery<string | null>({
     queryKey: ['user-role'],
     queryFn: async () => {
-      try {
-        const api = setupAPIClient(undefined);
-        const r = await api.get('/api/usuariorole');
-        const raw = r.data?.logado?.role;
-        if (typeof raw !== 'string') {
-          return null;
-        }
-        const norm = raw.trim().toUpperCase();
-        return norm || null;
-      } catch {
+      const api = setupAPIClient(undefined);
+      const r = await api.get('/api/usuariorole');
+      const raw = r.data?.logado?.role;
+      if (typeof raw !== 'string') {
         return null;
       }
+      const norm = raw.trim().toUpperCase();
+      return norm || null;
     },
+    /** Nunca tratar perfil como "fresco" por minutos: null em cache bloqueava Ações até expirar staleTime global. */
+    staleTime: 0,
+    gcTime: 1000 * 60,
+    retry: 2,
   });
 
   const empresaService = EmpresaService();
@@ -1127,6 +1133,17 @@ const Clientes = ({ dados }: { dados: string }) => {
   };
 
   const actionBodyTemplate = (rowData: Vec.Empresa) => {
+    if (userRoleLoading) {
+      return <ProgressSpinner style={{ width: '1.35rem', height: '1.35rem' }} />;
+    }
+    if (userRoleError) {
+      return (
+        <span className="text-500 text-sm ml-1 inline-flex align-items-center gap-2 flex-wrap">
+          Não foi possível verificar o perfil.
+          <Button type="button" label="Tentar" className="p-button-text p-0" onClick={() => void refetchUserRole()} />
+        </span>
+      );
+    }
     const podeEditarLinha = podeCadastrarClientes || podeEditarDadosComplementares;
     return (
       <>

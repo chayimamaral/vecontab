@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/chayimamaral/vecontab/backend/internal/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,29 +20,68 @@ func NewConfiguracaoIntegracaoRepository(pool *pgxpool.Pool) *ConfiguracaoIntegr
 }
 
 func (r *ConfiguracaoIntegracaoRepository) UpsertChavesSuper(ctx context.Context, item domain.ChavesSuper) error {
+	tid := strings.TrimSpace(item.TenantID)
+	if tid == "" {
+		return fmt.Errorf("tenant_id obrigatorio")
+	}
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO public.chavessuper (tenant_id, consumer_key, consumer_secret, atualizado_em)
+		INSERT INTO public.integra_contador_chave_autenticacao (tenant_id, consumer_key, consumer_secret, atualizado_em)
 		VALUES ($1, $2, $3, NOW())
 		ON CONFLICT (tenant_id) DO UPDATE
 		SET consumer_key = EXCLUDED.consumer_key,
 		    consumer_secret = EXCLUDED.consumer_secret,
 		    atualizado_em = NOW()
-	`, item.TenantID, strings.TrimSpace(item.ConsumerKey), strings.TrimSpace(item.ConsumerSecret))
+	`, tid, strings.TrimSpace(item.ConsumerKey), strings.TrimSpace(item.ConsumerSecret))
 	if err != nil {
-		return fmt.Errorf("upsert chavessuper: %w", err)
+		return fmt.Errorf("upsert integra_contador_chave_autenticacao: %w", err)
 	}
 	return nil
 }
 
+// GetChavesSuper retorna as chaves gravadas para o tenant informado (tela de manutenção SUPER).
 func (r *ConfiguracaoIntegracaoRepository) GetChavesSuper(ctx context.Context, tenantID string) (domain.ChavesSuper, error) {
+	tid := strings.TrimSpace(tenantID)
+	var out domain.ChavesSuper
+	if tid == "" {
+		return out, nil
+	}
+	out.TenantID = tid
+	err := r.pool.QueryRow(ctx, `
+		SELECT COALESCE(consumer_key, ''), COALESCE(consumer_secret, '')
+		FROM public.integra_contador_chave_autenticacao
+		WHERE tenant_id = $1
+	`, tid).Scan(&out.ConsumerKey, &out.ConsumerSecret)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			out.ConsumerKey = ""
+			out.ConsumerSecret = ""
+			return out, nil
+		}
+		return domain.ChavesSuper{}, fmt.Errorf("get integra_contador_chave_autenticacao: %w", err)
+	}
+	return out, nil
+}
+
+// GetChavesIntegraTenantPlataforma retorna as chaves do tenant dos usuários SUPER (VEC Sistemas).
+// Usado na autenticação Serpro com certificado A1 do tenant do escritório (parâmetro separado no serviço).
+func (r *ConfiguracaoIntegracaoRepository) GetChavesIntegraTenantPlataforma(ctx context.Context) (domain.ChavesSuper, error) {
 	var out domain.ChavesSuper
 	err := r.pool.QueryRow(ctx, `
-		SELECT tenant_id::text, COALESCE(consumer_key, ''), COALESCE(consumer_secret, '')
-		FROM public.chavessuper
-		WHERE tenant_id::text = $1
-	`, tenantID).Scan(&out.TenantID, &out.ConsumerKey, &out.ConsumerSecret)
+		SELECT k.tenant_id::text, COALESCE(k.consumer_key, ''), COALESCE(k.consumer_secret, '')
+		FROM public.integra_contador_chave_autenticacao k
+		INNER JOIN (
+			SELECT DISTINCT u.tenantid
+			FROM public.usuario u
+			WHERE UPPER(TRIM(COALESCE(u.role::text, ''))) = 'SUPER'
+			  AND COALESCE(u.active, true)
+		) s ON s.tenantid = k.tenant_id
+		LIMIT 1
+	`).Scan(&out.TenantID, &out.ConsumerKey, &out.ConsumerSecret)
 	if err != nil {
-		return domain.ChavesSuper{TenantID: tenantID}, nil
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.ChavesSuper{}, nil
+		}
+		return domain.ChavesSuper{}, fmt.Errorf("get chaves integra tenant plataforma: %w", err)
 	}
 	return out, nil
 }

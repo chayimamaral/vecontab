@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/chayimamaral/vecontab/backend/internal/domain"
@@ -24,8 +25,25 @@ func NewTenantService(repo *repository.TenantRepository) *TenantService {
 	return &TenantService{repo: repo}
 }
 
-func (s *TenantService) Create(ctx context.Context, nome, contato string) (TenantCreatedResponse, error) {
-	tenant, err := s.repo.Create(ctx, nome, contato)
+func normalizePlanoTenant(plano string) (string, error) {
+	p := strings.ToUpper(strings.TrimSpace(plano))
+	if p == "" {
+		return "DEMO", nil
+	}
+	switch p {
+	case "DEMO", "BASICO", "PRO", "PREMIUM":
+		return p, nil
+	default:
+		return "", fmt.Errorf("Plano invalido: use DEMO, BASICO, PRO ou PREMIUM")
+	}
+}
+
+func (s *TenantService) Create(ctx context.Context, nome, contato, plano string) (TenantCreatedResponse, error) {
+	p, err := normalizePlanoTenant(plano)
+	if err != nil {
+		return TenantCreatedResponse{}, err
+	}
+	tenant, err := s.repo.Create(ctx, nome, contato, p)
 	if err != nil {
 		return TenantCreatedResponse{}, err
 	}
@@ -59,13 +77,13 @@ func (s *TenantService) List(ctx context.Context, role, tenantID string) (any, e
 		return []domain.TenantEntity{}, nil
 	}
 
+	if role == "SUPER" {
+		return s.repo.ListWithDadosForSuper(ctx)
+	}
+
 	tenants, err := s.repo.List(ctx, role, tenantID)
 	if err != nil {
 		return nil, err
-	}
-
-	if role == "SUPER" {
-		return tenants, nil
 	}
 
 	if len(tenants) == 0 {
