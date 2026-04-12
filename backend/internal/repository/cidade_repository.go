@@ -26,7 +26,7 @@ func NewCidadeRepository(pool *pgxpool.Pool) *CidadeRepository {
 }
 
 func (r *CidadeRepository) List(ctx context.Context, params CidadeListParams) ([]domain.CidadeListItem, int64, error) {
-	whereParts := []string{"c.ativo = true"}
+	whereParts := []string{"c.ativo = true", "e.ativo = true"}
 	args := []any{}
 	argIndex := 1
 
@@ -40,21 +40,21 @@ func (r *CidadeRepository) List(ctx context.Context, params CidadeListParams) ([
 	switch params.SortField {
 	case "estado":
 		if params.SortOrder == -1 {
-			orderBy = "e.nome ASC"
-		} else {
 			orderBy = "e.nome DESC"
+		} else {
+			orderBy = "e.nome ASC"
 		}
 	case "nome":
 		if params.SortOrder == -1 {
-			orderBy = "c.nome ASC"
-		} else {
 			orderBy = "c.nome DESC"
+		} else {
+			orderBy = "c.nome ASC"
 		}
 	case "codigo":
 		if params.SortOrder == -1 {
-			orderBy = "c.codigo ASC"
-		} else {
 			orderBy = "c.codigo DESC"
+		} else {
+			orderBy = "c.codigo ASC"
 		}
 	}
 
@@ -98,7 +98,7 @@ func (r *CidadeRepository) List(ctx context.Context, params CidadeListParams) ([
 		})
 	}
 
-	countQuery := fmt.Sprintf("SELECT count(*) FROM public.municipio c WHERE %s", strings.Join(whereParts, " AND "))
+	countQuery := fmt.Sprintf("SELECT count(*) FROM public.municipio c JOIN public.estado e ON c.ufid = e.id WHERE %s", strings.Join(whereParts, " AND "))
 	var total int64
 	if err := r.pool.QueryRow(ctx, countQuery, args[:len(args)-2]...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count cidades: %w", err)

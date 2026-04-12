@@ -43,13 +43,13 @@ func (r *EstadoRepository) List(ctx context.Context, params EstadoListParams) ([
 	}
 
 	orderBy := "nome ASC"
-	if field, ok := allowedSortFields[params.SortField]; ok {
-		direction := "DESC"
-		if params.SortOrder == -1 {
-			direction = "ASC"
-		}
-		orderBy = field + " " + direction
-	}
+ 	if field, ok := allowedSortFields[params.SortField]; ok {
+ 		direction := "ASC"
+ 		if params.SortOrder == -1 {
+ 			direction = "DESC"
+ 		}
+ 		orderBy = field + " " + direction
+ 	}
 
 	listQuery := fmt.Sprintf(
 		"SELECT id, nome, sigla, ativo FROM public.estado WHERE %s ORDER BY %s LIMIT $%d OFFSET $%d",
