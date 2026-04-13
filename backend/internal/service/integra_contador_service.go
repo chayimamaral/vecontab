@@ -68,6 +68,7 @@ type IntegraContadorService struct {
 	certSvc    *CertificadoService
 	configRepo *repository.ConfiguracaoIntegracaoRepository
 	procRepo   *repository.IntegraContadorServicoProcuracaoRepository
+	consumoSvc *IntegraTabelaConsumoService
 	httpClient *http.Client
 }
 
@@ -75,11 +76,13 @@ func NewIntegraContadorService(
 	certSvc *CertificadoService,
 	configRepo *repository.ConfiguracaoIntegracaoRepository,
 	procRepo *repository.IntegraContadorServicoProcuracaoRepository,
+	consumoSvc *IntegraTabelaConsumoService,
 ) *IntegraContadorService {
 	return &IntegraContadorService{
 		certSvc:    certSvc,
 		configRepo: configRepo,
 		procRepo:   procRepo,
+		consumoSvc: consumoSvc,
 		httpClient: &http.Client{Timeout: 120 * time.Second},
 	}
 }
@@ -234,6 +237,16 @@ func (s *IntegraContadorService) Call(ctx context.Context, in IntegraCallInput) 
 		if len(values) > 0 {
 			headers[k] = values[0]
 		}
+	}
+	if s.consumoSvc != nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		_, _ = s.consumoSvc.RegistrarGasto(ctx, repository.IntegraRegistrarGastoInput{
+			TenantID:         strings.TrimSpace(in.TenantID),
+			EmpresaDocumento: strings.TrimSpace(in.Payload.Contribuinte.Numero),
+			Tipo:             strings.TrimSpace(op),
+			IDSistema:        strings.TrimSpace(in.Payload.PedidoDados.IDSistema),
+			IDServico:        strings.TrimSpace(in.Payload.PedidoDados.IDServico),
+			Quantidade:       1,
+		})
 	}
 	return IntegraCallOutput{
 		StatusCode: resp.StatusCode,

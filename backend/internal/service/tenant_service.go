@@ -61,7 +61,16 @@ func (s *TenantService) Detail(ctx context.Context, id string) (TenantDetailResp
 }
 
 func (s *TenantService) Update(ctx context.Context, id, nome, contato, plano string, active bool) (domain.TenantEntity, error) {
-	tenant, err := s.repo.Update(ctx, id, nome, contato, plano, active)
+	p := strings.TrimSpace(plano)
+	if p != "" {
+		normalized, err := normalizePlanoTenant(p)
+		if err != nil {
+			return domain.TenantEntity{}, err
+		}
+		p = normalized
+	}
+
+	tenant, err := s.repo.Update(ctx, id, nome, contato, p, active)
 	if err != nil {
 		return domain.TenantEntity{}, err
 	}

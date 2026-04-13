@@ -20,7 +20,7 @@ Acesso a Dados: Proibido o uso de ORMs. O controle deve ser total via SQL puro e
 
 Comandos para o Banco de Dados: psql -h localhost -U [camaral] -d vecontab
 
-Migrations: sempre na pasta raiz do vecontab: vecontab/migrations
+Migrations: toda e qualquer migration, relacionada a banco de dados, sempre na pasta raiz do vecontab: vecontab/migrations
 
 🛠 Princípios de Engenharia
 Arquitetura: Clean Architecture, SOLID e Domain-Driven Design (DDD).

@@ -1,0 +1,36 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "VContab: Rodar Tudo",
+      "dependsOn": [
+        "VContab: Backend",
+        "VContab: Frontend"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "VContab: Backend",
+      "type": "shell",
+      "command": "cd backend && go run cmd/api/main.go",
+      "isBackground": true,
+      "presentation": {
+        "group": "vcontab-group",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "VContab: Frontend",
+      "type": "shell",
+      "command": "cd frontend && npm run dev",
+      "isBackground": true,
+      "presentation": {
+        "group": "vcontab-group",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

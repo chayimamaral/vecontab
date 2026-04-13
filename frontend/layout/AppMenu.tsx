@@ -251,6 +251,12 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-sitemap',
                     to: '/catalogo-servicos',
                   },
+                  {
+                    label: 'Tabela de Consumo',
+                    icon: 'pi pi-fw pi-wallet',
+                    to: '/configuracoes/integra-contador-tabela-consumo',
+                    visible: userRole === 'ADMIN' || userRole === 'SUPER',
+                  },
                 ],
               },
             ],

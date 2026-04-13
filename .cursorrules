@@ -14,6 +14,7 @@ Diretrizes obrigatórias de implementação
 - Priorizar performance e segurança em todas as decisões técnicas.
 - Não usar ORM no backend. Acesso a dados somente com SQL explícito + pgx.
 - Migrations devem ser mantidas e executadas a partir de `vecontab/migrations`.
+- Migrations: toda e qualquer migration, relacionada a banco de dados, sempre na pasta raiz do vecontab: 'vecontab/migrations'
 - IDs de entidades devem ser UUID.
 - Seguir os perfis de usuário e isolamento por tenant: SUPER, ADMIN, USER.
 

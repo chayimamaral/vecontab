@@ -36,7 +36,7 @@ func (r *TenantRepository) Create(ctx context.Context, nome, contato, plano stri
 
 	const query = `
 		INSERT INTO public.tenant (nome, contato, active, plano)
-		VALUES ($1, $2, $3, $4::public.planos)
+		VALUES ($1, $2, $3, $4::public.plano)
 		RETURNING id, nome, contato, active, COALESCE(plano::text, '')`
 
 	var tenant domain.TenantEntity
@@ -92,7 +92,7 @@ func (r *TenantRepository) Update(ctx context.Context, id, nome, contato, plano 
 		SET nome = $1,
 		    active = $2,
 		    contato = $3,
-		    plano = CASE WHEN BTRIM($4) = '' THEN plano ELSE $4::public.planos END
+		    plano = CASE WHEN BTRIM($4) = '' THEN plano ELSE $4::public.plano END
 		WHERE id::text = $5
 		RETURNING id, COALESCE(nome, ''), COALESCE(contato, ''), COALESCE(active, false), COALESCE(plano::text, '')`
 

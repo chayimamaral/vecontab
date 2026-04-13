@@ -45,7 +45,7 @@ func (r *MonitorOperacaoRepository) Insert(ctx context.Context, row MonitorOpera
 
 	const q = `
 INSERT INTO public.monitor_operacao (tenant_id, user_id, origem, tipo, status, mensagem, detalhe)
-VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+VALUES ($1::uuid, $2, $3, $4, $5, $6, $7::jsonb)
 `
 	_, err := r.pool.Exec(ctx, q,
 		tid,
@@ -71,7 +71,7 @@ func (r *MonitorOperacaoRepository) CountList(ctx context.Context, viewerRole, v
 	if role == "SUPER" {
 		err = r.pool.QueryRow(ctx, `SELECT count(*) FROM public.monitor_operacao`).Scan(&n)
 	} else {
-		err = r.pool.QueryRow(ctx, `SELECT count(*) FROM public.monitor_operacao WHERE tenant_id = $1`, tid).Scan(&n)
+		err = r.pool.QueryRow(ctx, `SELECT count(*) FROM public.monitor_operacao WHERE tenant_id = $1::uuid`, tid).Scan(&n)
 	}
 	if err != nil {
 		return 0, fmt.Errorf("count monitor_operacao: %w", err)
@@ -99,7 +99,7 @@ func (r *MonitorOperacaoRepository) ListPage(ctx context.Context, viewerRole, vi
 		const q = `
 SELECT mo.id, mo.tenant_id, t.nome, mo.user_id, mo.origem, mo.tipo, mo.status, mo.mensagem, mo.detalhe, mo.criado_em
 FROM public.monitor_operacao mo
-LEFT JOIN public.tenant t ON t.id::text = mo.tenant_id
+LEFT JOIN public.tenant t ON t.id = mo.tenant_id
 ORDER BY mo.criado_em DESC
 LIMIT $1 OFFSET $2
 `
@@ -108,8 +108,8 @@ LIMIT $1 OFFSET $2
 		const q = `
 SELECT mo.id, mo.tenant_id, t.nome, mo.user_id, mo.origem, mo.tipo, mo.status, mo.mensagem, mo.detalhe, mo.criado_em
 FROM public.monitor_operacao mo
-LEFT JOIN public.tenant t ON t.id::text = mo.tenant_id
-WHERE mo.tenant_id = $1
+LEFT JOIN public.tenant t ON t.id = mo.tenant_id
+WHERE mo.tenant_id = $1::uuid
 ORDER BY mo.criado_em DESC
 LIMIT $2 OFFSET $3
 `

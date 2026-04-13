@@ -115,6 +115,8 @@ export default function TenantsPage() {
   const [usuarioTenantId, setUsuarioTenantId] = useState('');
 
   const [expandedKeysLista, setExpandedKeysLista] = useState<Record<string, boolean>>({});
+  const [filtroTenant, setFiltroTenant] = useState('');
+  const [filtroPlano, setFiltroPlano] = useState<string>('');
 
   const { data: tenants = [], isFetching, refetch } = useQuery({
     queryKey: ['tenants-super-list'],
@@ -133,8 +135,18 @@ export default function TenantsPage() {
     },
   });
 
+  const tenantsFiltrados = useMemo(() => {
+    const nomeFiltro = filtroTenant.trim().toLowerCase();
+    const planoFiltro = filtroPlano.trim().toUpperCase();
+    return tenants.filter((t) => {
+      const okNome = !nomeFiltro || t.nome.toLowerCase().includes(nomeFiltro);
+      const okPlano = !planoFiltro || (t.plano ?? '').toUpperCase() === planoFiltro;
+      return okNome && okPlano;
+    });
+  }, [tenants, filtroTenant, filtroPlano]);
+
   const usuariosPorTenantQueries = useQueries({
-    queries: tenants.map((t) => ({
+    queries: tenantsFiltrados.map((t) => ({
       queryKey: ['usuarios-tenant', t.id] as const,
       enabled: tenants.length > 0,
       queryFn: async () => {
@@ -156,7 +168,7 @@ export default function TenantsPage() {
   const usuariosListaVersao = usuariosPorTenantQueries.map((q) => q.dataUpdatedAt).join('|');
 
   const arvoreCadastroTenants: TreeNode[] = useMemo(() => {
-    return tenants.map((t, idx) => {
+    return tenantsFiltrados.map((t, idx) => {
       const usuarios = usuariosPorTenantQueries[idx]?.data?.usuarios ?? [];
       const filhos: TreeNode[] = (usuarios as UsuarioLinha[]).map((u) => ({
         key: `u-${t.id}-${u.id}`,
@@ -185,18 +197,18 @@ export default function TenantsPage() {
         children: filhos,
       };
     });
-  }, [tenants, usuariosListaVersao, usuariosPorTenantQueries]);
+  }, [tenantsFiltrados, usuariosListaVersao, usuariosPorTenantQueries]);
 
   const loadingUsuariosLista = usuariosPorTenantQueries.some((q) => q.isFetching);
 
   const onToggleLista: TreeTableProps['onToggle'] = (e) => setExpandedKeysLista(e.value as Record<string, boolean>);
 
   const expandirTudoLista = () => {
-    if (tenants.length === 0) {
+    if (tenantsFiltrados.length === 0) {
       return;
     }
     const next: Record<string, boolean> = {};
-    tenants.forEach((t) => {
+    tenantsFiltrados.forEach((t) => {
       next[`t-${t.id}`] = true;
     });
     setExpandedKeysLista(next);
@@ -326,6 +338,11 @@ export default function TenantsPage() {
     void qc.invalidateQueries({ queryKey: ['tenants-super-list'] });
     void qc.invalidateQueries({ queryKey: ['usuarios-tenant'] });
     void refetch();
+  };
+
+  const limparFiltros = () => {
+    setFiltroTenant('');
+    setFiltroPlano('');
   };
 
   const colunaListaIdentificacao = (node: TreeNode) => {
@@ -506,7 +523,25 @@ export default function TenantsPage() {
 
           <div className="flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
             <h5 className="m-0">Cadastro de Tenants (SUPER)</h5>
-            <Button type="button" icon="pi pi-refresh" tooltip="Atualizar" className="p-button-text" onClick={() => recarregarCadastro()} />
+            <div className="flex align-items-center gap-2 flex-wrap">
+              <span className="p-input-icon-left">
+                <i className="pi pi-search" />
+                <InputText
+                  value={filtroTenant}
+                  onChange={(e) => setFiltroTenant(e.target.value)}
+                  placeholder="Filtrar tenant..."
+                />
+              </span>
+              <Dropdown
+                value={filtroPlano}
+                options={[{ label: 'Todos os planos', value: '' }, ...PLANO_OPTS]}
+                onChange={(e) => setFiltroPlano(String(e.value ?? ''))}
+                placeholder="Plano"
+                className="w-14rem"
+              />
+              <Button type="button" icon="pi pi-filter-slash" tooltip="Limpar filtros" className="p-button-text" onClick={limparFiltros} />
+              <Button type="button" icon="pi pi-refresh" tooltip="Atualizar" className="p-button-text" onClick={() => recarregarCadastro()} />
+            </div>
           </div>
           <TreeTable
             value={arvoreCadastroTenants}

@@ -169,9 +169,9 @@ func (r *RegistroRepository) UpdateByTenantID(ctx context.Context, tenantID stri
 	const ensureRow = `
 		INSERT INTO public.tenant_dados (tenantid)
 		SELECT $1::uuid
-		WHERE NOT EXISTS (SELECT 1 FROM public.tenant_dados td WHERE td.tenantid::text = $1)`
+		WHERE NOT EXISTS (SELECT 1 FROM public.tenant_dados td WHERE td.tenantid = $2::uuid)`
 
-	if _, err := r.pool.Exec(ctx, ensureRow, tenantID); err != nil {
+	if _, err := r.pool.Exec(ctx, ensureRow, tenantID, tenantID); err != nil {
 		return domain.DadosComplementaresRecord{}, fmt.Errorf("ensure tenant_dados: %w", err)
 	}
 
