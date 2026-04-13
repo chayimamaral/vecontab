@@ -206,6 +206,16 @@ declare namespace Vec {
         denominacao?: string;
     }
 
+    /** CRT federal (SPED) + metadados de obrigacoes em configuracao_json */
+    type RegimeTributario = {
+        id?: string;
+        nome?: string;
+        codigo_crt?: number;
+        tipo_apuracao?: string;
+        ativo?: boolean;
+        configuracao_json?: Record<string, unknown>;
+    }
+
     type CompromissoRef = {
         id?: string;
         nome?: string;

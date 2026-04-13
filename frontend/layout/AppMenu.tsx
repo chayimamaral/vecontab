@@ -161,6 +161,11 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-table',
                     to: '/cnae',
                   },
+                  {
+                    label: 'Regime tributário',
+                    icon: 'pi pi-fw pi-percentage',
+                    to: '/regimes-tributarios',
+                  },
                 ],
               },
             ],

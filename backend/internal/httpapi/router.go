@@ -37,6 +37,7 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	feriadoService := service.NewFeriadoService(feriadoRepo)
 	empresaService := service.NewEmpresaService(empresaRepo)
 	cnaeService := service.NewCnaeService(repository.NewCnaeRepository(pool))
+	regimeTributarioService := service.NewRegimeTributarioService(repository.NewRegimeTributarioRepository(pool))
 	agendaService := service.NewAgendaService(repository.NewAgendaRepository(pool))
 	rotinaService := service.NewRotinaService(repository.NewRotinaRepository(pool))
 	registroService := service.NewRegistroService(repository.NewRegistroRepository(pool))
@@ -80,6 +81,7 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 	feriadoHandler := handlers.NewFeriadoHandler(feriadoService)
 	empresaHandler := handlers.NewEmpresaHandler(empresaService)
 	cnaeHandler := handlers.NewCnaeHandler(cnaeService)
+	regimeTributarioHandler := handlers.NewRegimeTributarioHandler(regimeTributarioService)
 	agendaHandler := handlers.NewAgendaHandler(agendaService)
 	rotinaHandler := handlers.NewRotinaHandler(rotinaService)
 	registroHandler := handlers.NewRegistroHandler(registroService)
@@ -106,9 +108,9 @@ func NewRouter(cfg config.Config, pool *pgxpool.Pool) http.Handler {
 		render.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, configuracaoIntegracaoHandler, certificadoClienteHandler, catalogoServicoHandler, integraContadorHandler, integraServicoProcHandler, requireAuth, requireAdmin, requireAdminOnly, requireAdminOrUser, requireSuper)
+	registerRoutes(r, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, regimeTributarioHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, configuracaoIntegracaoHandler, certificadoClienteHandler, catalogoServicoHandler, integraContadorHandler, integraServicoProcHandler, requireAuth, requireAdmin, requireAdminOnly, requireAdminOrUser, requireSuper)
 	r.Route("/api", func(api chi.Router) {
-		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, configuracaoIntegracaoHandler, certificadoClienteHandler, catalogoServicoHandler, integraContadorHandler, integraServicoProcHandler, requireAuth, requireAdmin, requireAdminOnly, requireAdminOrUser, requireSuper)
+		registerRoutes(api, authHandler, userHandler, estadoHandler, cidadeHandler, tenantHandler, tipoEmpresaHandler, passoHandler, grupoPassosHandler, feriadoHandler, empresaHandler, empresaDadosHandler, cnaeHandler, regimeTributarioHandler, agendaHandler, rotinaHandler, rotinaPFHandler, registroHandler, nodeHandler, obrigacaoHandler, empresaAgendaHandler, empresaCompromissoHandler, clienteHandler, monitorOperacaoHandler, configuracaoIntegracaoHandler, certificadoClienteHandler, catalogoServicoHandler, integraContadorHandler, integraServicoProcHandler, requireAuth, requireAdmin, requireAdminOnly, requireAdminOrUser, requireSuper)
 	})
 
 	return r
@@ -128,6 +130,7 @@ func registerRoutes(
 	empresaHandler *handlers.EmpresaHandler,
 	empresaDadosHandler *handlers.EmpresaDadosHandler,
 	cnaeHandler *handlers.CnaeHandler,
+	regimeTributarioHandler *handlers.RegimeTributarioHandler,
 	agendaHandler *handlers.AgendaHandler,
 	rotinaHandler *handlers.RotinaHandler,
 	rotinaPFHandler *handlers.RotinaPFHandler,
@@ -253,6 +256,11 @@ func registerRoutes(
 	r.With(requireAuth).Get("/cnaelite", cnaeHandler.Lite)
 	r.With(requireAuth).Get("/cnaeresolve", cnaeHandler.ResolveIbge)
 	r.With(requireAuth).Post("/validacnae", cnaeHandler.Validate)
+
+	r.With(requireAuth).Get("/regimes-tributarios", regimeTributarioHandler.List)
+	r.With(requireAuth, requireAdmin).Post("/regime-tributario", regimeTributarioHandler.Create)
+	r.With(requireAuth, requireAdmin).Put("/regime-tributario", regimeTributarioHandler.Update)
+	r.With(requireAuth, requireAdmin).Delete("/regime-tributario", regimeTributarioHandler.Delete)
 
 	r.With(requireAuth).Get("/agendalist", agendaHandler.List)
 	r.With(requireAuth).Get("/agendadetalhes", agendaHandler.Detail)

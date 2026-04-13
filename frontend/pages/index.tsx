@@ -105,9 +105,8 @@ function ModuloTile({ modulo }: { modulo: ModuloCard }) {
     const conteudo = (
         <>
             <span
-                className={`inline-flex align-items-center justify-content-center border-circle bg-primary text-primary-contrast mb-3 dash-modulo-icon-wrap ${
-                    modulo.future ? 'opacity-60' : ''
-                }`}
+                className={`inline-flex align-items-center justify-content-center border-circle bg-primary text-primary-contrast mb-3 dash-modulo-icon-wrap ${modulo.future ? 'opacity-60' : ''
+                    }`}
             >
                 <i className={`${modulo.icon} text-3xl`} aria-hidden />
             </span>

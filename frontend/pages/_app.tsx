@@ -43,7 +43,7 @@ export default function App({ Component, pageProps }: Props) {
         menuMode: 'layout-menu-light',
         colorScheme: 'light',
         scale: 10,
-      };
+    };
 
     // const [layoutConfig, setLayoutConfig] = userPersistedState<LayoutConfig>('theme', {
     //     theme: 'dark',
@@ -85,3 +85,4 @@ export default function App({ Component, pageProps }: Props) {
         );
     }
 }
+
