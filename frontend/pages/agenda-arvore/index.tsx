@@ -76,7 +76,7 @@ function filtrarNosPorCor(nodes: TreeNode[], filtro: FiltroCorAgenda): TreeNode[
     return out;
 }
 
-/** Título da API: "Empresa => Rotina" */
+/** Título da API: "Empresa => Processo" */
 function parseTituloListaAgenda(title: string): { empresaNome: string; rotinaNome: string } {
     const idx = title.indexOf('=>');
     if (idx === -1) {
@@ -151,7 +151,7 @@ type NoData = {
     agendaId: string;
     /** item de passo, quando tipo === 'passo' */
     itemId?: string;
-    /** Só nível rotina (e replicado nos passos para contexto); vêm do título "Empresa => Rotina". */
+    /** Só nível processo (e replicado nos passos para contexto); vêm do título "Empresa => Processo". */
     empresaNome?: string;
     rotinaNome?: string;
 };
@@ -387,7 +387,7 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
             a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
         );
         return [
-            { label: 'Todas as rotinas', value: null as string | null },
+            { label: 'Todos os processos', value: null as string | null },
             ...ordenadas.map((r) => ({ label: r, value: r as string | null })),
         ];
     }, [nodes]);
@@ -555,7 +555,7 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                 if (response?.data?.todos_passos_concluidos) {
                     toast.current?.show({
                         severity: 'info',
-                        summary: 'Rotina',
+                        summary: 'Processo',
                         detail: 'Todos os passos foram concluídos.',
                         life: 4000,
                     });
@@ -713,7 +713,7 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                     {d.titulo}
                 </span>
                 <Tag
-                    value={d.tipo === 'rotina' ? 'Rotina' : 'Passo'}
+                    value={d.tipo === 'rotina' ? 'Processo' : 'Passo'}
                     severity={d.tipo === 'rotina' ? 'info' : 'secondary'}
                     className="text-xs"
                 />
@@ -846,7 +846,7 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                     </div>
                     <div className="flex flex-column gap-1" style={{ minWidth: '12rem', maxWidth: '18rem', flex: '0 1 16rem' }}>
                         <label htmlFor="agenda-arvore-filtro-rotina" className="text-sm font-semibold text-900 m-0">
-                            Rotina
+                            Processo
                         </label>
                         <Dropdown
                             inputId="agenda-arvore-filtro-rotina"
@@ -904,7 +904,7 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                     <ConfirmDialog />
                     <h1 className="text-2xl font-bold text-900 m-0 mb-3">Agenda em Árvore</h1>
                     <p className="text-600 mt-0 mb-4 line-height-3">
-                        Primeiro nível: empresa e rotina com intervalo de datas. Expanda para ver os passos, o intervalo
+                        Primeiro nível: empresa e processo com intervalo de datas. Expanda para ver os passos, o intervalo
                         de cada um e concluir manualmente — mesma regra de cores da agenda (atrasado, período atual,
                         futuro, concluído).
                     </p>
@@ -920,7 +920,7 @@ export default function AgendaArvorePage({ dados }: PaginaProps) {
                         stripedRows
                     >
                         <Column
-                            header="Empresa / rotina ou passo"
+                            header="Empresa / processo ou passo"
                             body={nomeTemplate}
                             expander
                             style={{ minWidth: '260px' }}

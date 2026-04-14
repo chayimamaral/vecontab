@@ -18,22 +18,33 @@ type EmpresaHandler struct {
 
 type empresaEnvelope struct {
 	Params struct {
-		ID          string `json:"id"`
-		Nome        string `json:"nome"`
-		Municipio   struct {
+		ID         string `json:"id"`
+		ProcessoID string `json:"processo_id"`
+		EmpresaID  string `json:"empresa_id"`
+		Nome       string `json:"nome"`
+		Descricao  string `json:"descricao"`
+		Municipio  struct {
 			ID string `json:"id"`
 		} `json:"municipio"`
-		TenantID    string `json:"tenantid"`
-		Rotina      struct {
+		TenantID string `json:"tenantid"`
+		Rotina   struct {
 			ID string `json:"id"`
 		} `json:"rotina"`
 		RotinaPF struct {
 			ID string `json:"id"`
 		} `json:"rotina_pf"`
-		Cnaes       any    `json:"cnaes"`
-		Bairro      string `json:"bairro"`
-		TipoPessoa  string `json:"tipo_pessoa"`
-		Documento   string `json:"documento"`
+		RegimeTributario struct {
+			ID string `json:"id"`
+		} `json:"regime_tributario"`
+		TipoEmpresa struct {
+			ID string `json:"id"`
+		} `json:"tipo_empresa"`
+		Cnaes      any    `json:"cnaes"`
+		Bairro     string `json:"bairro"`
+		TipoPessoa string `json:"tipo_pessoa"`
+		Documento  string `json:"documento"`
+		IE         string `json:"ie"`
+		IM         string `json:"im"`
 	} `json:"params"`
 }
 
@@ -80,16 +91,8 @@ func (h *EmpresaHandler) Create(w http.ResponseWriter, r *http.Request) {
 		render.WriteError(w, http.StatusBadRequest, "Favor informar o nome!")
 		return
 	}
-	if tp == "PJ" && strings.TrimSpace(payload.Params.Rotina.ID) == "" {
-		render.WriteError(w, http.StatusBadRequest, "Rotina obrigatoria para pessoa juridica")
-		return
-	}
 	if tp == "PF" && strings.TrimSpace(payload.Params.Documento) == "" {
 		render.WriteError(w, http.StatusBadRequest, "Documento (CPF) obrigatorio para pessoa fisica")
-		return
-	}
-	if tp == "PF" && strings.TrimSpace(payload.Params.RotinaPF.ID) == "" {
-		render.WriteError(w, http.StatusBadRequest, "Rotina PF obrigatoria para pessoa fisica")
 		return
 	}
 	if strings.TrimSpace(payload.Params.Municipio.ID) == "" {
@@ -98,15 +101,19 @@ func (h *EmpresaHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := h.service.Create(r.Context(), service.EmpresaInput{
-		Nome:        payload.Params.Nome,
-		TenantID:    tenantID,
-		MunicipioID: strings.TrimSpace(payload.Params.Municipio.ID),
-		RotinaID:    payload.Params.Rotina.ID,
-		RotinaPFID:  strings.TrimSpace(payload.Params.RotinaPF.ID),
-		Cnaes:       payload.Params.Cnaes,
-		Bairro:      payload.Params.Bairro,
-		TipoPessoa:  tp,
-		Documento:   payload.Params.Documento,
+		Nome:               payload.Params.Nome,
+		TenantID:           tenantID,
+		MunicipioID:        strings.TrimSpace(payload.Params.Municipio.ID),
+		RotinaID:           payload.Params.Rotina.ID,
+		RotinaPFID:         strings.TrimSpace(payload.Params.RotinaPF.ID),
+		Cnaes:              payload.Params.Cnaes,
+		Bairro:             payload.Params.Bairro,
+		TipoPessoa:         tp,
+		Documento:          payload.Params.Documento,
+		IE:                 payload.Params.IE,
+		IM:                 payload.Params.IM,
+		RegimeTributarioID: strings.TrimSpace(payload.Params.RegimeTributario.ID),
+		TipoEmpresaID:      strings.TrimSpace(payload.Params.TipoEmpresa.ID),
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
@@ -129,34 +136,34 @@ func (h *EmpresaHandler) Update(w http.ResponseWriter, r *http.Request) {
 		render.WriteError(w, http.StatusBadRequest, "Favor informar o nome!")
 		return
 	}
-	if tp == "PJ" && strings.TrimSpace(payload.Params.Rotina.ID) == "" {
-		render.WriteError(w, http.StatusBadRequest, "Rotina obrigatoria para pessoa juridica")
-		return
-	}
 	if tp == "PF" && strings.TrimSpace(payload.Params.Documento) == "" {
 		render.WriteError(w, http.StatusBadRequest, "Documento (CPF) obrigatorio para pessoa fisica")
-		return
-	}
-	if tp == "PF" && strings.TrimSpace(payload.Params.RotinaPF.ID) == "" {
-		render.WriteError(w, http.StatusBadRequest, "Rotina PF obrigatoria para pessoa fisica")
 		return
 	}
 	if strings.TrimSpace(payload.Params.Municipio.ID) == "" {
 		render.WriteError(w, http.StatusBadRequest, "Municipio e obrigatorio")
 		return
 	}
+	if strings.TrimSpace(payload.Params.ID) == "" {
+		render.WriteError(w, http.StatusBadRequest, "Id da empresa e obrigatorio")
+		return
+	}
 
 	response, err := h.service.Update(r.Context(), service.EmpresaInput{
-		ID:          payload.Params.ID,
-		Nome:        payload.Params.Nome,
-		TenantID:    tenantID,
-		MunicipioID: strings.TrimSpace(payload.Params.Municipio.ID),
-		RotinaID:    payload.Params.Rotina.ID,
-		RotinaPFID:  strings.TrimSpace(payload.Params.RotinaPF.ID),
-		Cnaes:       payload.Params.Cnaes,
-		Bairro:      payload.Params.Bairro,
-		TipoPessoa:  tp,
-		Documento:   payload.Params.Documento,
+		ID:                 strings.TrimSpace(payload.Params.ID),
+		Nome:               payload.Params.Nome,
+		TenantID:           tenantID,
+		MunicipioID:        strings.TrimSpace(payload.Params.Municipio.ID),
+		RotinaID:           payload.Params.Rotina.ID,
+		RotinaPFID:         strings.TrimSpace(payload.Params.RotinaPF.ID),
+		Cnaes:              payload.Params.Cnaes,
+		Bairro:             payload.Params.Bairro,
+		TipoPessoa:         tp,
+		Documento:          payload.Params.Documento,
+		IE:                 payload.Params.IE,
+		IM:                 payload.Params.IM,
+		RegimeTributarioID: strings.TrimSpace(payload.Params.RegimeTributario.ID),
+		TipoEmpresaID:      strings.TrimSpace(payload.Params.TipoEmpresa.ID),
 	})
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
@@ -207,6 +214,101 @@ func (h *EmpresaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *EmpresaHandler) ListProcessos(w http.ResponseWriter, r *http.Request) {
+	tenantID := middleware.TenantID(r.Context())
+	empresaID := strings.TrimSpace(r.URL.Query().Get("empresa_id"))
+	response, err := h.service.ListProcessos(r.Context(), empresaID, tenantID)
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *EmpresaHandler) CreateProcesso(w http.ResponseWriter, r *http.Request) {
+	var payload empresaEnvelope
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		return
+	}
+
+	tenantID := middleware.TenantID(r.Context())
+	empresaID := strings.TrimSpace(payload.Params.EmpresaID)
+	descricao := strings.TrimSpace(payload.Params.Descricao)
+	if empresaID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Empresa e obrigatoria")
+		return
+	}
+	if descricao == "" {
+		render.WriteError(w, http.StatusBadRequest, "Descricao do processo e obrigatoria")
+		return
+	}
+
+	response, err := h.service.CreateProcesso(r.Context(), repository.EmpresaProcessoInput{
+		EmpresaID: empresaID,
+		TenantID:  tenantID,
+		RotinaID:  strings.TrimSpace(payload.Params.Rotina.ID),
+		Descricao: descricao,
+	})
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *EmpresaHandler) IniciarProcessoFilho(w http.ResponseWriter, r *http.Request) {
+	var payload empresaEnvelope
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		return
+	}
+
+	processoID := strings.TrimSpace(payload.Params.ProcessoID)
+	empresaID := strings.TrimSpace(payload.Params.EmpresaID)
+	if processoID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Processo nao informado")
+		return
+	}
+	if empresaID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Empresa nao informada")
+		return
+	}
+	tenantID := middleware.TenantID(r.Context())
+
+	if _, err := h.service.IniciarProcesso(r.Context(), empresaID, tenantID); err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response, err := h.service.IniciarProcessoFilho(r.Context(), processoID, tenantID)
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	render.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *EmpresaHandler) MarcarCompromissosProcesso(w http.ResponseWriter, r *http.Request) {
+	var payload empresaEnvelope
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		render.WriteError(w, http.StatusBadRequest, "JSON invalido")
+		return
+	}
+
+	processoID := strings.TrimSpace(payload.Params.ProcessoID)
+	if processoID == "" {
+		render.WriteError(w, http.StatusBadRequest, "Processo nao informado")
+		return
+	}
+	response, err := h.service.MarcarCompromissosProcesso(r.Context(), processoID, middleware.TenantID(r.Context()))
+	if err != nil {
+		render.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	render.WriteJSON(w, http.StatusOK, response)
 }
 

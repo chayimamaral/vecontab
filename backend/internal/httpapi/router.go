@@ -240,14 +240,19 @@ func registerRoutes(
 
 	r.With(requireAuth).Get("/empresas", empresaHandler.List)
 	r.With(requireAuth).Get("/clientes", clienteHandler.List)
-	r.With(requireAuth, requireAdminOnly).Post("/empresa", empresaHandler.Create)
-	r.With(requireAuth, requireAdminOnly).Put("/updateempresa", empresaHandler.Update)
-	r.With(requireAuth, requireAdminOnly).Put("/deleteempresa", empresaHandler.Delete)
-	r.With(requireAuth, requireAdminOnly).Put("/iniciarprocesso", empresaHandler.IniciarProcesso)
+	// ADMIN do tenant + SUPER (VEC): cadastro/manutenção de cliente em public.cliente; não usar requireAdminOnly (excluía SUPER).
+	r.With(requireAuth, requireAdmin).Post("/empresa", empresaHandler.Create)
+	r.With(requireAuth, requireAdmin).Put("/updateempresa", empresaHandler.Update)
+	r.With(requireAuth, requireAdmin).Put("/deleteempresa", empresaHandler.Delete)
+	r.With(requireAuth, requireAdmin).Put("/iniciarprocesso", empresaHandler.IniciarProcesso)
+	r.With(requireAuth).Get("/empresa-processos", empresaHandler.ListProcessos)
+	r.With(requireAuth, requireAdmin).Post("/empresa-processo", empresaHandler.CreateProcesso)
+	r.With(requireAuth, requireAdmin).Put("/empresa-processo/iniciar", empresaHandler.IniciarProcessoFilho)
+	r.With(requireAuth, requireAdmin).Put("/empresa-processo/compromissos", empresaHandler.MarcarCompromissosProcesso)
 
 	r.With(requireAuth).Get("/empresadados", empresaDadosHandler.Get)
-	// ADMIN/USER: cadastro unificado de cliente (issue #59) grava empresa + clientes_dados.
-	r.With(requireAuth, apiMiddleware.RequireAnyRole("ADMIN", "USER")).Put("/empresadados", empresaDadosHandler.Upsert)
+	// ADMIN/USER/SUPER: cadastro unificado de cliente (issue #59) grava empresa + clientes_dados.
+	r.With(requireAuth, apiMiddleware.RequireAnyRole("ADMIN", "USER", "SUPER")).Put("/empresadados", empresaDadosHandler.Upsert)
 
 	r.With(requireAuth).Get("/certificado-cliente", certificadoClienteHandler.Get)
 	r.With(requireAuth, requireAdmin).Post("/certificado-cliente/upload", certificadoClienteHandler.Upload)

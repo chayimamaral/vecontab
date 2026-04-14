@@ -93,7 +93,7 @@ func (h *RotinaHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.TrimSpace(payload.Params.Descricao) == "" {
-		render.WriteError(w, http.StatusBadRequest, "Favor informar a descricao da Rotina!")
+		render.WriteError(w, http.StatusBadRequest, "Favor informar a descricao do Processo!")
 		return
 	}
 	if strings.TrimSpace(payload.Params.CidadeID) == "" {

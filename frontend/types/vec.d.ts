@@ -79,6 +79,12 @@ declare namespace Vec {
         observacao?: string;
     };
 
+    type EmpresaRegimeTributarioLite = {
+        id?: string;
+        nome?: string;
+        codigo_crt?: number;
+    };
+
     type Empresa = {
         id?: string;
         nome?: string;
@@ -89,6 +95,8 @@ declare namespace Vec {
         cnpj?: string;
         ie?: string;
         im?: string;
+        /** Regime tributario federal (CRT); public.cliente.regime_tributario_id */
+        regime_tributario?: EmpresaRegimeTributarioLite;
         razaosocial?: string;
         fantasia?: string;
         endereco?: string;
@@ -107,6 +115,18 @@ declare namespace Vec {
         iniciado: boolean;
         passos_concluidos?: boolean;
         compromissos_gerados?: boolean;
+    }
+
+    type EmpresaProcesso = {
+        id?: string;
+        empresa_id?: string;
+        tenant_id?: string;
+        rotina_id?: string;
+        descricao?: string;
+        iniciado?: boolean;
+        passos_concluidos?: boolean;
+        compromissos_gerados?: boolean;
+        ativo?: boolean;
     }
 
     type GrupoPasso = {

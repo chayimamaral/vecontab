@@ -120,7 +120,7 @@ const SecondCalendar = ({ eventData, agenda_id, isOpen }: SecondCalendarProps) =
       });
       toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Passo concluído.', life: 3000 });
       if (response?.data?.todos_passos_concluidos) {
-        toast.current?.show({ severity: 'info', summary: 'Rotina', detail: 'Todos os passos concluídos.', life: 4000 });
+        toast.current?.show({ severity: 'info', summary: 'Processo', detail: 'Todos os passos concluídos.', life: 4000 });
       }
       setEventDialog(false);
       setIsUpdating(true);

@@ -30,21 +30,21 @@ const AppMenu = () => {
         items: [
           { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
           {
-            label: 'Rotinas Fiscais',
+            label: 'Processos Fiscais',
             icon: 'pi pi-fw pi-list',
             items: [
               {
-                label: 'Rotinas por empresas',
+                label: 'Processos por empresas',
                 icon: 'pi pi-fw pi-list',
                 to: '/compromissos-empresas',
               },
               {
-                label: 'Rotinas por natureza',
+                label: 'Processos por natureza',
                 icon: 'pi pi-fw pi-sitemap',
                 to: '/compromissos-por-natureza',
               },
               {
-                label: 'Rotinas (visão corrida)',
+                label: 'Processos (visão corrida)',
                 icon: 'pi pi-fw pi-table',
                 to: '/compromissos-visao',
               },
@@ -144,7 +144,7 @@ const AppMenu = () => {
                     ]
                   },
                   {
-                    label: 'Rotinas PF (IRPF / Carnê-Leão)',
+                    label: 'Processos PF (IRPF / Carnê-Leão)',
                     icon: 'pi pi-fw pi-user',
                     to: '/rotinas-pf',
                   },

@@ -850,7 +850,7 @@ const Rotinas = () => {
             <Button icon="pi pi-minus" label="Contrair Todos" onClick={collapseAll} text /> */}
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onKeyDown={(e) => handleBuscaRotina(e, e.currentTarget.value)} onChange={handleClear} placeholder="Procurar Rotina..." tooltip='Digite o Rotina e tecle Enter' tooltipOptions={{ position: 'left' }} />
+                <InputText type="search" onKeyDown={(e) => handleBuscaRotina(e, e.currentTarget.value)} onChange={handleClear} placeholder="Procurar Processo..." tooltip='Digite o processo e tecle Enter' tooltipOptions={{ position: 'left' }} />
             </span>
         </div>
     );
@@ -887,7 +887,7 @@ const Rotinas = () => {
                         className="datatable-responsive"
                         paginatorTemplate={template}
                         globalFilter={globalFilter}
-                        emptyMessage="Nenhum rotina encontrado."
+                        emptyMessage="Nenhum processo encontrado."
                         header={header}
                         size="small"
                         stripedRows
@@ -961,12 +961,12 @@ const Rotinas = () => {
 
                     </Dialog>
 
-                    <Dialog visible={rotinaDialog} style={{ width: '550px' }} header="Detalhe do Rotina" modal className="p-fluid" footer={rotinaDialogFooter} onHide={hideDialog}>
+                    <Dialog visible={rotinaDialog} style={{ width: '550px' }} header="Detalhe do Processo" modal className="p-fluid" footer={rotinaDialogFooter} onHide={hideDialog}>
                         {/* <Column expander={allowExpansion} style={{ width: '5rem' }} /> */}
                         <div className="field">
                             <label htmlFor="descricao">Descrição</label>
                             <InputText id="descricao" value={rotina.descricao} type='text' onChange={(e) => onInputChange(e, 'descricao')} required autoFocus className={classNames({ 'p-invalid': submitted && !rotina.descricao })} />
-                            {submitted && !rotina.descricao && <small className="p-invalid">Descrição do Rotina é obrigatório.</small>}
+                            {submitted && !rotina.descricao && <small className="p-invalid">Descrição do processo é obrigatória.</small>}
                         </div>
                         <div className="field">
                             <label htmlFor="dropdownCidade">Município</label>

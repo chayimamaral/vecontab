@@ -2,7 +2,7 @@ import setupAPIClient from '../../components/api/api';
 
 export default function EmpresaService() {
 
-  const getEmpresa = async (params) => {
+  const getEmpresa = async (params: { lazyEvent: string }) => {
 
     // do jeito que receber o params, ele vem como string, entao tem que converter para objeto
 
@@ -24,7 +24,7 @@ export default function EmpresaService() {
     }
   }
 
-  const getEmpresas = async (params) => {
+  const getEmpresas = async (params: { lazyEvent: string }) => {
 
     // do jeito que receber o params, ele vem como string, entao tem que converter para objeto
     const apiClient = setupAPIClient(undefined);
@@ -45,7 +45,7 @@ export default function EmpresaService() {
     }
   }
 
-  const deleteEmpresa = async (params) => {
+  const deleteEmpresa = async (params: Record<string, unknown>) => {
     try {
       const apiClient = setupAPIClient(undefined);
       const response = await apiClient.put('/api/deleteempresa', {
@@ -74,49 +74,41 @@ export default function EmpresaService() {
     }
   }
 
-  const updateEmpresa = async (params) => {
+  const updateEmpresa = async (params: Record<string, any>) => {
+    const apiClient = setupAPIClient(undefined);
+    const tipo =
+      String(params?.tipo_pessoa ?? 'PJ')
+        .trim()
+        .toUpperCase() === 'PF'
+        ? 'PF'
+        : 'PJ';
 
-    try {
-      const apiClient = setupAPIClient(undefined);
-      const tipo =
-        String(params?.tipo_pessoa ?? 'PJ')
-          .trim()
-          .toUpperCase() === 'PF'
-          ? 'PF'
-          : 'PJ';
+    const response = await apiClient.put('/api/updateempresa', {
+      params: {
+        ...params,
+        tipo_pessoa: tipo,
+        documento: params?.documento ?? '',
+        ie: params?.ie ?? '',
+        im: params?.im ?? '',
+        regime_tributario: params?.regime_tributario ?? { id: '' },
+        tipo_empresa: params?.tipo_empresa ?? { id: '' },
+        rotina: params?.rotina ?? { id: '' },
+        rotina_pf: params?.rotina_pf ?? { id: '' },
+        municipio: { id: params?.municipio?.id ?? '' },
+      },
+    });
 
-      const response = await apiClient.put('/api/updateempresa', {
-        params:
-        {
-          ...params,
-          tipo_pessoa: tipo,
-          documento: params?.documento ?? '',
-          rotina: params?.rotina ?? { id: '' },
-          rotina_pf: params?.rotina_pf ?? { id: '' },
-          municipio: { id: params?.municipio?.id ?? '' },
-        }
-      })
+    const { empresas, totalRecords } = response.data;
 
-      const { empresas, totalRecords } = response.data
+    return {
+      data: {
+        empresas,
+        totalRecords,
+      },
+    };
+  };
 
-      return {
-        data: {
-          empresas,
-          totalRecords,
-        }
-      }
-    } catch (err) {
-      return {
-        redirect: {
-          destination: '/empresas',
-          permanent: false
-
-        }
-      }
-    }
-  }
-
-  const iniciarProcesso = async (params) => {
+  const iniciarProcesso = async (params: Record<string, unknown>) => {
 
     //esta função tornará 'iniciado = true' e, neste momento, internamente no BD
     //será disparado um trigger que acionará uma função para geração da agenda
@@ -154,48 +146,41 @@ export default function EmpresaService() {
     }
   }
 
-  const createEmpresa = async (params) => {
-    try {
-      const apiClient = setupAPIClient(undefined);
-      const tipo =
-        String(params?.tipo_pessoa ?? 'PJ')
-          .trim()
-          .toUpperCase() === 'PF'
-          ? 'PF'
-          : 'PJ';
+  const createEmpresa = async (params: Record<string, any>) => {
+    const apiClient = setupAPIClient(undefined);
+    const tipo =
+      String(params?.tipo_pessoa ?? 'PJ')
+        .trim()
+        .toUpperCase() === 'PF'
+        ? 'PF'
+        : 'PJ';
 
-      const response = await apiClient.post('/api/empresa', {
-        params: {
-          ...params,
-          tipo_pessoa: tipo,
-          documento: params?.documento ?? '',
-          rotina: params?.rotina ?? { id: '' },
-          rotina_pf: params?.rotina_pf ?? { id: '' },
-          municipio: { id: params?.municipio?.id ?? '' },
-        },
-      })
+    const response = await apiClient.post('/api/empresa', {
+      params: {
+        ...params,
+        tipo_pessoa: tipo,
+        documento: params?.documento ?? '',
+        ie: params?.ie ?? '',
+        im: params?.im ?? '',
+        regime_tributario: params?.regime_tributario ?? { id: '' },
+        tipo_empresa: params?.tipo_empresa ?? { id: '' },
+        rotina: params?.rotina ?? { id: '' },
+        rotina_pf: params?.rotina_pf ?? { id: '' },
+        municipio: { id: params?.municipio?.id ?? '' },
+      },
+    });
 
-      const { empresas, totalRecords } = response.data
+    const { empresas, totalRecords } = response.data;
 
-      return {
-        data: {
-          empresas,
-          totalRecords
-        }
-      }
+    return {
+      data: {
+        empresas,
+        totalRecords,
+      },
+    };
+  };
 
-    } catch (err) {
-      return {
-        redirect: {
-          destination: '/empresas',
-          permanent: false
-
-        }
-      }
-    }
-  }
-
-  const validaCnae = async (params) => {
+  const validaCnae = async (params: string) => {
     const cnae = `${params.slice(0, 2)}.${params.slice(2, 4)}-${params.slice(4, 5)}/${params.slice(5)}`;
     try {
       const apiClient = setupAPIClient(undefined);
@@ -220,6 +205,52 @@ export default function EmpresaService() {
     }
   }
 
+  const getEmpresaProcessos = async (params?: { empresa_id?: string }) => {
+    const apiClient = setupAPIClient(undefined);
+    const response = await apiClient.get('/api/empresa-processos', {
+      params: {
+        empresa_id: params?.empresa_id ?? '',
+      },
+    });
+    const { processos, totalRecords } = response.data;
+    return { data: { processos, totalRecords } };
+  };
+
+  const createEmpresaProcesso = async (params: {
+    empresa_id: string;
+    rotina?: { id?: string };
+    descricao: string;
+  }) => {
+    const apiClient = setupAPIClient(undefined);
+    const response = await apiClient.post('/api/empresa-processo', {
+      params: {
+        empresa_id: params.empresa_id,
+        rotina: params.rotina ?? { id: '' },
+        descricao: params.descricao,
+      },
+    });
+    const { processos, totalRecords } = response.data;
+    return { data: { processos, totalRecords } };
+  };
+
+  const iniciarEmpresaProcesso = async (params: { processo_id: string; empresa_id: string }) => {
+    const apiClient = setupAPIClient(undefined);
+    const response = await apiClient.put('/api/empresa-processo/iniciar', {
+      params,
+    });
+    const { processos, totalRecords } = response.data;
+    return { data: { processos, totalRecords } };
+  };
+
+  const marcarCompromissosEmpresaProcesso = async (params: { processo_id: string }) => {
+    const apiClient = setupAPIClient(undefined);
+    const response = await apiClient.put('/api/empresa-processo/compromissos', {
+      params,
+    });
+    const { processos, totalRecords } = response.data;
+    return { data: { processos, totalRecords } };
+  };
+
 
   return {
     getEmpresa,
@@ -228,7 +259,11 @@ export default function EmpresaService() {
     updateEmpresa,
     createEmpresa,
     iniciarProcesso,
-    validaCnae
+    validaCnae,
+    getEmpresaProcessos,
+    createEmpresaProcesso,
+    iniciarEmpresaProcesso,
+    marcarCompromissosEmpresaProcesso,
   }
 }
 

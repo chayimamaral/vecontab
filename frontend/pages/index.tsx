@@ -24,7 +24,7 @@ type ModuloCard = ModuloAtivo | ModuloFuturo;
 const MODULOS: ModuloCard[] = [
     {
         titulo: 'Cadastro de Clientes',
-        descricao: 'Criar, alterar e excluir clientes PJ: município, rotina e CNAEs.',
+        descricao: 'Criar, alterar e excluir clientes PJ: município, processo e CNAEs.',
         href: '/clientes',
         icon: 'pi pi-users',
         tooltip: 'Menu Operações → Cadastros Operacionais → Clientes.',
@@ -45,21 +45,21 @@ const MODULOS: ModuloCard[] = [
     },
 
     {
-        titulo: 'Rotinas Fiscais por Empresas',
+        titulo: 'Processos Fiscais por Empresas',
         descricao: 'Acompanhe vencimentos e status dos compromissos legais gerados por empresa.',
         href: '/compromissos-empresas',
         icon: 'pi pi-list',
         tooltip: 'Abre o acompanhamento em árvore (empresa → compromissos).',
     },
     {
-        titulo: 'Rotinas Fiscais (Visão Corrida)',
+        titulo: 'Processos Fiscais (Visão Corrida)',
         descricao: 'Acompanhamento sem separação por empresa, em lista única.',
         href: '/compromissos-visao',
         icon: 'pi pi-building',
         tooltip: 'Abre o acompanhamento de compromissos em visão corrida.',
     },
     {
-        titulo: 'Rotinas Fiscais por Natureza',
+        titulo: 'Processos Fiscais por Natureza',
         descricao: 'Árvore com Tributária e Informativa no primeiro nível; em seguida empresas e compromissos, com as mesmas edições da visão por empresa.',
         href: '/compromissos-por-natureza',
         icon: 'pi pi-list',
@@ -67,7 +67,7 @@ const MODULOS: ModuloCard[] = [
     },
     {
         titulo: 'Fluxos de Processos (Árvore)',
-        descricao: 'Empresa e rotina no primeiro nível; expanda para ver passos, prazos e concluir itens como na agenda.',
+        descricao: 'Empresa e processo no primeiro nível; expanda para ver passos, prazos e concluir itens como na agenda.',
         href: '/agenda-arvore',
         icon: 'pi pi-list-check',
         tooltip: 'Árvore PrimeReact: mesmas cores e endpoints da agenda em calendário.',

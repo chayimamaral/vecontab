@@ -179,7 +179,7 @@ const Calendario = ({ dados }: CalendarioProps) => {
           <Dialog visible={eventDialog && !!clickedEvent} style={{ width: '80%', height: '80%' }} header="Detalhes do Evento" modal closable onHide={closeEventDialog}>
             <div className="p-fluid">
               <div className="field">
-                <label htmlFor="title">Empresa : Rotina</label>
+                <label htmlFor="title">Empresa : Processo</label>
                 <InputText id="title" value={changedEvent.title} onChange={(e) => setChangedEvent({ ...changedEvent, ...{ title: e.target.value } })} required autoFocus />
               </div>
 

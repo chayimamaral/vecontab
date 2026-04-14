@@ -22,9 +22,9 @@ import { TabView, TabPanel } from 'primereact/tabview';
 import MunicipioService from '../../services/cruds/MunicipioService';
 import CertificadoClienteService from '../../services/cruds/CertificadoClienteService';
 import EmpresaService from '../../services/cruds/EmpresaService';
-import RotinaService from '../../services/cruds/RotinaService';
-import RotinaPFService from '../../services/cruds/RotinaPFService';
 import EmpresaDadosService from '../../services/cruds/EmpresaDadosService';
+import RegimeTributarioService from '../../services/cruds/RegimeTributarioService';
+import TipoEmpresaService from '../../services/cruds/TipoEmpresaService';
 
 interface LazyTableState {
   totalRecords: number;
@@ -111,6 +111,11 @@ const Clientes = ({ dados }: { dados: string }) => {
       nome: '',
       categoria: ''
     },
+    regime_tributario: {
+      id: '',
+      nome: '',
+      codigo_crt: undefined,
+    },
     tipo_empresa: {
       id: '',
       descricao: ''
@@ -124,25 +129,9 @@ const Clientes = ({ dados }: { dados: string }) => {
     compromissos_gerados: false,
   };
 
-  let emptyRotina: Vec.RotinaLite = {
-    id: '',
-    descricao: ''
-  }
-
-  let emptyRotinaPF: Vec.RotinaPFLite = {
-    id: '',
-    nome: '',
-    categoria: ''
-  }
-
   const [empresas, setEmpresas] = useState([]);
 
   const [municipios, setMunicipios] = useState<Vec.MunicipioLite[]>([]);
-
-  const [rotinas, setRotinas] = useState<Vec.RotinaLite[]>([]);
-  const [rotina, setRotina] = useState<Vec.RotinaLite>(emptyRotina);
-  const [rotinasPF, setRotinasPF] = useState<Vec.RotinaPFLite[]>([]);
-  const [rotinaPF, setRotinaPF] = useState<Vec.RotinaPFLite>(emptyRotinaPF);
 
   type ClienteExtraForm = {
     logradouro: string;
@@ -237,34 +226,6 @@ const Clientes = ({ dados }: { dados: string }) => {
     loadLazyEmpresa();
   }, []);
 
-  const loadRotinasPF = () => {
-    const svc = RotinaPFService();
-    svc
-      .getRotinasPFLite()
-      .then(({ data }) => {
-        setRotinasPF(Array.isArray(data?.rotinas_pf) ? data.rotinas_pf : []);
-      })
-      .catch(() => {
-        setRotinasPF([]);
-        toast.current?.show({
-          severity: 'warn',
-          summary: 'Atenção',
-          detail: 'Não foi possível carregar rotinas PF (cadastre templates no banco após a migration 025).',
-          life: 5000,
-        });
-      });
-  };
-
-  useEffect(() => {
-    if (!empresaDialog) {
-      return;
-    }
-    if ((empresa.tipo_pessoa ?? 'PJ') !== 'PF') {
-      return;
-    }
-    loadRotinasPF();
-  }, [empresaDialog, empresa.tipo_pessoa]);
-
   const {
     data: userRole = null,
     isLoading: userRoleLoading,
@@ -291,14 +252,64 @@ const Clientes = ({ dados }: { dados: string }) => {
   const empresaService = EmpresaService();
   const empresaDadosService = EmpresaDadosService();
 
-  const podeCadastrarClientes = userRole === 'ADMIN';
-  const podeEditarDadosComplementares = userRole === 'ADMIN' || userRole === 'USER';
+  const podeCadastrarClientes = userRole === 'ADMIN' || userRole === 'SUPER';
+  const podeEditarDadosComplementares = userRole === 'ADMIN' || userRole === 'USER' || userRole === 'SUPER';
   const podeEditarComplementosCliente = podeCadastrarClientes || podeEditarDadosComplementares;
+  /** ADMIN/SUPER podem ajustar enquadramento jurídico e regime (CRT) mesmo com processo iniciado; USER só complementos. */
+  const podeEditarEnquadramentoRegimePJ =
+    (userRole === 'ADMIN' || userRole === 'SUPER') && !userRoleLoading && !userRoleError;
   /** Certificado por cliente: ADMIN do escritório e SUPER; USER não vê nem altera (EF-907). */
   const podeAnexarCertificadoCliente = userRole === 'ADMIN' || userRole === 'SUPER';
   const abaCertificadoClienteHabilitada = podeAnexarCertificadoCliente;
 
   const certClienteService = CertificadoClienteService();
+
+  const {
+    data: regimesTributariosOptions = [],
+    isPending: regimesTributariosLoading,
+    isError: regimesTributariosError,
+  } = useQuery<Vec.RegimeTributario[]>({
+    queryKey: ['regimes-tributarios', 'cliente-dropdown'],
+    queryFn: async () => {
+      const svc = RegimeTributarioService();
+      const { data } = await svc.getRegimes({
+        lazyEvent: JSON.stringify({
+          first: 0,
+          rows: 500,
+          sortField: 'codigo_crt',
+          sortOrder: 1,
+          filters: { nome: { value: '', matchMode: 'contains' } },
+        }),
+      });
+      return Array.isArray(data?.regimes) ? data.regimes : [];
+    },
+    /** Pré-carrega para inclusão e edição: ao abrir o Dialog, a lista já está disponível (evita painel vazio). */
+    enabled: true,
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
+  });
+
+  const { data: tiposEmpresaOptions = [] } = useQuery<Vec.TipoEmpresaLite[]>({
+    queryKey: ['tiposempresa-lite', 'cliente-form'],
+    queryFn: async () => {
+      const { data } = await TipoEmpresaService().getTiposEmpresaLite();
+      return Array.isArray(data?.tiposEmpresa) ? data.tiposEmpresa : [];
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
+  });
+
+  useEffect(() => {
+    if (!empresaDialog || !regimesTributariosError) {
+      return;
+    }
+    toast.current?.show({
+      severity: 'warn',
+      summary: 'Regimes tributários',
+      detail: 'Não foi possível carregar a lista (GET /api/regimes-tributarios). Verifique o console de rede ou o cadastro em Regimes tributários.',
+      life: 6000,
+    });
+  }, [empresaDialog, regimesTributariosError]);
 
   const {
     data: certClienteRemote,
@@ -390,24 +401,6 @@ const Clientes = ({ dados }: { dados: string }) => {
       setMunicipios(data?.municipios);
     })
   }
-
-  const loadRotinasPorMunicipio = (municipioId: string) => {
-    const mid = (municipioId ?? '').trim();
-    if (!mid) {
-      setRotinas([]);
-      return;
-    }
-    const rotinaService = RotinaService();
-    rotinaService.getRotinasLite({ id: mid }).then(({ data }) => {
-      const raw = data?.rotinas ?? [];
-      setRotinas(
-        raw.map((r: Vec.RotinaLite) => ({
-          ...r,
-          lista_label: r.municipio?.nome ? `${r.descricao ?? ''} (${r.municipio.nome})` : (r.descricao ?? ''),
-        })),
-      );
-    });
-  };
 
   const paginatorLeft = <Button type="button" icon="pi pi-refresh" tooltip='Atualizar' className="p-button-text" onClick={loadLazyEmpresa} />;
 
@@ -503,16 +496,12 @@ const Clientes = ({ dados }: { dados: string }) => {
 
   const openNew = () => {
     setEmpresa(emptyEmpresa);
-    setRotina(emptyRotina);
-    setRotinaPF(emptyRotinaPF);
     setClienteExtra(emptyClienteExtra);
     setCertClienteForm(emptyCertCliente);
     setCertArquivo(null);
     if (certFileInputRef.current) {
       certFileInputRef.current.value = '';
     }
-    setRotinas([]);
-    setRotinasPF([]);
     setSubmitted(false);
     setClienteDialogTabIndex(0);
     setEmpresaDialog(true);
@@ -568,37 +557,6 @@ const Clientes = ({ dados }: { dados: string }) => {
     }
   }
 
-  function onRotinaChange(selectedValue: Vec.RotinaLite) {
-    setRotina(selectedValue);
-    setEmpresa((prev) => ({
-      ...prev,
-      rotina: {
-        id: selectedValue?.id ?? '',
-        descricao: selectedValue?.descricao ?? '',
-      },
-      tipo_empresa:
-        selectedValue?.tipo_empresa?.id != null && selectedValue.tipo_empresa.id !== ''
-          ? {
-            id: selectedValue.tipo_empresa.id,
-            descricao: selectedValue.tipo_empresa.descricao ?? '',
-          }
-          : { id: '', descricao: '' },
-    }));
-  }
-
-  function onRotinaPFChange(selectedValue: Vec.RotinaPFLite) {
-    const v = selectedValue ?? emptyRotinaPF;
-    setRotinaPF(v);
-    setEmpresa((prev) => ({
-      ...prev,
-      rotina_pf: {
-        id: v.id ?? '',
-        nome: v.nome ?? '',
-        categoria: v.categoria ?? '',
-      },
-    }));
-  }
-
   const isClientePF = (empresa.tipo_pessoa ?? 'PJ') === 'PF';
 
   const coreCamposBloqueados =
@@ -617,20 +575,35 @@ const Clientes = ({ dados }: { dados: string }) => {
     return { id: empresa.municipio.id, nome: empresa.municipio.nome ?? '' };
   })();
 
-  const rotinaPFFormDropdownValue = (() => {
-    const id = (rotinaPF?.id ?? empresa.rotina_pf?.id ?? '').trim();
+  const regimeTributarioFormDropdownValue = (() => {
+    const id = (empresa.regime_tributario?.id ?? '').trim();
     if (!id) {
       return null;
     }
-    const fromList = rotinasPF.find((r) => (r.id ?? '').trim() === id);
+    const fromList = regimesTributariosOptions.find((r) => (r.id ?? '').trim() === id);
     if (fromList) {
       return fromList;
     }
     return {
-      id: rotinaPF.id,
-      nome: rotinaPF.nome ?? empresa.rotina_pf?.nome ?? '',
-      categoria: rotinaPF.categoria ?? empresa.rotina_pf?.categoria ?? '',
-    };
+      id: empresa.regime_tributario?.id ?? '',
+      nome: empresa.regime_tributario?.nome ?? '',
+      codigo_crt: empresa.regime_tributario?.codigo_crt,
+    } as Vec.RegimeTributario;
+  })();
+
+  const tipoEmpresaFormDropdownValue = (() => {
+    const id = (empresa.tipo_empresa?.id ?? '').trim();
+    if (!id) {
+      return null;
+    }
+    const fromList = tiposEmpresaOptions.find((t) => (t.id ?? '').trim() === id);
+    if (fromList) {
+      return fromList;
+    }
+    return {
+      id: empresa.tipo_empresa?.id ?? '',
+      descricao: empresa.tipo_empresa?.descricao ?? '',
+    } as Vec.TipoEmpresaLite;
   })();
 
   const onlyDigits = (s: string) => String(s ?? '').replace(/\D/g, '');
@@ -656,22 +629,14 @@ const Clientes = ({ dados }: { dados: string }) => {
   };
 
   const saveEmpresa = (event: any) => {
-    empresa.tenantid = tenantid;
-    empresa.rotina = rotina;
-    empresa.rotina_pf = rotinaPF;
     setSubmitted(true);
 
     const docDigits = onlyDigits(empresa.documento ?? '');
     const munOk = (empresa.municipio?.id ?? '').trim() !== '';
     const docOkPf = isClientePF && docDigits.length === 11;
     const docOkPj = !isClientePF && (docDigits.length === 0 || docDigits.length === 14);
-    const rotinaOk = (empresa.rotina?.id ?? '').trim() !== '';
-    const rotinaPfOk = (empresa.rotina_pf?.id ?? '').trim() !== '';
-
-    const salvarSomenteClientesDados =
-      !!empresa.id &&
-      podeEditarComplementosCliente &&
-      (empresa.iniciado === true || !podeCadastrarClientes);
+    /** Somente USER grava só clientes_dados; ADMIN/SUPER sempre passam por update do cliente (inclui regime/tipo) + dados. */
+    const salvarSomenteClientesDados = !!empresa.id && podeEditarComplementosCliente && userRole === 'USER';
 
     if (salvarSomenteClientesDados) {
       if (!munOk) {
@@ -701,15 +666,25 @@ const Clientes = ({ dados }: { dados: string }) => {
     const canSave =
       !!empresa?.nome?.trim() &&
       munOk &&
-      (isClientePF ? docOkPf && rotinaPfOk : rotinaOk && docOkPj);
+      (isClientePF ? docOkPf : docOkPj);
 
     if (canSave) {
+      const eid = (empresa.id ?? '').trim();
       const _empresa = {
         ...empresa,
+        id: eid,
+        tenantid,
         tipo_pessoa: isClientePF ? 'PF' : 'PJ',
         municipio: { id: (empresa.municipio?.id ?? '').trim() },
+        rotina: { id: (empresa.rotina?.id ?? '').trim() },
+        ie: isClientePF ? '' : (empresa.ie ?? ''),
+        im: isClientePF ? '' : (empresa.im ?? ''),
+        regime_tributario: isClientePF
+          ? { id: '' }
+          : { id: (empresa.regime_tributario?.id ?? '').trim() },
+        tipo_empresa: isClientePF ? { id: '' } : { id: (empresa.tipo_empresa?.id ?? '').trim() },
         rotina_pf: {
-          id: (empresa.rotina_pf?.id ?? rotinaPF?.id ?? '').trim(),
+          id: (empresa.rotina_pf?.id ?? '').trim(),
         },
         cnaes: Array.isArray(empresa.cnaes) ? [...empresa.cnaes] : [],
       };
@@ -737,12 +712,14 @@ const Clientes = ({ dados }: { dados: string }) => {
           });
       };
 
-      if (empresa.id) {
+      if (eid) {
         empresaService
           .updateEmpresa(_empresa)
-          .then(() => afterEmpresaOk(empresa.id!))
-          .catch((error) => {
-            toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Erro ao atualizar o cliente', life: 3000 });
+          .then(() => afterEmpresaOk(eid))
+          .catch((error: unknown) => {
+            const ax = error as { response?: { data?: { error?: string } } };
+            const msg = ax?.response?.data?.error ?? (error instanceof Error ? error.message : null) ?? 'Erro ao atualizar o cliente';
+            toast.current?.show({ severity: 'error', summary: 'Erro', detail: String(msg), life: 6000 });
             setSubmitted(false);
           });
       } else {
@@ -768,17 +745,6 @@ const Clientes = ({ dados }: { dados: string }) => {
       }
       if (!munOk) {
         toast.current?.show({ severity: 'warn', summary: 'Alerta', detail: 'Selecione o município', life: 3000 });
-      }
-      if (!isClientePF && !rotinaOk) {
-        toast.current?.show({ severity: 'warn', summary: 'Alerta', detail: 'Selecione a rotina (obrigatória para PJ)', life: 3000 });
-      }
-      if (isClientePF && !rotinaPfOk) {
-        toast.current?.show({
-          severity: 'warn',
-          summary: 'Alerta',
-          detail: 'Selecione a rotina PF (obrigatória para pessoa física)',
-          life: 3500,
-        });
       }
       if (isClientePF && !docOkPf) {
         toast.current?.show({
@@ -807,13 +773,6 @@ const Clientes = ({ dados }: { dados: string }) => {
     if (certFileInputRef.current) {
       certFileInputRef.current.value = '';
     }
-    setRotina(row.rotina);
-    const rpf = row.rotina_pf;
-    setRotinaPF(
-      rpf?.id
-        ? { id: rpf.id, nome: rpf.nome ?? '', categoria: rpf.categoria ?? '' }
-        : emptyRotinaPF
-    );
     const rawCnaes = row.cnaes as unknown;
     const cnaesArr = Array.isArray(rawCnaes)
       ? rawCnaes.map((c) => String(c).replace(/\D/g, '')).filter(Boolean)
@@ -824,22 +783,21 @@ const Clientes = ({ dados }: { dados: string }) => {
       municipio: row.municipio ?? { id: '', nome: '' },
       rotina: row.rotina,
       rotina_pf: row.rotina_pf ?? { id: '', nome: '', categoria: '' },
+      regime_tributario: row.regime_tributario?.id
+        ? {
+            id: row.regime_tributario.id,
+            nome: row.regime_tributario.nome ?? '',
+            codigo_crt: row.regime_tributario.codigo_crt,
+          }
+        : { id: '', nome: '', codigo_crt: undefined },
+      ie: row.ie ?? '',
+      im: row.im ?? '',
       bairro: row.bairro ?? '',
       cnaes: cnaesArr,
       tipo_pessoa: (row.tipo_pessoa ?? 'PJ').toUpperCase() === 'PF' ? 'PF' : 'PJ',
       documento: row.documento ?? '',
     });
     setEmpresaDialog(true);
-
-    const mid = (row.municipio?.id ?? '').trim();
-    if (mid && (row.tipo_pessoa ?? 'PJ') !== 'PF') {
-      loadRotinasPorMunicipio(mid);
-    } else {
-      setRotinas([]);
-    }
-    if ((row.tipo_pessoa ?? 'PJ') === 'PF') {
-      loadRotinasPF();
-    }
 
     if (row.id) {
       empresaDadosService.getByEmpresa(row.id).then(({ data }) => {
@@ -862,9 +820,6 @@ const Clientes = ({ dados }: { dados: string }) => {
             ...prev,
             municipio: { id: m.id, nome: m.nome ?? '' },
           }));
-          if ((row.tipo_pessoa ?? 'PJ') !== 'PF') {
-            loadRotinasPorMunicipio(m.id);
-          }
         }
       }).catch(() => { /* sem linha clientes_dados */ });
     }
@@ -909,48 +864,29 @@ const Clientes = ({ dados }: { dados: string }) => {
   function onTipoPessoaChange(value: string) {
     const v = value === 'PF' ? 'PF' : 'PJ';
     if (v === 'PF') {
-      setRotina(emptyRotina);
-      setRotinaPF(emptyRotinaPF);
       setEmpresa((prev) => ({
         ...prev,
         tipo_pessoa: 'PF',
         rotina: { id: '', descricao: '' },
         rotina_pf: { id: '', nome: '', categoria: '' },
+        regime_tributario: { id: '', nome: '', codigo_crt: undefined },
+        ie: '',
+        im: '',
         tipo_empresa: { id: '', descricao: '' },
         cnaes: [],
       }));
-      setRotinas([]);
-      loadRotinasPF();
       return;
     }
-    setRotinaPF(emptyRotinaPF);
-    setEmpresa((prev) => {
-      const next = {
-        ...prev,
-        tipo_pessoa: 'PJ' as const,
-        rotina_pf: { id: '', nome: '', categoria: '' },
-      };
-      const mid = (next.municipio?.id ?? '').trim();
-      if (mid) {
-        loadRotinasPorMunicipio(mid);
-      }
-      return next;
-    });
+    setEmpresa((prev) => ({
+      ...prev,
+      tipo_pessoa: 'PJ' as const,
+      rotina_pf: { id: '', nome: '', categoria: '' },
+    }));
   }
 
   function onMunicipioClienteChange(m: Vec.MunicipioLite | null): void {
     const muni = m?.id ? { id: m.id, nome: m.nome ?? '' } : { id: '', nome: '' };
-    setEmpresa((prev) => {
-      const next = { ...prev, municipio: muni };
-      if ((next.tipo_pessoa ?? 'PJ') === 'PJ') {
-        if (muni.id) {
-          loadRotinasPorMunicipio(muni.id);
-        } else {
-          setRotinas([]);
-        }
-      }
-      return next;
-    });
+    setEmpresa((prev) => ({ ...prev, municipio: muni }));
   }
 
   async function validaCnae(cnae: string): Promise<boolean> {
@@ -1064,22 +1000,24 @@ const Clientes = ({ dados }: { dados: string }) => {
     );
   };
 
-  const rotinaBodyTemplate = (rowData: Vec.Empresa) => {
-    const pf = (rowData.tipo_pessoa ?? 'PJ') === 'PF';
-    const label = pf ? rowData.rotina_pf?.nome : rowData.rotina?.descricao;
-    return (
-      <>
-        <span className="p-column-title">Rotina</span>
-        {label?.trim() ? label : '—'}
-      </>
-    );
-  };
-
   const tipoEmpresaBodyTemplate = (rowData: Vec.Empresa) => {
     return (
       <>
         <span className="p-column-title">Enquadramento Jurídico</span>
         {rowData.tipo_empresa?.descricao ?? '—'}
+      </>
+    );
+  };
+
+  const regimeTributarioBodyTemplate = (rowData: Vec.Empresa) => {
+    const r = rowData.regime_tributario;
+    const nome = (r?.nome ?? '').trim();
+    const crt = r?.codigo_crt;
+    const crtTxt = crt !== undefined && crt !== null && Number(crt) > 0 ? ` (CRT ${crt})` : '';
+    return (
+      <>
+        <span className="p-column-title">Regime tributário</span>
+        {nome ? `${nome}${crtTxt}` : '—'}
       </>
     );
   };
@@ -1173,7 +1111,7 @@ const Clientes = ({ dados }: { dados: string }) => {
     <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
       <div>
         <h5 className="m-0">Cadastro de Clientes</h5>
-        <p className="m-0 mt-1 text-600 text-sm">Cadastro unificado: município, rotina municipal (PJ), rotina PF (IRPF/Carnê-Leão), CNAEs, CPF/CNPJ, endereço e contatos. Processo e compromissos na Manutenção de Empresas.</p>
+        <p className="m-0 mt-1 text-600 text-sm">Cadastro unificado: município, CNAEs, CPF/CNPJ, IE/IM/regime (PJ), endereço e contatos. Processos PF/municipais e fases na Manutenção de Empresas.</p>
       </div>
       <span className="block mt-2 md:mt-0 p-input-icon-left">
         <i className="pi pi-search" />
@@ -1242,8 +1180,8 @@ const Clientes = ({ dados }: { dados: string }) => {
               headerStyle={{ minWidth: '6rem' }}
             />
             <Column field="municipio" header="Municipio" body={municipioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-            <Column field="rotina" header="Rotina (PJ / PF)" body={rotinaBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
             <Column field="tipo_empresa" header="Enquadramento Jurídico" body={tipoEmpresaBodyTemplate} headerStyle={{ minWidth: '12rem' }}></Column>
+            <Column field="regime_tributario" header="Regime tributário" body={regimeTributarioBodyTemplate} headerStyle={{ minWidth: '14rem' }}></Column>
             <Column body={actionBodyTemplate} header="Ações" headerStyle={{ minWidth: '10rem' }}></Column>
           </DataTable>
 
@@ -1403,58 +1341,94 @@ const Clientes = ({ dados }: { dados: string }) => {
                       className="w-full"
                       showClear
                     />
-                    <small className="text-600">
-                      {isClientePF ? 'Município de residência ou contato.' : 'Define a lista de rotinas disponíveis para PJ.'}
-                    </small>
                   </div>
 
                   {!isClientePF && (
-                    <div className="field">
-                      <label htmlFor="ddrotina">Rotina (somente PJ)</label>
-                      <Dropdown
-                        id="ddrotina"
-                        value={empresa.rotina}
-                        options={rotinas}
-                        onChange={(e) => onRotinaChange(e.value)}
-                        optionLabel="lista_label"
-                        dataKey="id"
-                        placeholder={
-                          (empresa.municipio?.id ?? '').trim()
-                            ? 'Selecione a rotina do município'
-                            : 'Selecione o município primeiro'
-                        }
-                        emptyMessage="Nenhuma rotina para este município"
-                        disabled={empresa?.iniciado === true || coreCamposBloqueados}
-                      />
-                      {submitted && !(empresa.rotina?.id ?? '').trim() && (
-                        <small className="p-invalid">Rotina é obrigatória para pessoa jurídica.</small>
-                      )}
-                    </div>
-                  )}
-
-                  {isClientePF && (
-                    <div className="field">
-                      <label htmlFor="ddrotinapf">Rotina PF</label>
-                      <Dropdown
-                        id="ddrotinapf"
-                        value={rotinaPFFormDropdownValue}
-                        options={rotinasPF}
-                        onChange={(e) => onRotinaPFChange(e.value ?? emptyRotinaPF)}
-                        optionLabel="nome"
-                        dataKey="id"
-                        placeholder={
-                          rotinasPF.length
-                            ? 'Selecione a rotina federal / sazonal'
-                            : 'Cadastre rotinas PF no banco (tabela rotina_pf)'
-                        }
-                        emptyMessage="Nenhuma rotina PF para este tenant"
-                        disabled={empresa?.iniciado === true || coreCamposBloqueados}
-                        className="w-full"
-                      />
-                      {submitted && !(empresa.rotina_pf?.id ?? rotinaPF?.id ?? '').trim() && (
-                        <small className="p-invalid">Rotina PF é obrigatória para pessoa física.</small>
-                      )}
-                      <small className="text-600">Templates por tenant (Carnê-Leão mensal, IRPF anual, etc.).</small>
+                    <div className="formgrid grid">
+                      <div className="field col-12 md:col-6">
+                        <label htmlFor="dd_tipo_emp_cli">Enquadramento jurídico</label>
+                        <Dropdown
+                          id="dd_tipo_emp_cli"
+                          value={tipoEmpresaFormDropdownValue}
+                          options={tiposEmpresaOptions}
+                          onChange={(e) => {
+                            const opt = e.value as Vec.TipoEmpresaLite | null;
+                            if (!opt?.id) {
+                              setEmpresa((prev) => ({
+                                ...prev,
+                                tipo_empresa: { id: '', descricao: '' },
+                              }));
+                              return;
+                            }
+                            setEmpresa((prev) => ({
+                              ...prev,
+                              tipo_empresa: {
+                                id: opt.id ?? '',
+                                descricao: opt.descricao ?? '',
+                              },
+                            }));
+                          }}
+                          optionLabel="descricao"
+                          dataKey="id"
+                          placeholder="Selecione o enquadramento"
+                          emptyMessage="Cadastre tipos em Tipos de empresa"
+                          disabled={!podeEditarEnquadramentoRegimePJ}
+                          className="w-full"
+                          showClear
+                          filter
+                          filterBy="descricao"
+                        />
+                      </div>
+                      <div className="field col-12 md:col-6">
+                        <label htmlFor="dd_regime_trib">Regime tributário</label>
+                        <Dropdown
+                          id="dd_regime_trib"
+                          value={regimeTributarioFormDropdownValue}
+                          options={regimesTributariosOptions}
+                          onChange={(e) => {
+                            const opt = e.value as Vec.RegimeTributario | null;
+                            if (!opt?.id) {
+                              setEmpresa((prev) => ({
+                                ...prev,
+                                regime_tributario: { id: '', nome: '', codigo_crt: undefined },
+                              }));
+                              return;
+                            }
+                            setEmpresa((prev) => ({
+                              ...prev,
+                              regime_tributario: {
+                                id: opt.id ?? '',
+                                nome: opt.nome ?? '',
+                                codigo_crt: opt.codigo_crt,
+                              },
+                            }));
+                          }}
+                          optionLabel="nome"
+                          itemTemplate={(r: Vec.RegimeTributario) => (
+                            <span>
+                              {r.nome ?? ''} (CRT {r.codigo_crt ?? ''})
+                            </span>
+                          )}
+                          valueTemplate={(r: Vec.RegimeTributario | null) =>
+                            r?.id ? (
+                              <span>
+                                {r.nome ?? ''} (CRT {r.codigo_crt ?? ''})
+                              </span>
+                            ) : (
+                              <span className="text-500">Selecione o regime (CRT)</span>
+                            )
+                          }
+                          dataKey="id"
+                          placeholder="Selecione o regime (CRT)"
+                          emptyMessage="Cadastre regimes em Regimes tributários"
+                          disabled={!podeEditarEnquadramentoRegimePJ}
+                          className="w-full"
+                          showClear
+                          loading={regimesTributariosLoading}
+                          filter
+                          filterBy="nome"
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -1476,25 +1450,68 @@ const Clientes = ({ dados }: { dados: string }) => {
                     </div>
                   )}
 
-                  <div className="field">
-                    <label htmlFor="documento_">{isClientePF ? 'CPF (11 dígitos)' : 'CNPJ (14 dígitos, opcional)'}</label>
-                    <InputText
-                      id="documento_"
-                      value={empresa.documento ?? ''}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={isClientePF ? 14 : 18}
-                      onChange={(e) => onInputChange(e, 'documento')}
-                      disabled={empresa?.iniciado === true || coreCamposBloqueados}
-                      className={classNames({ 'p-invalid': submitted && isClientePF && onlyDigits(empresa.documento ?? '').length !== 11 })}
-                      placeholder={isClientePF ? 'Somente números ou formatado' : 'Opcional para PJ'}
-                    />
-                    <small className="text-600">
-                      {isClientePF
-                        ? 'CPF único neste cadastro; não duplicar em outros campos.'
-                        : 'CNPJ único neste cadastro (opcional para PJ); não duplicar em outros campos.'}
-                    </small>
-                  </div>
+                  {isClientePF ? (
+                    <div className="field">
+                      <label htmlFor="documento_">CPF (11 dígitos)</label>
+                      <InputText
+                        id="documento_"
+                        value={empresa.documento ?? ''}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={14}
+                        onChange={(e) => onInputChange(e, 'documento')}
+                        disabled={empresa?.iniciado === true || coreCamposBloqueados}
+                        className={classNames({ 'p-invalid': submitted && onlyDigits(empresa.documento ?? '').length !== 11 })}
+                        placeholder="Somente números ou formatado"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="formgrid grid">
+                        <div className="field col-12 md:col-4">
+                          <label htmlFor="documento_">CNPJ (14 dígitos, opcional)</label>
+                          <InputText
+                            id="documento_"
+                            value={empresa.documento ?? ''}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={18}
+                            onChange={(e) => onInputChange(e, 'documento')}
+                            disabled={empresa?.iniciado === true || coreCamposBloqueados}
+                            className={classNames({
+                              'p-invalid': submitted && onlyDigits(empresa.documento ?? '').length > 0 && onlyDigits(empresa.documento ?? '').length !== 14,
+                            })}
+                            placeholder="Opcional para PJ"
+                          />
+                        </div>
+                        <div className="field col-12 md:col-4">
+                          <label htmlFor="ie_cli">Inscrição estadual</label>
+                          <InputText
+                            id="ie_cli"
+                            value={empresa.ie ?? ''}
+                            type="text"
+                            onChange={(e) => onInputChange(e, 'ie')}
+                            disabled={empresa?.iniciado === true || coreCamposBloqueados}
+                            className="w-full"
+                            maxLength={30}
+                            placeholder="Ex.: ISENTO"
+                          />
+                        </div>
+                        <div className="field col-12 md:col-4">
+                          <label htmlFor="im_cli">Inscrição municipal</label>
+                          <InputText
+                            id="im_cli"
+                            value={empresa.im ?? ''}
+                            type="text"
+                            onChange={(e) => onInputChange(e, 'im')}
+                            disabled={empresa?.iniciado === true || coreCamposBloqueados}
+                            className="w-full"
+                            maxLength={30}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {!isClientePF && (
                     <div className="field">
@@ -1517,14 +1534,13 @@ const Clientes = ({ dados }: { dados: string }) => {
                         className="w-full"
                         disabled={!podeEditarComplementosCliente}
                       />
-                      <small className="text-600">Por cliente (PJ). O enquadramento jurídico mantém apenas faturamento anual de referência.</small>
                     </div>
                   )}
                 </TabPanel>
 
                 <TabPanel header="Endereço e Meios de Contato" headerStyle={{ whiteSpace: 'nowrap' }}>
                   <p className="text-600 text-sm mt-0 mb-3">
-                    Município e rotinas foram informados na aba <strong>Dados Principais</strong>.
+                    Município e dados principais foram informados na aba <strong>Dados Principais</strong>.
                   </p>
 
                   <div className="formgrid grid">
