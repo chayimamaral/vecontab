@@ -17,7 +17,7 @@ vecontab/
 
 ### Backend
 
-- **Linguagem:** Go
+- **Linguagem:** Go 1.26.2
 - **Banco de Dados:** PostgreSQL
 - **Servidor HTTP:** integrado em Go
 - **Reverse Proxy:** Nginx (nginx.conf)
