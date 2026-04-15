@@ -97,7 +97,7 @@ const Empresas = ({ dados }) => {
     },
   });
 
-  const { data: rotinasOptions = [], refetch: refetchRotinas } = useQuery<Vec.RotinaLite[]>({
+  const { data: rotinasOptions = [] } = useQuery<Vec.RotinaLite[]>({
     queryKey: ['rotinas-empresa-processo', empresaSelecionada?.id ?? '', empresaSelecionada?.municipio?.id ?? '', empresaSelecionada?.tipo_empresa?.id ?? ''],
     queryFn: async () => {
       const municipioId = (empresaSelecionada?.municipio?.id ?? '').trim();
@@ -112,7 +112,7 @@ const Empresas = ({ dados }) => {
       }
       return all.filter((r: Vec.RotinaLite) => (r?.tipo_empresa?.id ?? '').trim() === tipoEmpresaID);
     },
-    enabled: false,
+    enabled: empresaDialog && !!(empresaSelecionada?.id ?? '').trim() && !!(empresaSelecionada?.municipio?.id ?? '').trim(),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -127,6 +127,17 @@ const Empresas = ({ dados }) => {
         map.set(key, []);
       }
       map.get(key)!.push(p);
+    });
+    map.forEach((items, key) => {
+      const ordered = [...items].sort((a, b) => {
+        const ta = Date.parse(String(a?.criado_em ?? ''));
+        const tb = Date.parse(String(b?.criado_em ?? ''));
+        if (!Number.isNaN(ta) && !Number.isNaN(tb) && ta !== tb) {
+          return tb - ta;
+        }
+        return String(b?.id ?? '').localeCompare(String(a?.id ?? ''));
+      });
+      map.set(key, ordered);
     });
     return map;
   }, [processosData]);
@@ -213,7 +224,6 @@ const Empresas = ({ dados }) => {
     setEmpresaSelecionada(empresa);
     setProcessoTemplate(null);
     setEmpresaDialog(true);
-    refetchRotinas();
   };
 
   const onSalvarNovoProcesso = async () => {
@@ -294,7 +304,10 @@ const Empresas = ({ dados }) => {
         : 'Não iniciado';
     return (
       <div className="flex flex-column">
-        <span className="text-700">{p.descricao ?? 'Processo'}</span>
+        <span className="text-700 inline-flex align-items-center gap-2" style={{ paddingLeft: '0.5rem' }}>
+          <i className="pi pi-arrow-right text-500" aria-hidden="true" />
+          {p.descricao ?? 'Processo'}
+        </span>
         <small className="text-500">{hint}</small>
       </div>
     );

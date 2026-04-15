@@ -30,21 +30,21 @@ const AppMenu = () => {
         items: [
           { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
           {
-            label: 'Processos Fiscais',
+            label: 'Compromissos Fiscais/Tributários',
             icon: 'pi pi-fw pi-list',
             items: [
               {
-                label: 'Processos por empresas',
+                label: 'Compromissos por empresas',
                 icon: 'pi pi-fw pi-list',
                 to: '/compromissos-empresas',
               },
               {
-                label: 'Processos por natureza',
+                label: 'Compromissos por natureza',
                 icon: 'pi pi-fw pi-sitemap',
                 to: '/compromissos-por-natureza',
               },
               {
-                label: 'Processos (visão corrida)',
+                label: 'Compromissos (visão corrida)',
                 icon: 'pi pi-fw pi-table',
                 to: '/compromissos-visao',
               },

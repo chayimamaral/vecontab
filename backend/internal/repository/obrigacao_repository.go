@@ -26,19 +26,20 @@ type ObrigacaoListParams struct {
 
 // ObrigacaoUpsertInput entrada de criação/atualização.
 type ObrigacaoUpsertInput struct {
-	ID                string
-	TipoEmpresaID     string
-	TipoClassificacao string
-	Descricao         string
-	Periodicidade     string
-	Abrangencia       string
-	DiaBase           int
-	MesBase           string
-	Valor             *float64
-	Observacao        string
-	EstadoID          string
-	MunicipioID       string
-	Bairro            string
+	ID                 string
+	TipoEmpresaID      string
+	TipoClassificacao  string
+	Descricao          string
+	Periodicidade      string
+	Abrangencia        string
+	DiaBase            int
+	MesBase            string
+	Valor              *float64
+	Observacao         string
+	EstadoID           string
+	MunicipioID        string
+	Bairro             string
+	CatalogoServicoIDs []string
 }
 
 type ObrigacaoRepository struct {
@@ -226,6 +227,8 @@ func (r *ObrigacaoRepository) List(ctx context.Context, params ObrigacaoListPara
 		return nil, 0, fmt.Errorf("rows error: %w", err)
 	}
 
+	r.attachServicosSerpro(ctx, items)
+
 	countQuery := fmt.Sprintf(`
 		SELECT count(DISTINCT c.id)
 		FROM public.tipoempresa_obrigacao c
@@ -293,6 +296,7 @@ func (r *ObrigacaoRepository) Create(ctx context.Context, input ObrigacaoUpsertI
 	}
 
 	r.upsertRelations(ctx, createdID, input)
+	r.upsertServicosCatalogo(ctx, createdID, input.CatalogoServicoIDs)
 	return result, int64(len(result)), nil
 }
 
@@ -332,6 +336,7 @@ func (r *ObrigacaoRepository) Update(ctx context.Context, input ObrigacaoUpsertI
 
 	r.clearRelations(ctx, input.ID)
 	r.upsertRelations(ctx, input.ID, input)
+	r.upsertServicosCatalogo(ctx, input.ID, input.CatalogoServicoIDs)
 	return result, int64(len(result)), nil
 }
 
@@ -428,6 +433,110 @@ func (r *ObrigacaoRepository) clearRelations(ctx context.Context, id string) {
 	_, _ = r.pool.Exec(ctx, `DELETE FROM public.tipoempresa_obriga_estado WHERE obrigacao_id = $1`, id)
 	_, _ = r.pool.Exec(ctx, `DELETE FROM public.tipoempresa_obriga_municipio WHERE obrigacao_id = $1`, id)
 	_, _ = r.pool.Exec(ctx, `DELETE FROM public.tipoempresa_obriga_bairro WHERE tipoempresa_obrigacao_id = $1`, id)
+}
+
+func (r *ObrigacaoRepository) upsertServicosCatalogo(ctx context.Context, obrigacaoID string, catalogoServicoIDs []string) {
+	_, _ = r.pool.Exec(ctx, `DELETE FROM public.tipoempresa_obrigacao_servico WHERE tipoempresa_obrigacao_id = $1`, obrigacaoID)
+	if len(catalogoServicoIDs) == 0 {
+		return
+	}
+	for idx, catalogoID := range catalogoServicoIDs {
+		id := strings.TrimSpace(catalogoID)
+		if id == "" {
+			continue
+		}
+		_, _ = r.pool.Exec(ctx, `
+			INSERT INTO public.tipoempresa_obrigacao_servico (
+				tipoempresa_obrigacao_id, catalogo_servico_id, operacao, obrigatorio, ordem, ativo
+			)
+			VALUES ($1, $2, 'CONSULTAR', false, $3, true)
+			ON CONFLICT (tipoempresa_obrigacao_id, catalogo_servico_id, operacao)
+			DO UPDATE SET
+				ordem = EXCLUDED.ordem,
+				ativo = true,
+				atualizado_em = NOW()
+		`, obrigacaoID, id, idx+1)
+	}
+}
+
+func (r *ObrigacaoRepository) attachServicosSerpro(ctx context.Context, items []domain.ObrigacaoListItem) {
+	if len(items) == 0 {
+		return
+	}
+	obrigacaoIDs := make([]string, 0, len(items))
+	for _, item := range items {
+		if strings.TrimSpace(item.ID) != "" {
+			obrigacaoIDs = append(obrigacaoIDs, item.ID)
+		}
+	}
+	if len(obrigacaoIDs) == 0 {
+		return
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT
+			v.tipoempresa_obrigacao_id::text,
+			v.catalogo_servico_id::text,
+			v.operacao,
+			v.obrigatorio,
+			COALESCE(v.ordem::int, 1),
+			COALESCE(c.codigo, ''),
+			COALESCE(c.descricao, ''),
+			COALESCE(c.id_sistema, ''),
+			COALESCE(c.id_servico, '')
+		FROM public.tipoempresa_obrigacao_servico v
+		JOIN public.catalogo_servico_integra_contador c ON c.id = v.catalogo_servico_id
+		WHERE v.ativo = true
+		  AND c.ativo = true
+		  AND v.tipoempresa_obrigacao_id::text = ANY($1::text[])
+		ORDER BY v.ordem ASC, c.descricao ASC
+	`, obrigacaoIDs)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	byObrigacao := make(map[string][]domain.ObrigacaoServicoVinculo, len(obrigacaoIDs))
+	for rows.Next() {
+		var obrigacaoID, catalogoID, operacao, codigo, descricao, idSistema, idServico string
+		var obrigatorio bool
+		var ordem int
+		if err := rows.Scan(
+			&obrigacaoID,
+			&catalogoID,
+			&operacao,
+			&obrigatorio,
+			&ordem,
+			&codigo,
+			&descricao,
+			&idSistema,
+			&idServico,
+		); err != nil {
+			continue
+		}
+		byObrigacao[obrigacaoID] = append(byObrigacao[obrigacaoID], domain.ObrigacaoServicoVinculo{
+			CatalogoServicoID: catalogoID,
+			Operacao:          operacao,
+			Obrigatorio:       obrigatorio,
+			Ordem:             ordem,
+			Codigo:            codigo,
+			Descricao:         descricao,
+			IDSistema:         idSistema,
+			IDServico:         idServico,
+		})
+	}
+
+	for idx := range items {
+		vinculos := byObrigacao[items[idx].ID]
+		if len(vinculos) == 0 {
+			continue
+		}
+		items[idx].ServicosSerpro = vinculos
+		items[idx].CatalogoServicoIDs = make([]string, 0, len(vinculos))
+		for _, vinculo := range vinculos {
+			items[idx].CatalogoServicoIDs = append(items[idx].CatalogoServicoIDs, vinculo.CatalogoServicoID)
+		}
+	}
 }
 
 func obrigacaoNullFloat(v *float64) any {

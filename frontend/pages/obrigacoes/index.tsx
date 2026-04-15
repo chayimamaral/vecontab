@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { GetServerSidePropsContext } from 'next';
 import { classNames } from 'primereact/utils';
@@ -9,6 +9,7 @@ import ObrigacaoLegaisService from '../../services/cruds/ObrigacaoLegaisService'
 import MunicipioService from '../../services/cruds/MunicipioService';
 import EstadoService from '../../services/cruds/EstadoService';
 import TipoEmpresaService from '../../services/cruds/TipoEmpresaService';
+import CatalogoServicoService, { CatalogoServico } from '../../services/cruds/CatalogoServicoService';
 import { Toast } from 'primereact/toast';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
@@ -49,6 +50,8 @@ interface ObrigacaoLegais {
   estado?: GeoRef;
   municipio?: GeoRef;
   bairro?: string;
+  catalogo_servico_ids?: string[];
+  servicos_serpro?: { catalogo_servico_id: string; descricao?: string; codigo?: string }[];
 }
 
 interface LazyTableState {
@@ -151,6 +154,11 @@ const ObrigacoesLegaisPage = () => {
   const [selectedEstado, setSelectedEstado] = useState<GeoRef | undefined>();
   const [selectedMunicipio, setSelectedMunicipio] = useState<GeoRef | undefined>();
   const [selectedTipoEmpresa, setSelectedTipoEmpresa] = useState<TipoEmpresaRef | undefined>();
+  const [selectedCatalogoServicoIDs, setSelectedCatalogoServicoIDs] = useState<string[]>([]);
+  const [catalogoDialogVisible, setCatalogoDialogVisible] = useState(false);
+  const [catalogoDraftIDs, setCatalogoDraftIDs] = useState<string[]>([]);
+  const [catalogoSecaoFiltro, setCatalogoSecaoFiltro] = useState<string>('TODAS');
+  const [catalogoBusca, setCatalogoBusca] = useState('');
 
   // Selected abrangencia/periodicidade options (dropdown objects)
   const [selectedAbrangencia, setSelectedAbrangencia] = useState<AbrangenciaOpcao>(abrangencias[1]); // FEDERAL default in form
@@ -181,6 +189,7 @@ const ObrigacoesLegaisPage = () => {
   });
 
   const obrigacaoLegaisService = ObrigacaoLegaisService();
+  const catalogoServicoService = CatalogoServicoService();
 
   const getSortValue = (item: ObrigacaoLegais, field?: string): string | number => {
     switch (field) {
@@ -262,6 +271,44 @@ const ObrigacoesLegaisPage = () => {
       return lista;
     },
   });
+
+  const { data: catalogoServicos = [] } = useQuery<CatalogoServico[]>({
+    queryKey: ['catalogo-servicos-lite-obrigacoes'],
+    queryFn: () => catalogoServicoService.list({ incluirInativos: false }),
+  });
+
+  const secoesCatalogo = useMemo(
+    () =>
+      ['TODAS', ...Array.from(new Set(catalogoServicos.map((item) => item.secao?.trim()).filter((item): item is string => Boolean(item && item.length > 0)))).sort((a, b) =>
+        a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+      )],
+    [catalogoServicos],
+  );
+
+  const catalogoFiltrado = useMemo(() => {
+    const termo = catalogoBusca.trim().toLowerCase();
+    return catalogoServicos.filter((item) => {
+      if (catalogoSecaoFiltro !== 'TODAS' && item.secao !== catalogoSecaoFiltro) {
+        return false;
+      }
+      if (!termo) {
+        return true;
+      }
+      return [item.descricao, item.codigo, item.id_sistema, item.id_servico, item.secao]
+        .map((v) => String(v ?? '').toLowerCase())
+        .some((v) => v.includes(termo));
+    });
+  }, [catalogoServicos, catalogoSecaoFiltro, catalogoBusca]);
+
+  const catalogoSelecionadoDraft = useMemo(
+    () => catalogoServicos.filter((item) => catalogoDraftIDs.includes(item.id)),
+    [catalogoServicos, catalogoDraftIDs],
+  );
+
+  const catalogoSelecionadoFinal = useMemo(
+    () => catalogoServicos.filter((item) => selectedCatalogoServicoIDs.includes(item.id)),
+    [catalogoServicos, selectedCatalogoServicoIDs],
+  );
 
   // ── paginator ────────────────────────────────────────────────────────────
 
@@ -373,6 +420,7 @@ const ObrigacoesLegaisPage = () => {
     setSelectedEstado(undefined);
     setSelectedMunicipio(undefined);
     setSelectedTipoEmpresa(undefined);
+    setSelectedCatalogoServicoIDs([]);
     setSubmitted(false);
     setObrigacaoDialog(true);
   };
@@ -380,6 +428,18 @@ const ObrigacoesLegaisPage = () => {
   const hideDialog = () => {
     setSubmitted(false);
     setObrigacaoDialog(false);
+  };
+
+  const abrirDialogCatalogo = () => {
+    setCatalogoDraftIDs(selectedCatalogoServicoIDs);
+    setCatalogoSecaoFiltro('TODAS');
+    setCatalogoBusca('');
+    setCatalogoDialogVisible(true);
+  };
+
+  const aplicarDialogCatalogo = () => {
+    setSelectedCatalogoServicoIDs(catalogoDraftIDs);
+    setCatalogoDialogVisible(false);
   };
 
   const editObrigacao = (row: ObrigacaoLegais) => {
@@ -396,6 +456,10 @@ const ObrigacoesLegaisPage = () => {
     setSelectedEstado(row.estado?.id ? row.estado : undefined);
     setSelectedMunicipio(row.municipio?.id ? row.municipio : undefined);
     setSelectedTipoEmpresa(row.tipo_empresa_id && row.tipoempresa?.nome ? { id: row.tipo_empresa_id, descricao: row.tipoempresa.nome } : undefined);
+    setSelectedCatalogoServicoIDs(
+      (row.catalogo_servico_ids ?? row.servicos_serpro?.map((s) => s.catalogo_servico_id) ?? [])
+        .filter((id): id is string => typeof id === 'string' && id.trim() !== ''),
+    );
     setObrigacaoDialog(true);
   };
 
@@ -426,6 +490,7 @@ const ObrigacoesLegaisPage = () => {
       estado: abrangCode === 'ESTADUAL' ? selectedEstado : undefined,
       municipio: (abrangCode === 'MUNICIPAL' || abrangCode === 'BAIRRO') ? selectedMunicipio : undefined,
       bairro: abrangCode === 'BAIRRO' ? (obrigacao.bairro ?? '').trim() : '',
+      catalogo_servico_ids: selectedCatalogoServicoIDs,
       dia_base: obrigacao.dia_base ?? 20,
       mes_base: obrigacao.mes_base && String(obrigacao.mes_base).trim() !== '' ? String(obrigacao.mes_base) : null,
     };
@@ -604,6 +669,36 @@ const ObrigacoesLegaisPage = () => {
     </>
   );
 
+  const servicosSerproBodyTemplate = (rowData: ObrigacaoLegais) => {
+    const itens = rowData.servicos_serpro ?? [];
+    if (itens.length === 0) {
+      return <span>—</span>;
+    }
+    if (itens.length === 1) {
+      return <span>{itens[0].descricao || itens[0].codigo || 'Serviço vinculado'}</span>;
+    }
+    return <span>{`${itens.length} serviços`}</span>;
+  };
+
+  const toggleCatalogoDraft = (servicoID: string) => {
+    setCatalogoDraftIDs((prev) =>
+      prev.includes(servicoID) ? prev.filter((id) => id !== servicoID) : [...prev, servicoID],
+    );
+  };
+
+  const acaoCatalogoBodyTemplate = (rowData: CatalogoServico) => {
+    const selecionado = catalogoDraftIDs.includes(rowData.id);
+    return (
+      <Button
+        type="button"
+        label={selecionado ? 'Remover' : 'Selecionar'}
+        icon={selecionado ? 'pi pi-times' : 'pi pi-plus'}
+        className={selecionado ? 'p-button-text p-button-danger' : 'p-button-text p-button-success'}
+        onClick={() => toggleCatalogoDraft(rowData.id)}
+      />
+    );
+  };
+
   const currentAbrang = selectedAbrangencia?.code ?? 'FEDERAL';
 
   const dialogFooter = (
@@ -734,6 +829,7 @@ const ObrigacoesLegaisPage = () => {
               <Column field="abrangencia" header="Abrangência" sortable body={abrangenciaBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
               <Column header="Localização" body={localizacaoBodyTemplate} headerStyle={{ minWidth: '14rem' }} />
               <Column field="valor" header="Valor" sortable body={valorBodyTemplate} headerStyle={{ minWidth: '10rem' }} />
+              <Column header="Serviço Serpro" body={servicosSerproBodyTemplate} headerStyle={{ minWidth: '14rem' }} />
               <Column body={actionBodyTemplate} headerStyle={{ minWidth: '8rem' }} />
             </DataTable>
 
@@ -922,6 +1018,88 @@ const ObrigacoesLegaisPage = () => {
                   placeholder="Informações adicionais sobre esta obrigação legal"
                 />
               </div>
+
+              <div className="field">
+                <label htmlFor="catalogo_servico_ids">Serviços vinculados (Serpro)</label>
+                <div className="flex flex-column gap-2">
+                  <Button
+                    type="button"
+                    icon="pi pi-list"
+                    label={selectedCatalogoServicoIDs.length > 0 ? `Selecionar serviços (${selectedCatalogoServicoIDs.length})` : 'Selecionar serviços'}
+                    className="p-button-outlined"
+                    onClick={abrirDialogCatalogo}
+                  />
+                  <div className="surface-50 border-1 border-round border-300 p-2" style={{ maxHeight: '8rem', overflowY: 'auto' }}>
+                    {catalogoSelecionadoFinal.length === 0 ? (
+                      <span className="text-600">Nenhum serviço selecionado.</span>
+                    ) : (
+                      <div className="flex flex-column gap-1">
+                        {catalogoSelecionadoFinal.map((item) => (
+                          <span key={item.id} className="text-700">
+                            {item.secao} - {item.codigo} - {item.descricao}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <small className="text-600">
+                  Vínculo opcional. Use para obrigações que dependem de integração com o Catálogo de Serviços.
+                </small>
+              </div>
+            </Dialog>
+
+            <Dialog
+              visible={catalogoDialogVisible}
+              header="Selecionar serviços vinculados (Serpro)"
+              style={{ width: 'min(96vw, 78rem)' }}
+              modal
+              onHide={() => setCatalogoDialogVisible(false)}
+              footer={
+                <div className="flex justify-content-end gap-2">
+                  <Button type="button" label="Cancelar" text onClick={() => setCatalogoDialogVisible(false)} />
+                  <Button type="button" label="Aplicar" icon="pi pi-check" onClick={aplicarDialogCatalogo} />
+                </div>
+              }
+            >
+              <div className="flex flex-column md:flex-row gap-2 mb-3">
+                <Dropdown
+                  value={catalogoSecaoFiltro}
+                  options={secoesCatalogo.map((secao) => ({ label: secao === 'TODAS' ? 'Todas as seções' : secao, value: secao }))}
+                  optionLabel="label"
+                  optionValue="value"
+                  onChange={(e) => setCatalogoSecaoFiltro(e.value)}
+                  className="w-full md:w-18rem"
+                  placeholder="Filtrar seção"
+                />
+                <span className="p-input-icon-left w-full">
+                  <i className="pi pi-search" />
+                  <InputText
+                    value={catalogoBusca}
+                    onChange={(e) => setCatalogoBusca(e.target.value)}
+                    placeholder="Buscar por descricao, codigo, idSistema ou idServico"
+                    className="w-full"
+                  />
+                </span>
+              </div>
+
+              <DataTable
+                value={catalogoFiltrado}
+                dataKey="id"
+                paginator
+                rows={10}
+                rowsPerPageOptions={[10, 20, 50]}
+                size="small"
+                stripedRows
+                emptyMessage="Nenhum serviço encontrado para os filtros."
+              >
+                <Column header="Ação" body={acaoCatalogoBodyTemplate} style={{ width: '8rem' }} />
+                <Column field="secao" header="Seção" style={{ minWidth: '11rem' }} />
+                <Column field="codigo" header="Código" style={{ minWidth: '6rem' }} />
+                <Column field="descricao" header="Descrição" style={{ minWidth: '22rem' }} />
+                <Column field="id_sistema" header="idSistema" style={{ minWidth: '8rem' }} />
+                <Column field="id_servico" header="idServico" style={{ minWidth: '8rem' }} />
+              </DataTable>
             </Dialog>
 
             {/* ── Delete confirm dialog ─── */}

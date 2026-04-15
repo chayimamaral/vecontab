@@ -59,25 +59,16 @@ func (r *EmpresaCompromissoRepository) GerarCompromissosEmpresa(ctx context.Cont
 		return 0, fmt.Errorf("tenant nao informado")
 	}
 
-	var total int
-	err := r.pool.QueryRow(
-		ctx,
-		`SELECT public.gerar_compromissos_empresa($1::text, $2::date)
-		  WHERE EXISTS (
-			SELECT 1 FROM public.empresa e
-			WHERE e.id = $1::uuid AND e.tenant_id = $3::uuid AND e.ativo = true
-		  )`,
-		eid,
-		dataRef.Format("2006-01-02"),
-		tid,
-	).Scan(&total)
+	// Evita dependência de function SQL legada (com colunas antigas) e usa fluxo Go compatível com UUID.
+	items, err := r.GerarCompromissos(ctx, eid, tid, dataRef, map[string]bool{})
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return 0, fmt.Errorf("empresa nao encontrada neste tenant")
+		msg := strings.ToLower(err.Error())
+		if strings.Contains(msg, "compromiss") && strings.Contains(msg, "gerad") && strings.Contains(msg, "empresa") {
+			return 0, nil
 		}
 		return 0, fmt.Errorf("executar gerar_compromissos_empresa: %w", err)
 	}
-	return total, nil
+	return len(items), nil
 }
 
 func (r *EmpresaCompromissoRepository) GerarCompromissosGeral(ctx context.Context, dataRef time.Time) (int, error) {

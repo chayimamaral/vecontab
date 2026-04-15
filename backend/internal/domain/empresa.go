@@ -65,6 +65,7 @@ type EmpresaProcessoItem struct {
 	TenantID            string `json:"tenant_id"`
 	RotinaID            string `json:"rotina_id"`
 	Descricao           string `json:"descricao"`
+	CriadoEm            string `json:"criado_em"`
 	Iniciado            bool   `json:"iniciado"`
 	PassosConcluidos    bool   `json:"passos_concluidos"`
 	CompromissosGerados bool   `json:"compromissos_gerados"`

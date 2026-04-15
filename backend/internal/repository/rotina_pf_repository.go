@@ -273,7 +273,7 @@ func (r *RotinaPFRepository) ListItens(ctx context.Context, rotinaPFID, tenantID
 			i.id::text,
 			i.rotina_pf_id::text,
 			i.ordem,
-			COALESCE(i.passo_id, ''),
+			COALESCE(i.passo_id::text, ''),
 			COALESCE(p.descricao, ''),
 			COALESCE(i.descricao, ''),
 			i.tempo_estimado

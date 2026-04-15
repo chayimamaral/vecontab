@@ -17,19 +17,20 @@ type ObrigacaoHandler struct {
 
 type obrigacaoEnvelope struct {
 	Params struct {
-		ID                string   `json:"id"`
-		TipoEmpresa       any      `json:"tipoempresa"`
-		TipoClassificacao any      `json:"tipo_classificacao"`
-		Descricao         string   `json:"descricao"`
-		Periodicidade     any      `json:"periodicidade"`
-		Abrangencia       any      `json:"abrangencia"`
-		DiaBase           int      `json:"dia_base"`
-		MesBase           any      `json:"mes_base"`
-		Valor             *float64 `json:"valor"`
-		Observacao        string   `json:"observacao"`
-		Municipio         any      `json:"municipio"`
-		Estado            any      `json:"estado"`
-		Bairro            string   `json:"bairro"`
+		ID                 string   `json:"id"`
+		TipoEmpresa        any      `json:"tipoempresa"`
+		TipoClassificacao  any      `json:"tipo_classificacao"`
+		Descricao          string   `json:"descricao"`
+		Periodicidade      any      `json:"periodicidade"`
+		Abrangencia        any      `json:"abrangencia"`
+		DiaBase            int      `json:"dia_base"`
+		MesBase            any      `json:"mes_base"`
+		Valor              *float64 `json:"valor"`
+		Observacao         string   `json:"observacao"`
+		Municipio          any      `json:"municipio"`
+		Estado             any      `json:"estado"`
+		Bairro             string   `json:"bairro"`
+		CatalogoServicoIDs []string `json:"catalogo_servico_ids"`
 	} `json:"params"`
 }
 
@@ -74,18 +75,19 @@ func (h *ObrigacaoHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := service.ObrigacaoInput{
-		TipoEmpresaID:     objectIDFromAny(payload.Params.TipoEmpresa),
-		TipoClassificacao: obrigacaoCodeFromAny(payload.Params.TipoClassificacao),
-		Descricao:         desc,
-		Periodicidade:     obrigacaoCodeFromAny(payload.Params.Periodicidade),
-		Abrangencia:       obrigacaoCodeFromAny(payload.Params.Abrangencia),
-		DiaBase:           payload.Params.DiaBase,
-		MesBase:           service.MesBaseFromAny(payload.Params.MesBase),
-		Valor:             payload.Params.Valor,
-		Observacao:        strings.TrimSpace(payload.Params.Observacao),
-		EstadoID:          objectIDFromAny(payload.Params.Estado),
-		MunicipioID:       objectIDFromAny(payload.Params.Municipio),
-		Bairro:            strings.TrimSpace(payload.Params.Bairro),
+		TipoEmpresaID:      objectIDFromAny(payload.Params.TipoEmpresa),
+		TipoClassificacao:  obrigacaoCodeFromAny(payload.Params.TipoClassificacao),
+		Descricao:          desc,
+		Periodicidade:      obrigacaoCodeFromAny(payload.Params.Periodicidade),
+		Abrangencia:        obrigacaoCodeFromAny(payload.Params.Abrangencia),
+		DiaBase:            payload.Params.DiaBase,
+		MesBase:            service.MesBaseFromAny(payload.Params.MesBase),
+		Valor:              payload.Params.Valor,
+		Observacao:         strings.TrimSpace(payload.Params.Observacao),
+		EstadoID:           objectIDFromAny(payload.Params.Estado),
+		MunicipioID:        objectIDFromAny(payload.Params.Municipio),
+		Bairro:             strings.TrimSpace(payload.Params.Bairro),
+		CatalogoServicoIDs: normalizeUUIDList(payload.Params.CatalogoServicoIDs),
 	}
 
 	if input.Periodicidade == "" {
@@ -129,19 +131,20 @@ func (h *ObrigacaoHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := service.ObrigacaoInput{
-		ID:                id,
-		TipoEmpresaID:     objectIDFromAny(payload.Params.TipoEmpresa),
-		TipoClassificacao: obrigacaoCodeFromAny(payload.Params.TipoClassificacao),
-		Descricao:         desc,
-		Periodicidade:     obrigacaoCodeFromAny(payload.Params.Periodicidade),
-		Abrangencia:       obrigacaoCodeFromAny(payload.Params.Abrangencia),
-		DiaBase:           payload.Params.DiaBase,
-		MesBase:           service.MesBaseFromAny(payload.Params.MesBase),
-		Valor:             payload.Params.Valor,
-		Observacao:        strings.TrimSpace(payload.Params.Observacao),
-		EstadoID:          objectIDFromAny(payload.Params.Estado),
-		MunicipioID:       objectIDFromAny(payload.Params.Municipio),
-		Bairro:            strings.TrimSpace(payload.Params.Bairro),
+		ID:                 id,
+		TipoEmpresaID:      objectIDFromAny(payload.Params.TipoEmpresa),
+		TipoClassificacao:  obrigacaoCodeFromAny(payload.Params.TipoClassificacao),
+		Descricao:          desc,
+		Periodicidade:      obrigacaoCodeFromAny(payload.Params.Periodicidade),
+		Abrangencia:        obrigacaoCodeFromAny(payload.Params.Abrangencia),
+		DiaBase:            payload.Params.DiaBase,
+		MesBase:            service.MesBaseFromAny(payload.Params.MesBase),
+		Valor:              payload.Params.Valor,
+		Observacao:         strings.TrimSpace(payload.Params.Observacao),
+		EstadoID:           objectIDFromAny(payload.Params.Estado),
+		MunicipioID:        objectIDFromAny(payload.Params.Municipio),
+		Bairro:             strings.TrimSpace(payload.Params.Bairro),
+		CatalogoServicoIDs: normalizeUUIDList(payload.Params.CatalogoServicoIDs),
 	}
 
 	if input.Periodicidade == "" {
@@ -269,4 +272,24 @@ func obrigacaoCodeFromAny(value any) string {
 		return s
 	}
 	return ""
+}
+
+func normalizeUUIDList(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, raw := range values {
+		id := strings.TrimSpace(raw)
+		if id == "" {
+			continue
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
 }

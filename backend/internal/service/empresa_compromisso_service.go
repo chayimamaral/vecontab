@@ -65,6 +65,13 @@ func (s *EmpresaCompromissoService) Gerar(ctx context.Context, empresaID, tenant
 
 	total, err := s.repo.GerarCompromissosEmpresa(ctx, tid, dataInicio, eid)
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "compromissos ja gerados para esta empresa") {
+			return EmpresaCompromissoGerarResponse{
+				Itens:      []domain.EmpresaCompromissoItem{},
+				Quantidade: 0,
+				Message:    "compromissos ja gerados para esta empresa",
+			}, nil
+		}
 		return EmpresaCompromissoGerarResponse{}, err
 	}
 

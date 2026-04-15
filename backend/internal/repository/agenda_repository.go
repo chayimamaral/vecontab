@@ -86,8 +86,8 @@ func (r *AgendaRepository) DetailEvents(ctx context.Context, tenantID, agendaID 
 		SELECT
 			ai.id,
 			COALESCE(NULLIF(btrim(COALESCE(ai.descricao, '')), ''), p.descricao, ''),
-			COALESCE(p.id, ''),
-			ai.agenda_id,
+			COALESCE(p.id::text, ''),
+			ai.agenda_id::text,
 			ai.inicio::text,
 			COALESCE(ai.termino::text, ai.inicio::text),
 			CASE
@@ -434,6 +434,13 @@ func (r *AgendaRepository) InsertAgendaItem(ctx context.Context, tenantID, agend
 	if !owned {
 		return "", fmt.Errorf("agenda nao encontrada neste tenant")
 	}
+	encerrada, err := r.agendaEncerrada(ctx, agendaID)
+	if err != nil {
+		return "", err
+	}
+	if encerrada {
+		return "", fmt.Errorf("processo concluido: nao e permitido incluir novos passos")
+	}
 
 	var newID string
 	if err := r.pool.QueryRow(ctx, `
@@ -445,6 +452,57 @@ func (r *AgendaRepository) InsertAgendaItem(ctx context.Context, tenantID, agend
 		return "", fmt.Errorf("inserir item da agenda: %w", err)
 	}
 	return newID, nil
+}
+
+func (r *AgendaRepository) agendaEncerrada(ctx context.Context, agendaID string) (bool, error) {
+	hasPassosConcluidos, err := r.columnExists(ctx, "agenda", "passos_concluidos")
+	if err != nil {
+		return false, err
+	}
+	hasConcluida, err := r.columnExists(ctx, "agenda", "concluida")
+	if err != nil {
+		return false, err
+	}
+	hasStatus, err := r.columnExists(ctx, "agenda", "status")
+	if err != nil {
+		return false, err
+	}
+
+	conds := make([]string, 0, 3)
+	if hasPassosConcluidos {
+		conds = append(conds, "COALESCE(a.passos_concluidos, false) = true")
+	}
+	if hasConcluida {
+		conds = append(conds, "COALESCE(a.concluida, false) = true")
+	}
+	if hasStatus {
+		conds = append(conds, "lower(COALESCE(a.status, '')) IN ('concluido', 'concluida', 'finalizado', 'finalizada', 'passos_concluidos')")
+	}
+
+	if len(conds) > 0 {
+		var done bool
+		q := fmt.Sprintf("SELECT (%s) FROM public.agenda a WHERE a.id = $1", strings.Join(conds, " OR "))
+		if err := r.pool.QueryRow(ctx, q, agendaID).Scan(&done); err != nil {
+			return false, fmt.Errorf("validar status de conclusao da agenda: %w", err)
+		}
+		if done {
+			return true, nil
+		}
+	}
+
+	// Fallback por itens: se houver itens e todos estiverem concluídos, considera encerrada.
+	var totalItens int64
+	if err := r.pool.QueryRow(ctx, `SELECT count(*) FROM public.agendaitens WHERE agenda_id = $1`, agendaID).Scan(&totalItens); err != nil {
+		return false, fmt.Errorf("contar itens da agenda: %w", err)
+	}
+	if totalItens == 0 {
+		return false, nil
+	}
+	allDone, err := r.todosPassosConcluidos(ctx, agendaID)
+	if err != nil {
+		return false, err
+	}
+	return allDone, nil
 }
 
 // UpdateAgendaItem atualiza descricao e/ou datas do item (nao altera passos).

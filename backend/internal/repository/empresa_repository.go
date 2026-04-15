@@ -513,13 +513,14 @@ func (r *EmpresaRepository) ListProcessos(ctx context.Context, empresaID, tenant
 			ep.tenant_id::text,
 			COALESCE(ep.rotina_id::text, ''),
 			ep.descricao,
+			ep.criado_em::text,
 			ep.iniciado,
 			ep.passos_concluidos,
 			ep.compromissos_gerados,
 			ep.ativo
 		FROM public.empresa_processos ep
 		WHERE %s
-		ORDER BY ep.criado_em DESC`, strings.Join(whereParts, " AND "))
+		ORDER BY ep.criado_em DESC, ep.id DESC`, strings.Join(whereParts, " AND "))
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -536,6 +537,7 @@ func (r *EmpresaRepository) ListProcessos(ctx context.Context, empresaID, tenant
 			&item.TenantID,
 			&item.RotinaID,
 			&item.Descricao,
+			&item.CriadoEm,
 			&item.Iniciado,
 			&item.PassosConcluidos,
 			&item.CompromissosGerados,
@@ -554,8 +556,8 @@ func (r *EmpresaRepository) ListProcessos(ctx context.Context, empresaID, tenant
 func (r *EmpresaRepository) CreateProcesso(ctx context.Context, input EmpresaProcessoInput) ([]domain.EmpresaProcessoItem, int64, error) {
 	const query = `
 		INSERT INTO public.empresa_processos (tenant_id, empresa_id, rotina_id, descricao)
-		VALUES ($1, $2, NULLIF($3::text, ''), $4)
-		RETURNING id::text, empresa_id::text, tenant_id::text, COALESCE(rotina_id::text, ''), descricao, iniciado, passos_concluidos, compromissos_gerados, ativo`
+		VALUES ($1, $2, NULLIF($3::text, '')::uuid, $4)
+		RETURNING id::text, empresa_id::text, tenant_id::text, COALESCE(rotina_id::text, ''), descricao, criado_em::text, iniciado, passos_concluidos, compromissos_gerados, ativo`
 
 	rows, err := r.pool.Query(ctx, query, input.TenantID, input.EmpresaID, strings.TrimSpace(input.RotinaID), strings.TrimSpace(input.Descricao))
 	if err != nil {
@@ -572,6 +574,7 @@ func (r *EmpresaRepository) CreateProcesso(ctx context.Context, input EmpresaPro
 			&item.TenantID,
 			&item.RotinaID,
 			&item.Descricao,
+			&item.CriadoEm,
 			&item.Iniciado,
 			&item.PassosConcluidos,
 			&item.CompromissosGerados,
@@ -581,6 +584,9 @@ func (r *EmpresaRepository) CreateProcesso(ctx context.Context, input EmpresaPro
 		}
 		items = append(items, item)
 	}
+	if len(items) == 0 {
+		return nil, 0, fmt.Errorf("processo nao encontrado neste tenant ou ja inativo")
+	}
 	return items, int64(len(items)), nil
 }
 
@@ -589,7 +595,7 @@ func (r *EmpresaRepository) IniciarProcessoFilho(ctx context.Context, processoID
 		UPDATE public.empresa_processos ep
 		SET iniciado = true, atualizado_em = NOW()
 		WHERE ep.id = $1 AND ep.tenant_id = $2 AND ep.ativo = true
-		RETURNING id::text, empresa_id::text, tenant_id::text, COALESCE(rotina_id::text, ''), descricao, iniciado, passos_concluidos, compromissos_gerados, ativo`
+		RETURNING id::text, empresa_id::text, tenant_id::text, COALESCE(rotina_id::text, ''), descricao, criado_em::text, iniciado, passos_concluidos, compromissos_gerados, ativo`
 
 	rows, err := r.pool.Query(ctx, query, processoID, tenantID)
 	if err != nil {
@@ -606,6 +612,7 @@ func (r *EmpresaRepository) IniciarProcessoFilho(ctx context.Context, processoID
 			&item.TenantID,
 			&item.RotinaID,
 			&item.Descricao,
+			&item.CriadoEm,
 			&item.Iniciado,
 			&item.PassosConcluidos,
 			&item.CompromissosGerados,
@@ -613,9 +620,51 @@ func (r *EmpresaRepository) IniciarProcessoFilho(ctx context.Context, processoID
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan iniciar empresa processo: %w", err)
 		}
+		if err := r.ensureAgendaForProcesso(ctx, item.EmpresaID, item.TenantID, item.RotinaID); err != nil {
+			return nil, 0, fmt.Errorf("gerar agenda do processo iniciado: %w", err)
+		}
 		items = append(items, item)
 	}
 	return items, int64(len(items)), nil
+}
+
+func (r *EmpresaRepository) ensureAgendaForProcesso(ctx context.Context, empresaID, tenantID, rotinaID string) error {
+	empresaID = strings.TrimSpace(empresaID)
+	tenantID = strings.TrimSpace(tenantID)
+	rotinaID = strings.TrimSpace(rotinaID)
+	if empresaID == "" || tenantID == "" || rotinaID == "" {
+		return nil
+	}
+
+	const q = `
+		WITH nova_agenda AS (
+			INSERT INTO public.agenda (empresa_id, tenant_id, rotina_id, inicio)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, CURRENT_DATE)
+			RETURNING id
+		),
+		itens AS (
+			INSERT INTO public.agendaitens (agenda_id, passo_id, inicio, termino, descricao)
+			SELECT
+				na.id,
+				ri.passo_id,
+				CURRENT_DATE,
+				public.calcular_data_termino(CURRENT_DATE, COALESCE(p.tempoestimado, 0)),
+				COALESCE(p.descricao, '')
+			FROM nova_agenda na
+			JOIN public.rotinaitens ri ON ri.rotina_id = $3::uuid
+			LEFT JOIN public.passos p ON p.id = ri.passo_id
+			ORDER BY ri.ordem
+			RETURNING agenda_id, termino
+		)
+		UPDATE public.agenda a
+		SET termino = COALESCE((SELECT MAX(i.termino) FROM itens i), CURRENT_DATE)
+		FROM nova_agenda na
+		WHERE a.id = na.id`
+
+	if _, err := r.pool.Exec(ctx, q, empresaID, tenantID, rotinaID); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *EmpresaRepository) MarcarCompromissosProcesso(ctx context.Context, processoID, tenantID string) ([]domain.EmpresaProcessoItem, int64, error) {
@@ -623,7 +672,7 @@ func (r *EmpresaRepository) MarcarCompromissosProcesso(ctx context.Context, proc
 		UPDATE public.empresa_processos ep
 		SET compromissos_gerados = true, passos_concluidos = true, atualizado_em = NOW()
 		WHERE ep.id = $1 AND ep.tenant_id = $2 AND ep.ativo = true
-		RETURNING id::text, empresa_id::text, tenant_id::text, COALESCE(rotina_id::text, ''), descricao, iniciado, passos_concluidos, compromissos_gerados, ativo`
+		RETURNING id::text, empresa_id::text, tenant_id::text, COALESCE(rotina_id::text, ''), descricao, criado_em::text, iniciado, passos_concluidos, compromissos_gerados, ativo`
 
 	rows, err := r.pool.Query(ctx, query, processoID, tenantID)
 	if err != nil {
@@ -640,6 +689,7 @@ func (r *EmpresaRepository) MarcarCompromissosProcesso(ctx context.Context, proc
 			&item.TenantID,
 			&item.RotinaID,
 			&item.Descricao,
+			&item.CriadoEm,
 			&item.Iniciado,
 			&item.PassosConcluidos,
 			&item.CompromissosGerados,

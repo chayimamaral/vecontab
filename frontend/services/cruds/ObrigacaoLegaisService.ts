@@ -34,6 +34,7 @@ type MutateParams = {
   estado?: { id?: string; nome?: string };
   municipio?: { id?: string; nome?: string };
   bairro?: string;
+  catalogo_servico_ids?: string[];
 };
 
 export default function ObrigacaoLegaisService() {

@@ -123,6 +123,7 @@ declare namespace Vec {
         tenant_id?: string;
         rotina_id?: string;
         descricao?: string;
+        criado_em?: string;
         iniciado?: boolean;
         passos_concluidos?: boolean;
         compromissos_gerados?: boolean;

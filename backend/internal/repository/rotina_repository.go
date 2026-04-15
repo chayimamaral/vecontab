@@ -359,7 +359,7 @@ func (r *RotinaRepository) Create(ctx context.Context, input RotinaInput) ([]dom
 	rows, err := r.pool.Query(ctx, `
 INSERT INTO public.rotinas (descricao, municipio_id, tipo_empresa_id)
 VALUES ($1, $2, $3)
-RETURNING id, descricao, municipio_id, COALESCE(tipo_empresa_id, ''), ativo`, input.Descricao, input.MunicipioID, rotinaNullableTipoEmpresaID(input.TipoEmpresaID))
+RETURNING id, descricao, municipio_id, COALESCE(tipo_empresa_id::text, ''), ativo`, input.Descricao, input.MunicipioID, rotinaNullableTipoEmpresaID(input.TipoEmpresaID))
 	if err != nil {
 		return nil, 0, fmt.Errorf("create rotina: %w", err)
 	}
@@ -398,7 +398,7 @@ func (r *RotinaRepository) Update(ctx context.Context, input RotinaInput) ([]dom
 UPDATE public.rotinas
 SET descricao = $1, municipio_id = $2, tipo_empresa_id = $3
 WHERE id = $4
-RETURNING id, descricao, municipio_id, COALESCE(tipo_empresa_id, ''), ativo`, input.Descricao, input.MunicipioID, rotinaNullableTipoEmpresaID(input.TipoEmpresaID), input.ID)
+RETURNING id, descricao, municipio_id, COALESCE(tipo_empresa_id::text, ''), ativo`, input.Descricao, input.MunicipioID, rotinaNullableTipoEmpresaID(input.TipoEmpresaID), input.ID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("update rotina: %w", err)
 	}
@@ -435,7 +435,7 @@ func (r *RotinaRepository) Delete(ctx context.Context, id string) ([]domain.Roti
 UPDATE public.rotinas
 SET ativo = false
 WHERE id = $1
-RETURNING id, descricao, municipio_id, COALESCE(tipo_empresa_id, ''), ativo`, id)
+RETURNING id, descricao, municipio_id, COALESCE(tipo_empresa_id::text, ''), ativo`, id)
 	if err != nil {
 		return nil, 0, fmt.Errorf("delete rotina: %w", err)
 	}

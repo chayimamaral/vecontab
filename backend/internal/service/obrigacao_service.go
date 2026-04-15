@@ -15,38 +15,39 @@ type ObrigacaoService struct {
 
 type ObrigacaoListResponse struct {
 	Obrigacoes   []domain.ObrigacaoListItem `json:"obrigacoes"`
-	TotalRecords int64                          `json:"totalRecords"`
+	TotalRecords int64                      `json:"totalRecords"`
 }
 
 type ObrigacaoCreateResponse struct {
 	ObrigacaoCriado []domain.ObrigacaoMutationItem `json:"obrigacaoCriado"`
-	TotalRecords    int64                              `json:"totalRecords"`
+	TotalRecords    int64                          `json:"totalRecords"`
 }
 
 type ObrigacaoUpdateResponse struct {
 	Obrigacao    []domain.ObrigacaoMutationItem `json:"obrigacao"`
-	TotalRecords int64                              `json:"totalRecords"`
+	TotalRecords int64                          `json:"totalRecords"`
 }
 
 type ObrigacaoDeleteResponse struct {
 	Obrigacoes   []domain.ObrigacaoMutationItem `json:"obrigacoes"`
-	TotalRecords int64                              `json:"totalRecords"`
+	TotalRecords int64                          `json:"totalRecords"`
 }
 
 type ObrigacaoInput struct {
-	ID                string   `json:"id"`
-	TipoEmpresaID     string   `json:"tipo_empresa_id"`
-	TipoClassificacao string   `json:"tipo_classificacao"`
-	Descricao         string   `json:"descricao"`
-	Periodicidade     string   `json:"periodicidade"`
-	Abrangencia       string   `json:"abrangencia"`
-	DiaBase           int      `json:"dia_base"`
-	MesBase           string   `json:"mes_base"`
-	Valor             *float64 `json:"valor"`
-	Observacao        string   `json:"observacao"`
-	EstadoID          string   `json:"estadoId"`
-	MunicipioID       string   `json:"municipioId"`
-	Bairro            string   `json:"bairro"`
+	ID                 string   `json:"id"`
+	TipoEmpresaID      string   `json:"tipo_empresa_id"`
+	TipoClassificacao  string   `json:"tipo_classificacao"`
+	Descricao          string   `json:"descricao"`
+	Periodicidade      string   `json:"periodicidade"`
+	Abrangencia        string   `json:"abrangencia"`
+	DiaBase            int      `json:"dia_base"`
+	MesBase            string   `json:"mes_base"`
+	Valor              *float64 `json:"valor"`
+	Observacao         string   `json:"observacao"`
+	EstadoID           string   `json:"estadoId"`
+	MunicipioID        string   `json:"municipioId"`
+	Bairro             string   `json:"bairro"`
+	CatalogoServicoIDs []string `json:"catalogo_servico_ids"`
 }
 
 func NewObrigacaoService(repo *repository.ObrigacaoRepository) *ObrigacaoService {
@@ -87,19 +88,20 @@ func (s *ObrigacaoService) Delete(ctx context.Context, id string) (ObrigacaoDele
 
 func toUpsert(input ObrigacaoInput) repository.ObrigacaoUpsertInput {
 	return repository.ObrigacaoUpsertInput{
-		ID:                input.ID,
-		TipoEmpresaID:     input.TipoEmpresaID,
-		TipoClassificacao: input.TipoClassificacao,
-		Descricao:         input.Descricao,
-		Periodicidade:     input.Periodicidade,
-		Abrangencia:       input.Abrangencia,
-		DiaBase:           input.DiaBase,
-		MesBase:           strings.TrimSpace(input.MesBase),
-		Valor:             input.Valor,
-		Observacao:        input.Observacao,
-		EstadoID:          input.EstadoID,
-		MunicipioID:       input.MunicipioID,
-		Bairro:            input.Bairro,
+		ID:                 input.ID,
+		TipoEmpresaID:      input.TipoEmpresaID,
+		TipoClassificacao:  input.TipoClassificacao,
+		Descricao:          input.Descricao,
+		Periodicidade:      input.Periodicidade,
+		Abrangencia:        input.Abrangencia,
+		DiaBase:            input.DiaBase,
+		MesBase:            strings.TrimSpace(input.MesBase),
+		Valor:              input.Valor,
+		Observacao:         input.Observacao,
+		EstadoID:           input.EstadoID,
+		MunicipioID:        input.MunicipioID,
+		Bairro:             input.Bairro,
+		CatalogoServicoIDs: input.CatalogoServicoIDs,
 	}
 }
 
