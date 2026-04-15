@@ -37,13 +37,12 @@ const MODULOS: ModuloCard[] = [
     tooltip: 'Operações sobre empresas já cadastradas; cadastro em Clientes.',
   },
   {
-    future: true,
-    titulo: 'Integrações fiscais',
-    descricao: 'Conexões com APIs governamentais e troca de arquivos.',
-    icon: 'pi pi-cloud-download',
-    tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
+    titulo: 'Manutenção de Cliente PF (IRPF)',
+    descricao: 'Gestão de clientes PF para processos de IRPF, com foco em fluxo operacional e compromissos.',
+    href: '/cliente-pf',
+    icon: 'pi pi-user',
+    tooltip: 'Operações de processos para clientes PF (IRPF).',
   },
-
   {
     titulo: 'Compromissos Fiscais por Empresas',
     descricao: 'Acompanhe vencimentos e status dos compromissos legais gerados por empresa.',
@@ -93,6 +92,13 @@ const MODULOS: ModuloCard[] = [
     descricao: 'Indicadores e exportações para gestão contábil e fiscal.',
     icon: 'pi pi-chart-bar',
     tooltip: 'Implementação futura — painéis e relatórios em desenvolvimento.',
+  },
+  {
+    future: true,
+    titulo: 'Integrações fiscais',
+    descricao: 'Conexões com APIs governamentais e troca de arquivos.',
+    icon: 'pi pi-cloud-download',
+    tooltip: 'Implementação futura — integrações serão adicionadas gradualmente.',
   },
 
 ];

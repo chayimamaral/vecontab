@@ -71,6 +71,11 @@ const AppMenu = () => {
             icon: 'pi pi-fw pi-table',
             to: '/empresas',
           },
+          {
+            label: 'Manutenção de Cliente PF (IRPF)',
+            icon: 'pi pi-fw pi-user',
+            to: '/cliente-pf',
+          },
         ],
       },
       {

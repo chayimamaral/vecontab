@@ -7,6 +7,7 @@ import { InputText } from 'primereact/inputtext';
 import { Tooltip } from 'primereact/tooltip';
 import { Toast } from 'primereact/toast';
 import { TreeTable } from 'primereact/treetable';
+import { TreeNode } from 'primereact/treenode';
 import React, { useMemo, useRef, useState } from 'react';
 import setupAPIClient from '../../components/api/api';
 import { canSSRAuth } from '../../components/utils/canSSRAuth';
@@ -53,7 +54,14 @@ const extrairMensagemErro = (error: unknown): string => {
   return fallback;
 };
 
-const Empresas = ({ dados }) => {
+type EmpresasPageProps = {
+  dados: string;
+  tipoPessoa?: 'PJ' | 'PF';
+};
+
+export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) => {
+  const isPF = tipoPessoa === 'PF';
+  const tituloPagina = isPF ? 'Manutenção de Cliente PF (IRPF)' : 'Manutenção de Empresas';
   const tenantid = dados;
   const empresaService = EmpresaService();
   const empresaCompromissoService = EmpresaCompromissoService();
@@ -83,6 +91,7 @@ const Empresas = ({ dados }) => {
           sortOrder: 1,
           filters: { nome: { value: '', matchMode: 'contains' } },
           tenantid,
+          tipo_pessoa: tipoPessoa,
         }),
       });
       return data?.empresas ?? [];
@@ -107,7 +116,7 @@ const Empresas = ({ dados }) => {
       const { data } = await RotinaService().getRotinasLite({ id: municipioId });
       const all = Array.isArray(data?.rotinas) ? data.rotinas : [];
       const tipoEmpresaID = (empresaSelecionada?.tipo_empresa?.id ?? '').trim();
-      if (!tipoEmpresaID) {
+      if (isPF || !tipoEmpresaID) {
         return all;
       }
       return all.filter((r: Vec.RotinaLite) => (r?.tipo_empresa?.id ?? '').trim() === tipoEmpresaID);
@@ -142,9 +151,9 @@ const Empresas = ({ dados }) => {
     return map;
   }, [processosData]);
 
-  const treeNodes = useMemo(() => {
+  const treeNodes = useMemo<TreeNode[]>(() => {
     return (empresasData ?? []).map((empresa: Vec.Empresa) => {
-      const children = (processosByEmpresa.get((empresa.id ?? '').trim()) ?? []).map((proc) => ({
+      const children = (processosByEmpresa.get((empresa.id ?? '').trim()) ?? []).map((proc): TreeNode => ({
         key: `proc-${proc.id}`,
         data: { nodeType: 'processo', empresa, processo: proc } as ProcessoNodeData,
       }));
@@ -156,7 +165,7 @@ const Empresas = ({ dados }) => {
     });
   }, [empresasData, processosByEmpresa]);
 
-  const treeNodesFiltrados = useMemo(() => {
+  const treeNodesFiltrados = useMemo<TreeNode[]>(() => {
     return treeNodes.filter((n) => {
       const d = n.data as EmpresaNodeData;
       const emp = d.empresa;
@@ -167,11 +176,11 @@ const Empresas = ({ dados }) => {
       if (municipioFiltro && (emp.municipio?.nome ?? '') !== municipioFiltro) {
         return false;
       }
-      if (enquadramentoFiltro && (emp.tipo_empresa?.descricao ?? '') !== enquadramentoFiltro) {
+      if (!isPF && enquadramentoFiltro && (emp.tipo_empresa?.descricao ?? '') !== enquadramentoFiltro) {
         return false;
       }
       if (statusFiltro) {
-        const processos = children.map((c) => c.data?.processo).filter(Boolean) as Vec.EmpresaProcesso[];
+        const processos = children.map((c: TreeNode) => c.data?.processo).filter(Boolean) as Vec.EmpresaProcesso[];
         const total = processos.length;
         const concluidos = processos.filter((p) => p.compromissos_gerados === true).length;
         const iniciados = processos.filter((p) => p.iniciado === true).length;
@@ -192,7 +201,7 @@ const Empresas = ({ dados }) => {
       }
       return true;
     });
-  }, [treeNodes, empresaFiltro, municipioFiltro, enquadramentoFiltro, statusFiltro]);
+  }, [treeNodes, empresaFiltro, municipioFiltro, enquadramentoFiltro, statusFiltro, isPF]);
 
   const empresaOptions = useMemo(() => {
     const nomes = Array.from(new Set((empresasData ?? []).map((e: Vec.Empresa) => (e.nome ?? '').trim()).filter(Boolean)));
@@ -231,7 +240,7 @@ const Empresas = ({ dados }) => {
     const rotinaID = (processoTemplate?.id ?? '').trim();
     const descricao = (processoTemplate?.descricao ?? '').trim();
     if (!empresaID) {
-      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: 'Empresa inválida.', life: 3500 });
+      toast.current?.show({ severity: 'warn', summary: 'Atenção', detail: isPF ? 'Cliente PF inválido.' : 'Empresa inválida.', life: 3500 });
       return;
     }
     if (!rotinaID || !descricao) {
@@ -291,7 +300,7 @@ const Empresas = ({ dados }) => {
     }
   };
 
-  const nomeBodyTemplate = (node) => {
+  const nomeBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
       return <>{data.empresa.nome ?? '—'}</>;
@@ -313,7 +322,7 @@ const Empresas = ({ dados }) => {
     );
   };
 
-  const municipioBodyTemplate = (node) => {
+  const municipioBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
       return data.empresa.municipio?.nome ?? '—';
@@ -321,7 +330,7 @@ const Empresas = ({ dados }) => {
     return '—';
   };
 
-  const tipoEmpresaBodyTemplate = (node) => {
+  const tipoEmpresaBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
       return data.empresa.tipo_empresa?.descricao ?? '—';
@@ -329,7 +338,7 @@ const Empresas = ({ dados }) => {
     return '—';
   };
 
-  const regimeBodyTemplate = (node) => {
+  const regimeBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
       return data.empresa.regime_tributario?.nome ?? '—';
@@ -337,13 +346,13 @@ const Empresas = ({ dados }) => {
     return '—';
   };
 
-  const actionBodyTemplate = (node) => {
+  const actionBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
       return (
         <Button
           icon="pi pi-plus-circle"
-          tooltip="Cria um novo processo para esta empresa"
+          tooltip={isPF ? 'Cria um novo processo para este cliente PF' : 'Cria um novo processo para esta empresa'}
           tooltipOptions={{ position: 'left' }}
           rounded
           severity="success"
@@ -396,28 +405,28 @@ const Empresas = ({ dados }) => {
     );
   };
 
-  const rowClassName = (node) => {
+  const rowClassName = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType !== 'empresa') {
-      return '';
+      return {};
     }
     const children = node.children ?? [];
     if (children.length === 0) {
-      return 'empresa-processo-nao-iniciado-row';
+      return { 'empresa-processo-nao-iniciado-row': true };
     }
 
-    const processos = children.map((c) => c.data?.processo).filter(Boolean) as Vec.EmpresaProcesso[];
+    const processos = children.map((c: TreeNode) => c.data?.processo).filter(Boolean) as Vec.EmpresaProcesso[];
     const total = processos.length;
     const concluidos = processos.filter((p) => p.compromissos_gerados === true).length;
     const iniciados = processos.filter((p) => p.iniciado === true).length;
 
     if (total > 0 && concluidos === total) {
-      return 'empresa-processo-concluido-row';
+      return { 'empresa-processo-concluido-row': true };
     }
     if (iniciados === 0) {
-      return 'empresa-processo-nao-iniciado-row';
+      return { 'empresa-processo-nao-iniciado-row': true };
     }
-    return 'empresa-processo-em-andamento-row';
+    return { 'empresa-processo-em-andamento-row': true };
   };
 
   const dialogFooter = (
@@ -443,18 +452,18 @@ const Empresas = ({ dados }) => {
           <Tooltip target=".tt-gerar-compromissos" />
           <div className="mb-4">
             <p className="text-600 m-0 text-sm mb-3">
-              Cadastro completo em <strong>Clientes</strong>. Aqui ficam os <strong>Processos</strong> por empresa.
+              Cadastro completo em <strong>Clientes</strong>. Aqui ficam os <strong>Processos</strong> por {isPF ? 'cliente PF' : 'empresa'}.
             </p>
             <div
               className="empresa-filtros-grid"
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1.1fr 1fr 1.4fr 1fr',
+                gridTemplateColumns: isPF ? '1.2fr 1fr 1fr' : '1.1fr 1fr 1.4fr 1fr',
                 gap: '1rem',
               }}
             >
               <div className="field mb-0 min-w-0">
-                <label htmlFor="filtroEmpresa" className="text-sm text-600 mb-2 block">Empresa</label>
+                <label htmlFor="filtroEmpresa" className="text-sm text-600 mb-2 block">{isPF ? 'Cliente PF' : 'Empresa'}</label>
                 <Dropdown
                   id="filtroEmpresa"
                   value={empresaFiltro}
@@ -479,19 +488,21 @@ const Empresas = ({ dados }) => {
                   filter
                 />
               </div>
-              <div className="field mb-0 min-w-0">
-                <label htmlFor="filtroEnquadramento" className="text-sm text-600 mb-2 block">Enquadramento Juridico</label>
-                <Dropdown
-                  id="filtroEnquadramento"
-                  value={enquadramentoFiltro}
-                  options={enquadramentoOptions}
-                  onChange={(e) => setEnquadramentoFiltro((e.value as string | null) ?? null)}
-                  placeholder="Todos"
-                  showClear
-                  className="w-full p-column-filter"
-                  filter
-                />
-              </div>
+              {!isPF && (
+                <div className="field mb-0 min-w-0">
+                  <label htmlFor="filtroEnquadramento" className="text-sm text-600 mb-2 block">Enquadramento Juridico</label>
+                  <Dropdown
+                    id="filtroEnquadramento"
+                    value={enquadramentoFiltro}
+                    options={enquadramentoOptions}
+                    onChange={(e) => setEnquadramentoFiltro((e.value as string | null) ?? null)}
+                    placeholder="Todos"
+                    showClear
+                    className="w-full p-column-filter"
+                    filter
+                  />
+                </div>
+              )}
               <div className="field mb-0 min-w-0">
                 <label htmlFor="filtroStatus" className="text-sm text-600 mb-2 block">Status</label>
                 <Dropdown
@@ -509,8 +520,10 @@ const Empresas = ({ dados }) => {
 
           <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center mb-3">
             <div>
-              <h5 className="m-0">Manutenção de Empresas</h5>
-              <p className="m-0 mt-1 text-600 text-sm">Árvore de empresa e processos por fase.</p>
+              <h5 className="m-0">{tituloPagina}</h5>
+              <p className="m-0 mt-1 text-600 text-sm">
+                {isPF ? 'Árvore de cliente PF e processos por fase.' : 'Árvore de empresa e processos por fase.'}
+              </p>
               <p className="m-0 mt-1 text-500 text-xs">Faixa principal: Novo Processo. Faixa filha: Iniciar Processo e Gerar Compromissos.</p>
             </div>
             <div className="flex align-items-center gap-3 mt-2 md:mt-0">
@@ -540,10 +553,10 @@ const Empresas = ({ dados }) => {
             loading={loadingEmpresas || loadingProcessos}
             rowClassName={rowClassName}
           >
-            <Column field="nome" header="Nome (Empresa / Processo)" expander body={nomeBodyTemplate} style={{ width: '32%' }} />
+            <Column field="nome" header={isPF ? 'Nome (Cliente PF / Processo)' : 'Nome (Empresa / Processo)'} expander body={nomeBodyTemplate} style={{ width: '32%' }} />
             <Column field="municipio" header="Municipio" body={municipioBodyTemplate} style={{ width: '20%' }} />
-            <Column field="tipo_empresa" header="Enquadramento Jurídico" body={tipoEmpresaBodyTemplate} style={{ width: '20%' }} />
-            <Column field="regime" header="Regime Tributário" body={regimeBodyTemplate} style={{ width: '18%' }} />
+            {!isPF && <Column field="tipo_empresa" header="Enquadramento Jurídico" body={tipoEmpresaBodyTemplate} style={{ width: '20%' }} />}
+            {!isPF && <Column field="regime" header="Regime Tributário" body={regimeBodyTemplate} style={{ width: '18%' }} />}
             <Column header="Ações" body={actionBodyTemplate} style={{ width: '10%' }} />
           </TreeTable>
 
@@ -561,7 +574,7 @@ const Empresas = ({ dados }) => {
             onHide={() => setEmpresaDialog(false)}
           >
             <p className="text-600 mt-0">
-              Empresa: <strong>{empresaSelecionada?.nome ?? '—'}</strong>
+              {isPF ? 'Cliente PF' : 'Empresa'}: <strong>{empresaSelecionada?.nome ?? '—'}</strong>
             </p>
             <div className="field">
               <label htmlFor="processoTemplate">Processo</label>
@@ -578,7 +591,9 @@ const Empresas = ({ dados }) => {
                 filter
                 filterBy="descricao"
               />
-              <small className="text-600">Lista filtrada por município e enquadramento jurídico.</small>
+              <small className="text-600">
+                {isPF ? 'Lista filtrada por município.' : 'Lista filtrada por município e enquadramento jurídico.'}
+              </small>
             </div>
           </Dialog>
 
@@ -610,6 +625,8 @@ const Empresas = ({ dados }) => {
     </div>
   );
 };
+
+const Empresas = ({ dados }: { dados: string }) => <EmpresasPage dados={dados} tipoPessoa="PJ" />;
 
 export default Empresas;
 

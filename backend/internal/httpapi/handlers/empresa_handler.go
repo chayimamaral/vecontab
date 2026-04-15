@@ -61,12 +61,13 @@ func parseTipoPessoaPayload(s string) string {
 
 func (h *EmpresaHandler) List(w http.ResponseWriter, r *http.Request) {
 	params := repository.EmpresaListParams{
-		First:     parseIntEmpresa(r.URL.Query().Get("first"), 0),
-		Rows:      parseIntEmpresa(r.URL.Query().Get("rows"), 25),
-		SortField: r.URL.Query().Get("sortField"),
-		SortOrder: parseIntEmpresa(r.URL.Query().Get("sortOrder"), 1),
-		Nome:      parseNomeFilterEmpresa(r.URL.Query().Get("filters")),
-		TenantID:  middleware.TenantID(r.Context()),
+		First:      parseIntEmpresa(r.URL.Query().Get("first"), 0),
+		Rows:       parseIntEmpresa(r.URL.Query().Get("rows"), 25),
+		SortField:  r.URL.Query().Get("sortField"),
+		SortOrder:  parseIntEmpresa(r.URL.Query().Get("sortOrder"), 1),
+		Nome:       parseNomeFilterEmpresa(r.URL.Query().Get("filters")),
+		TenantID:   middleware.TenantID(r.Context()),
+		TipoPessoa: strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("tipo_pessoa"))),
 	}
 
 	response, err := h.service.List(r.Context(), params)

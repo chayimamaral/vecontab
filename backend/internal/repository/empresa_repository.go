@@ -19,12 +19,13 @@ func empresaMunicipioScanString(ns sql.NullString) string {
 }
 
 type EmpresaListParams struct {
-	First     int
-	Rows      int
-	SortField string
-	SortOrder int
-	Nome      string
-	TenantID  string
+	First      int
+	Rows       int
+	SortField  string
+	SortOrder  int
+	Nome       string
+	TenantID   string
+	TipoPessoa string
 }
 
 type EmpresaUpsertInput struct {
@@ -162,6 +163,11 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 	if strings.TrimSpace(params.Nome) != "" {
 		whereParts = append(whereParts, fmt.Sprintf("c.nome ILIKE $%d", argIndex))
 		args = append(args, "%"+strings.TrimSpace(params.Nome)+"%")
+		argIndex++
+	}
+	if tp := strings.ToUpper(strings.TrimSpace(params.TipoPessoa)); tp == "PF" || tp == "PJ" {
+		whereParts = append(whereParts, fmt.Sprintf("UPPER(COALESCE(NULLIF(BTRIM(c.tipo_pessoa::text), ''), 'PJ')) = $%d", argIndex))
+		args = append(args, tp)
 		argIndex++
 	}
 
