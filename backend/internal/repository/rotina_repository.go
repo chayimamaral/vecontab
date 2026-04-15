@@ -89,7 +89,7 @@ func (r *RotinaRepository) List(ctx context.Context, params RotinaListParams) ([
 
 	query := fmt.Sprintf(`
 SELECT r.id, r.descricao, r.municipio_id, COALESCE(m.id::text, ''), COALESCE(m.nome, ''), COALESCE(e.sigla, ''),
-	COALESCE(r.tipo_empresa_id, ''), COALESCE(te.id::text, ''), COALESCE(te.descricao, '')
+	COALESCE(r.tipo_empresa_id::text, ''), COALESCE(te.id::text, ''), COALESCE(te.descricao, '')
 FROM public.rotinas r
 LEFT JOIN public.municipio m ON m.id = r.municipio_id
 LEFT JOIN public.estado e ON e.id = m.ufid
@@ -174,7 +174,7 @@ func (r *RotinaRepository) ListWithItens(ctx context.Context, params RotinaListP
 	query := fmt.Sprintf(`
 WITH rotinas_page AS (
 	SELECT r.id, r.descricao, r.municipio_id, COALESCE(m.id::text, '') AS m_id, COALESCE(m.nome, '') AS m_nome, COALESCE(e.sigla, '') AS e_sigla,
-		COALESCE(r.tipo_empresa_id, '') AS tipo_empresa_id, COALESCE(te.id::text, '') AS te_id, COALESCE(te.descricao, '') AS te_desc
+		COALESCE(r.tipo_empresa_id::text, '') AS tipo_empresa_id, COALESCE(te.id::text, '') AS te_id, COALESCE(te.descricao, '') AS te_desc
 	FROM public.rotinas r
 	LEFT JOIN public.municipio m ON m.id = r.municipio_id
 	LEFT JOIN public.estado e ON e.id = m.ufid

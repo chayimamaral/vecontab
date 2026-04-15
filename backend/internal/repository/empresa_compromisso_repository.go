@@ -62,10 +62,10 @@ func (r *EmpresaCompromissoRepository) GerarCompromissosEmpresa(ctx context.Cont
 	var total int
 	err := r.pool.QueryRow(
 		ctx,
-		`SELECT public.gerar_compromissos_empresa($1, $2::date)
+		`SELECT public.gerar_compromissos_empresa($1::text, $2::date)
 		  WHERE EXISTS (
 			SELECT 1 FROM public.empresa e
-			WHERE e.id = $1 AND e.tenant_id = $3 AND e.ativo = true
+			WHERE e.id = $1::uuid AND e.tenant_id = $3::uuid AND e.ativo = true
 		  )`,
 		eid,
 		dataRef.Format("2006-01-02"),
@@ -97,7 +97,7 @@ func (r *EmpresaCompromissoRepository) loadGeracaoContext(ctx context.Context, e
 	var out empresaGeracaoContext
 	err := r.pool.QueryRow(ctx, `
 		SELECT e.id, e.tenant_id, COALESCE(c.municipio_id, ed.municipio_id), m.ufid, COALESCE(NULLIF(TRIM(c.bairro), ''), ''),
-		       COALESCE(NULLIF(TRIM(c.tipo_empresa_id), ''), '')
+		       COALESCE(NULLIF(TRIM(c.tipo_empresa_id::text), ''), '')
 		FROM public.empresa e
 		INNER JOIN public.cliente c ON c.id = e.cliente_id
 		LEFT JOIN public.clientes_dados ed ON ed.cliente_id = c.id

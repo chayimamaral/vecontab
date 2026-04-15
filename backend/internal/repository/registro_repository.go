@@ -95,7 +95,7 @@ func (r *RegistroRepository) DetailByTenant(ctx context.Context, tenantID string
 		return domain.DadosComplementaresRecord{}, nil
 	}
 
-	const query = `SELECT tenantid, cnpj, cep, endereco, bairro, cidade, estado, telefone, email, ie, im, razaosocial, fantasia, observacoes FROM public.tenant_dados WHERE tenantid::text = $1 LIMIT 1`
+	const query = `SELECT tenantid, cnpj, cep, endereco, bairro, cidade, estado, telefone, email, ie, im, razaosocial, fantasia, observacoes FROM public.tenant_dados WHERE tenantid = $1::uuid LIMIT 1`
 
 	record, err := scanDadosComplementares("", func(dest ...any) error {
 		return r.pool.QueryRow(ctx, query, tenantID).Scan(dest...)
@@ -110,7 +110,7 @@ func (r *RegistroRepository) DetailByTenant(ctx context.Context, tenantID string
 }
 
 func (r *RegistroRepository) UpdateByUser(ctx context.Context, userID string, input RegistroUpdateInput) (domain.DadosComplementaresRecord, error) {
-	const tenantQuery = `SELECT tenantid FROM public.usuario WHERE id = $1`
+	const tenantQuery = `SELECT tenantid FROM public.usuario WHERE id = $1::uuid`
 	var tenantID string
 	if err := r.pool.QueryRow(ctx, tenantQuery, userID).Scan(&tenantID); err != nil {
 		return domain.DadosComplementaresRecord{}, fmt.Errorf("find tenant by user: %w", err)
@@ -190,7 +190,7 @@ func (r *RegistroRepository) UpdateByTenantID(ctx context.Context, tenantID stri
 			razaosocial = $11,
 			fantasia = $12,
 			observacoes = $13
-		WHERE tenantid::text = $14
+		WHERE tenantid = $14::uuid
 		RETURNING tenantid, cnpj, cep, endereco, bairro, cidade, estado, telefone, email, ie, im, razaosocial, fantasia, observacoes`
 
 	record, err := scanDadosComplementares(tenantID, func(dest ...any) error {

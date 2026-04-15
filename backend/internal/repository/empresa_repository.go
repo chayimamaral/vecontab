@@ -196,7 +196,7 @@ func (r *EmpresaRepository) List(ctx context.Context, params EmpresaListParams) 
 			COALESCE(m.nome, ''),
 			'' AS rotina_id,
 			'' AS rotina_descricao,
-			COALESCE(NULLIF(BTRIM(te_cli.id), ''), ''),
+			COALESCE(NULLIF(BTRIM(te_cli.id::text), ''), ''),
 			COALESCE(NULLIF(BTRIM(te_cli.descricao), ''), ''),
 			'' AS rotina_pf_id,
 			'' AS rotina_pf_nome,
@@ -713,8 +713,8 @@ func (r *EmpresaRepository) TipoEmpresaIDFromRotina(ctx context.Context, empresa
 	var tid *string
 	err := r.pool.QueryRow(ctx, `
 		SELECT COALESCE(
-			NULLIF(TRIM(c.tipo_empresa_id), ''),
-			NULLIF(TRIM(r.tipo_empresa_id), '')
+			NULLIF(TRIM(c.tipo_empresa_id::text), ''),
+			NULLIF(TRIM(r.tipo_empresa_id::text), '')
 		)
 		FROM public.empresa e
 		INNER JOIN public.cliente c ON c.id = e.cliente_id

@@ -257,13 +257,17 @@ func (r *PassoRepository) GetByID(ctx context.Context, id string) ([]domain.Pass
 }
 
 func (r *PassoRepository) ListByCidade(ctx context.Context, params PassoCidadeParams) ([]domain.PassoCidadeItem, int64, error) {
+	if strings.TrimSpace(params.MunicipioID) == "" || strings.TrimSpace(params.RotinaID) == "" {
+		return []domain.PassoCidadeItem{}, 0, nil
+	}
+
 	const query = `
 		SELECT DISTINCT ON (p.id)
 			p.id,
 			p.descricao,
 			p.tempoestimado,
 			p.tipopasso,
-			ri.rotina_id,
+			COALESCE(ri.rotina_id::text, ''),
 			ri.ordem,
 			COALESCE(l.link, '')
 		FROM public.passos p

@@ -187,7 +187,7 @@ func (r *CertificadoClienteRepository) getResumoAtivoLegado(ctx context.Context,
 			COALESCE(cc.criado_em, NOW()) AS validade_de,
 			cc.validade_ate
 		FROM public.certificado_cliente cc
-		INNER JOIN public.empresa e ON e.id::text = cc.empresa_id
+		INNER JOIN public.empresa e ON e.id = cc.empresa_id
 		WHERE e.cliente_id = $1
 		  AND cc.ativo = true
 		ORDER BY cc.atualizado_em DESC

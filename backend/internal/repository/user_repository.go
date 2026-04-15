@@ -70,7 +70,7 @@ func (r *UserRepository) Detail(ctx context.Context, userID string) (domain.User
 			t.nome
 		FROM public.usuario u
 		JOIN public.tenant t ON t.id = u.tenantid
-		WHERE u.id = $1::text`
+		WHERE u.id = $1::uuid`
 
 	var user domain.User
 	if err := r.pool.QueryRow(ctx, query, userID).Scan(
@@ -112,7 +112,7 @@ func (r *UserRepository) UserRole(ctx context.Context, userID string) (domain.Us
 	const query = `
 		SELECT u.id, u.email, u.tenantid, u.role
 		FROM public.usuario u
-		WHERE u.id = $1::text`
+		WHERE u.id = $1::uuid`
 
 	var id, email, tenantID, role string
 	if err := r.pool.QueryRow(ctx, query, userID).Scan(&id, &email, &tenantID, &role); err != nil {
@@ -126,7 +126,7 @@ func (r *UserRepository) TenantID(ctx context.Context, userID string) (domain.Us
 	const query = `
 		SELECT u.tenantid
 		FROM public.usuario u
-		WHERE u.id = $1::text`
+		WHERE u.id = $1::uuid`
 
 	var tenantID string
 	if err := r.pool.QueryRow(ctx, query, userID).Scan(&tenantID); err != nil {
@@ -146,7 +146,7 @@ func (r *UserRepository) ListByTenant(ctx context.Context, role, tenantID string
 	case "SUPER":
 		if strings.TrimSpace(filterTenantID) != "" {
 			whereParts = append(whereParts, "u.role IN ('ADMIN', 'USER')")
-			whereParts = append(whereParts, fmt.Sprintf("u.tenantid::text = $%d", argIndex))
+			whereParts = append(whereParts, fmt.Sprintf("u.tenantid = $%d::uuid", argIndex))
 			args = append(args, strings.TrimSpace(filterTenantID))
 			argIndex++
 		} else {

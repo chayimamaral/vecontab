@@ -70,7 +70,7 @@ func (r *TenantRepository) Detail(ctx context.Context, id string) (domain.Tenant
 		       COALESCE(active, false),
 		       COALESCE(plano::text, '')
 		FROM public.tenant
-		WHERE id::text = $1`
+		WHERE id = $1::uuid`
 
 	var tenant domain.TenantEntity
 	if err := r.pool.QueryRow(ctx, query, id).Scan(
@@ -93,7 +93,7 @@ func (r *TenantRepository) Update(ctx context.Context, id, nome, contato, plano 
 		    active = $2,
 		    contato = $3,
 		    plano = CASE WHEN BTRIM($4) = '' THEN plano ELSE $4::public.plano END
-		WHERE id::text = $5
+		WHERE id = $5::uuid
 		RETURNING id, COALESCE(nome, ''), COALESCE(contato, ''), COALESCE(active, false), COALESCE(plano::text, '')`
 
 	var tenant domain.TenantEntity
@@ -118,7 +118,7 @@ func (r *TenantRepository) List(ctx context.Context, role, tenantID string) ([]d
 		       COALESCE(active, false),
 		       COALESCE(plano::text, '')
 		FROM public.tenant
-		WHERE id::text = $1`
+		WHERE id = $1::uuid`
 	args := []any{tenantID}
 
 	if role == "SUPER" {

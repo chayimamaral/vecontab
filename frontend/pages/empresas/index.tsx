@@ -28,6 +28,31 @@ type ProcessoNodeData = {
 
 type NodeData = EmpresaNodeData | ProcessoNodeData;
 
+const extrairMensagemErro = (error: unknown): string => {
+  const fallback = 'Falha ao gerar compromissos.';
+  if (!error || typeof error !== 'object') {
+    return fallback;
+  }
+
+  const maybeResponse = (error as { response?: { data?: unknown } }).response;
+  const data = maybeResponse?.data;
+  if (typeof data === 'string' && data.trim()) {
+    return data.trim();
+  }
+  if (data && typeof data === 'object') {
+    const errorText = (data as { error?: unknown }).error;
+    if (typeof errorText === 'string' && errorText.trim()) {
+      return errorText.trim();
+    }
+    const messageText = (data as { message?: unknown }).message;
+    if (typeof messageText === 'string' && messageText.trim()) {
+      return messageText.trim();
+    }
+  }
+
+  return fallback;
+};
+
 const Empresas = ({ dados }) => {
   const tenantid = dados;
   const empresaService = EmpresaService();
@@ -251,8 +276,8 @@ const Empresas = ({ dados }) => {
       toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Compromissos gerados.', life: 3500 });
       setGerarCompromissosDialog(false);
       onRefresh();
-    } catch {
-      toast.current?.show({ severity: 'error', summary: 'Erro', detail: 'Falha ao gerar compromissos.', life: 4000 });
+    } catch (error) {
+      toast.current?.show({ severity: 'error', summary: 'Erro', detail: extrairMensagemErro(error), life: 5000 });
     }
   };
 

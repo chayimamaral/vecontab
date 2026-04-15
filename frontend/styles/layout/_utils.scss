@@ -1,4 +1,6 @@
 /* Utils */
+@use "./variables" as *;
+
 .clearfix:after {
     content: " ";
     display: block;

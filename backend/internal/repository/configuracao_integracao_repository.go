@@ -138,7 +138,7 @@ func (r *ConfiguracaoIntegracaoRepository) GetTenantConfiguracoes(ctx context.Co
 			COALESCE(validade_de::text, ''),
 			COALESCE(validade_ate::text, '')
 		FROM public.tenant_configuracoes
-		WHERE tenant_id::text = $1
+		WHERE tenant_id = $1::uuid
 	`, tenantID).Scan(
 		&out.TenantID,
 		&out.GerarDASPorProcuracao,
