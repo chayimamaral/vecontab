@@ -40,3 +40,4 @@ next-env.d.ts
 *.WinMerge
 
 deploy-frontend.sh
+.env
