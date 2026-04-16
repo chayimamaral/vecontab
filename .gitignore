@@ -5,7 +5,7 @@ Imagem colada*.png
 gitsave.sh
 backup.sh
 bkp_db.sh
-deploy.sh
+
 *.EF.md
 *.especificacao.migrations
 *.sh
@@ -37,5 +37,4 @@ obj/
 *.sln.dotSettings.user
 .vs/
 
-deploy-sh
 config_privada.env

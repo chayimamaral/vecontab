@@ -2,4 +2,4 @@
 bin/
 cmd/api/main
 main
-deploy-backend.sh
+
