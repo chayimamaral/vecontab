@@ -48,4 +48,5 @@ EXPOSE 8080
 
 # Execução do backend
 # O uso de strings separadas no CMD ["cmd", "arg"] é a forma recomendada (exec form)
-CMD ["./vecontab-backend", "-port", "8080"]
+#CMD ["./vecontab-backend", "-port", "8080"]
+CMD ["./vecontab-backend"]

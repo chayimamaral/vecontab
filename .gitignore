@@ -38,3 +38,4 @@ obj/
 .vs/
 
 deploy-sh
+config_privada.env

@@ -8,7 +8,10 @@ RUN npm install
 COPY . .
 
 # Variáveis de Ambiente de Build
-ARG NEXT_PUBLIC_API_URL=https://vecontab-backend-822119889622.us-central1.run.app
+#ARG NEXT_PUBLIC_API_URL=https://vecontab-backend-822119889622.us-central1.run.app
+#ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
