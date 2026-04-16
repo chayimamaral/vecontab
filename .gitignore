@@ -8,7 +8,6 @@ bkp_db.sh
 
 *.EF.md
 *.especificacao.migrations
-*.sh
 *.py
 .cursorrules
 # Binários locais do backend (go build -o)
