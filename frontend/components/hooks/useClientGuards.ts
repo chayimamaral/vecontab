@@ -67,8 +67,10 @@ export function useRouteClientGuard(): void {
         cookieToken ||
         (typeof window !== 'undefined' ? String(window.localStorage.getItem('vecontab_token') ?? '').trim() : '');
 
-    const { data: roleData } = useQuery({
-        queryKey: ['route-role-guard', pathname],
+    const { data: roleData, isFetching: roleLoading } = useQuery({
+        // Inclui token na chave para não reaproveitar cache de outro login
+        // (ex.: usuário anterior USER causando redirect indevido para '/' após login SUPER).
+        queryKey: ['route-role-guard', pathname, token],
         enabled: !!rolesPermitidas && !!token,
         queryFn: async () => {
             const { data } = await api.get('/api/usuariorole');
@@ -93,10 +95,14 @@ export function useRouteClientGuard(): void {
             return;
         }
 
+        if (rolesPermitidas && roleLoading) {
+            return;
+        }
+
         if (rolesPermitidas && roleData && !rolesPermitidas.includes(roleData as UserRole)) {
             void router.replace('/');
         }
-    }, [isGuestOnly, needsAuth, roleData, rolesPermitidas, router]);
+    }, [isGuestOnly, needsAuth, roleData, roleLoading, rolesPermitidas, router]);
 }
 
 export function useTenantIdQuery() {

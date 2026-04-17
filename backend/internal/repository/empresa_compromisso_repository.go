@@ -48,15 +48,15 @@ func NewEmpresaCompromissoRepository(pool *pgxpool.Pool) *EmpresaCompromissoRepo
 	return &EmpresaCompromissoRepository{pool: pool}
 }
 
-// GerarCompromissosEmpresa executa a function SQL idempotente por empresa/competência.
-func (r *EmpresaCompromissoRepository) GerarCompromissosEmpresa(ctx context.Context, tenantID string, dataRef time.Time, empresaID string) (int, error) {
+// GerarCompromissosEmpresa executa a geração idempotente por empresa/competência.
+func (r *EmpresaCompromissoRepository) GerarCompromissosEmpresa(ctx context.Context, tenantID string, dataRef time.Time, empresaID string) ([]domain.EmpresaCompromissoItem, error) {
 	eid := strings.TrimSpace(empresaID)
 	tid := strings.TrimSpace(tenantID)
 	if eid == "" {
-		return 0, fmt.Errorf("empresa nao informada")
+		return nil, fmt.Errorf("empresa nao informada")
 	}
 	if tid == "" {
-		return 0, fmt.Errorf("tenant nao informado")
+		return nil, fmt.Errorf("tenant nao informado")
 	}
 
 	// Evita dependência de function SQL legada (com colunas antigas) e usa fluxo Go compatível com UUID.
@@ -64,11 +64,11 @@ func (r *EmpresaCompromissoRepository) GerarCompromissosEmpresa(ctx context.Cont
 	if err != nil {
 		msg := strings.ToLower(err.Error())
 		if strings.Contains(msg, "compromiss") && strings.Contains(msg, "gerad") && strings.Contains(msg, "empresa") {
-			return 0, nil
+			return []domain.EmpresaCompromissoItem{}, nil
 		}
-		return 0, fmt.Errorf("executar gerar_compromissos_empresa: %w", err)
+		return nil, fmt.Errorf("executar gerar_compromissos_empresa: %w", err)
 	}
-	return len(items), nil
+	return items, nil
 }
 
 func (r *EmpresaCompromissoRepository) GerarCompromissosGeral(ctx context.Context, dataRef time.Time) (int, error) {
@@ -196,10 +196,15 @@ func (r *EmpresaCompromissoRepository) GerarCompromissos(ctx context.Context, em
 
 	const ins = `
 		INSERT INTO public.empresa_compromissos (descricao, valor, vencimento, observacao, status, empresa_id, tipoempresa_obrigacao_id, competencia)
-		VALUES ($1, $2, $3::timestamptz, $4, 'pendente', $5, $6::uuid, $7::date)
+		VALUES ($1, $2, $3::timestamptz, $4, 'pendente', $5, $6::uuid, COALESCE($7::date, date_trunc('month', $3::timestamptz)::date))
 		RETURNING id, descricao, valor, vencimento::text, COALESCE(observacao, ''), status, empresa_id, tipoempresa_obrigacao_id::text`
 
 	items := make([]domain.EmpresaCompromissoItem, 0)
+
+	ref := dataInicio
+	if ref.IsZero() {
+		ref = time.Now().UTC()
+	}
 
 	for _, t := range templates {
 		per := strings.ToUpper(strings.TrimSpace(t.Periodicidade))
@@ -217,7 +222,7 @@ func (r *EmpresaCompromissoRepository) GerarCompromissos(ctx context.Context, em
 
 		switch per {
 		case "MENSAL":
-			dt := resolveCompetenciaMensal(dataInicio, time.Now())
+			dt := resolveCompetenciaMensal(ref, time.Now())
 			dt = ajustarVencimento(dt, feriados)
 			competencia := time.Date(dt.Year(), dt.Month(), 1, 0, 0, 0, 0, time.UTC)
 			var row domain.EmpresaCompromissoItem
@@ -229,7 +234,7 @@ func (r *EmpresaCompromissoRepository) GerarCompromissos(ctx context.Context, em
 			}
 			items = append(items, row)
 		case "ANUAL":
-			dt := dataInicio.AddDate(1, 0, 0)
+			dt := ref.AddDate(1, 0, 0)
 			dt = ajustarVencimento(dt, feriados)
 			competencia := time.Date(dt.Year(), dt.Month(), 1, 0, 0, 0, 0, time.UTC)
 			var row domain.EmpresaCompromissoItem

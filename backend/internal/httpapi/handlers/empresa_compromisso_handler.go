@@ -116,7 +116,7 @@ func (h *EmpresaCompromissoHandler) Gerar(w http.ResponseWriter, r *http.Request
 			msg = resp.Message
 			det["quantidade"] = resp.Quantidade
 		}
-		_ = h.monitor.Registrar(r.Context(), repository.MonitorOperacaoInsert{
+		monitorID, regErr := h.monitor.Registrar(r.Context(), repository.MonitorOperacaoInsert{
 			TenantID: tid,
 			UserID:   uidPtr,
 			Origem:   domain.MonitorOperacaoOrigemManual,
@@ -125,6 +125,15 @@ func (h *EmpresaCompromissoHandler) Gerar(w http.ResponseWriter, r *http.Request
 			Mensagem: &msg,
 			Detalhe:  det,
 		})
+		if regErr == nil && err == nil && len(resp.Itens) > 0 {
+			compromissoIDs := make([]string, 0, len(resp.Itens))
+			for _, it := range resp.Itens {
+				if strings.TrimSpace(it.ID) != "" {
+					compromissoIDs = append(compromissoIDs, it.ID)
+				}
+			}
+			_ = h.monitor.VincularCompromissos(r.Context(), monitorID, compromissoIDs)
+		}
 	}
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())

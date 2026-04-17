@@ -300,6 +300,7 @@ declare namespace Vec {
         id?: string;
         tenant_id?: string;
         tenant_nome?: string;
+        cliente_nome?: string;
         user_id?: string;
         origem?: string;
         tipo?: string;
@@ -307,5 +308,17 @@ declare namespace Vec {
         mensagem?: string;
         detalhe?: Record<string, unknown>;
         criado_em?: string;
+        compromissos?: MonitorOperacaoCompromissoItem[];
+    }
+
+    type MonitorOperacaoCompromissoItem = {
+        compromisso_id?: string;
+        empresa_id?: string;
+        cliente_nome?: string;
+        descricao?: string;
+        competencia?: string;
+        vencimento?: string;
+        status?: string;
+        valor?: number | null;
     }
 }

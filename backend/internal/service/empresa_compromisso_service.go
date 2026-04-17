@@ -63,7 +63,7 @@ func (s *EmpresaCompromissoService) Gerar(ctx context.Context, empresaID, tenant
 		return EmpresaCompromissoGerarResponse{}, fmt.Errorf("tenant nao identificado")
 	}
 
-	total, err := s.repo.GerarCompromissosEmpresa(ctx, tid, dataInicio, eid)
+	items, err := s.repo.GerarCompromissosEmpresa(ctx, tid, dataInicio, eid)
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "compromissos ja gerados para esta empresa") {
 			return EmpresaCompromissoGerarResponse{
@@ -76,9 +76,9 @@ func (s *EmpresaCompromissoService) Gerar(ctx context.Context, empresaID, tenant
 	}
 
 	return EmpresaCompromissoGerarResponse{
-		Itens:      []domain.EmpresaCompromissoItem{},
-		Quantidade: total,
-		Message:    fmt.Sprintf("%d compromissos gerados", total),
+		Itens:      items,
+		Quantidade: len(items),
+		Message:    fmt.Sprintf("%d compromissos gerados", len(items)),
 	}, nil
 }
 

@@ -20,6 +20,7 @@ type MonitorOperacaoItem struct {
 	ID         string         `json:"id"`
 	TenantID   string         `json:"tenant_id"`
 	TenantNome *string        `json:"tenant_nome,omitempty"`
+	ClienteNome *string       `json:"cliente_nome,omitempty"`
 	UserID     *string        `json:"user_id,omitempty"`
 	Origem     string         `json:"origem"`
 	Tipo       string         `json:"tipo"`
@@ -27,4 +28,16 @@ type MonitorOperacaoItem struct {
 	Mensagem   *string        `json:"mensagem,omitempty"`
 	Detalhe    map[string]any `json:"detalhe,omitempty"`
 	CriadoEm   time.Time      `json:"criado_em"`
+	Compromissos []MonitorOperacaoCompromissoItem `json:"compromissos,omitempty"`
+}
+
+type MonitorOperacaoCompromissoItem struct {
+	CompromissoID string   `json:"compromisso_id"`
+	EmpresaID     string   `json:"empresa_id"`
+	ClienteNome   *string  `json:"cliente_nome,omitempty"`
+	Descricao     string   `json:"descricao"`
+	Competencia   string   `json:"competencia"`
+	Vencimento    string   `json:"vencimento"`
+	Status        string   `json:"status"`
+	Valor         *float64 `json:"valor,omitempty"`
 }

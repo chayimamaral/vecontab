@@ -113,7 +113,7 @@ func (h *EmpresaAgendaHandler) Gerar(w http.ResponseWriter, r *http.Request) {
 			msg = response.Message
 			det["quantidade_obrigacoes"] = len(response.Itens)
 		}
-		_ = h.monitor.Registrar(r.Context(), repository.MonitorOperacaoInsert{
+		_, _ = h.monitor.Registrar(r.Context(), repository.MonitorOperacaoInsert{
 			TenantID: tid,
 			UserID:   uidPtr,
 			Origem:   domain.MonitorOperacaoOrigemManual,

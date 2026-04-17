@@ -34,8 +34,14 @@ func (h *MonitorOperacaoHandler) List(w http.ResponseWriter, r *http.Request) {
 			offset = n
 		}
 	}
+	filtro := service.MonitorOperacaoListFilter{
+		ClienteNome: strings.TrimSpace(r.URL.Query().Get("cliente_nome")),
+		Status:      strings.TrimSpace(r.URL.Query().Get("status")),
+		DataDeISO:   strings.TrimSpace(r.URL.Query().Get("data_de")),
+		DataAteISO: strings.TrimSpace(r.URL.Query().Get("data_ate")),
+	}
 
-	resp, err := h.svc.ListPage(r.Context(), role, tenantID, limit, offset)
+	resp, err := h.svc.ListPage(r.Context(), role, tenantID, limit, offset, filtro)
 	if err != nil {
 		render.WriteError(w, http.StatusBadRequest, err.Error())
 		return

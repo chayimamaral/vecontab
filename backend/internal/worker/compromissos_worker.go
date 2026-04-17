@@ -141,6 +141,7 @@ func (w *CompromissosWorker) runOnce(ctx context.Context) error {
 	rows.Close()
 
 	repo := repository.NewEmpresaCompromissoRepository(w.pool)
+	compromissoIDs := make([]string, 0, 256)
 	var totalInseridos int
 	var totalComErro int
 	porTenant := make(map[string]*tenantResumo)
@@ -152,12 +153,18 @@ func (w *CompromissosWorker) runOnce(ctx context.Context) error {
 		}
 		resumo.EmpresasAlvo++
 
-		inseridos, err := repo.GerarCompromissosEmpresa(ctx, alvo.TenantID, refMonth, alvo.ID)
+		items, err := repo.GerarCompromissosEmpresa(ctx, alvo.TenantID, refMonth, alvo.ID)
 		if err != nil {
 			totalComErro++
 			resumo.Erros++
 			log.Printf("worker compromissos: erro empresa=%s tenant=%s: %v", alvo.ID, alvo.TenantID, err)
 			continue
+		}
+		inseridos := len(items)
+		for _, it := range items {
+			if it.ID != "" {
+				compromissoIDs = append(compromissoIDs, it.ID)
+			}
 		}
 		totalInseridos += inseridos
 		resumo.Inseridos += inseridos
@@ -196,18 +203,18 @@ func (w *CompromissosWorker) runOnce(ctx context.Context) error {
 		"inseridos":     totalInseridos,
 		"empresas_alvo": len(alvos),
 		"erros":         totalComErro,
-	})
+	}, compromissoIDs)
 	return nil
 }
 
-func (w *CompromissosWorker) recordMonitorOperacao(ctx context.Context, status, msg string, det map[string]any) {
+func (w *CompromissosWorker) recordMonitorOperacao(ctx context.Context, status, msg string, det map[string]any, compromissoIDs []string) {
 	if w.monitor == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 	m := msg
-	_ = w.monitor.Insert(ctx, repository.MonitorOperacaoInsert{
+	monitorID, err := w.monitor.Insert(ctx, repository.MonitorOperacaoInsert{
 		TenantID: domain.MonitorOperacaoTenantPlataformaID,
 		UserID:   nil,
 		Origem:   domain.MonitorOperacaoOrigemAutomatico,
@@ -216,4 +223,8 @@ func (w *CompromissosWorker) recordMonitorOperacao(ctx context.Context, status, 
 		Mensagem: &m,
 		Detalhe:  det,
 	})
+	if err != nil {
+		return
+	}
+	_ = w.monitor.InsertCompromissosRefs(ctx, monitorID, compromissoIDs)
 }
