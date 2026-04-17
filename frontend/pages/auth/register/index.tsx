@@ -38,18 +38,23 @@ export const RegisterPage: Page = () => {
         }
 
         try {
-        await signUp({
+        const created = await signUp({
             nome,
             email,
             password,
             empresa_nome: empresaNome.trim(),
         })
 
-        toast?.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Conta criada com sucesso!', life: 3000 });
+        toast?.current?.show({
+            severity: 'success',
+            summary: 'Sucesso',
+            detail: `Conta criada. Tenant: ${created.tenantid || 'n/d'} | Schema: ${created.tenant_schema || 'n/d'}`,
+            life: 5000
+        });
         } catch (err) {
             setIsInvalid(true);
-
-            toast?.current?.show({ severity: 'error', summary: 'Erro', detail: 'Email já cadastrado!', life: 3000 });
+            const message = err instanceof Error ? err.message : 'Erro ao criar conta';
+            toast?.current?.show({ severity: 'error', summary: 'Erro', detail: message, life: 3500 });
             return;
         }
     }

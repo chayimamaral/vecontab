@@ -105,6 +105,25 @@
                 text-overflow: ellipsis;
             }
         }
+
+        .layout-topbar-tenant-button {
+            width: auto;
+            border-radius: 2rem;
+            padding: 0 .75rem;
+
+            i {
+                font-size: 1rem;
+                margin-right: .5rem;
+            }
+
+            span {
+                display: inline;
+                max-width: 16rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
     }
 }
 

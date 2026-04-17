@@ -101,14 +101,24 @@
   /* Ocupa todo o espaço vertical disponível */
 }
 
-.empresa-processo-nao-iniciado-row>td {
+.p-treetable .p-treetable-tbody > tr.empresa-processo-nao-iniciado-row > td {
   background: #fde8e8 !important;
+  color: #111827 !important;
 }
 
-.empresa-processo-em-andamento-row>td {
+.p-treetable .p-treetable-tbody > tr.empresa-processo-em-andamento-row > td {
   background: #fff4cc !important;
+  color: #111827 !important;
 }
 
-.empresa-processo-concluido-row>td {
+.p-treetable .p-treetable-tbody > tr.empresa-processo-concluido-row > td {
   background: #dcfce7 !important;
+  color: #111827 !important;
+}
+
+/* Garante contraste do texto na TreeTable (Empresas e Cliente PF). */
+.p-treetable .p-treetable-tbody > tr.empresa-processo-nao-iniciado-row > td *,
+.p-treetable .p-treetable-tbody > tr.empresa-processo-em-andamento-row > td *,
+.p-treetable .p-treetable-tbody > tr.empresa-processo-concluido-row > td * {
+  color: #111827 !important;
 }

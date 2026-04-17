@@ -15,6 +15,12 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
     const topbarmenubuttonRef = useRef(null);
     const { logoutUser, user } = useContext(AuthContext);
     const loggedUserName = user?.nome?.trim() || 'Profile';
+    const empresaLabel =
+        user?.tenant?.nome?.trim() ||
+        user?.tenant?.schema_name?.trim() ||
+        user?.tenant?.schemaName?.trim() ||
+        user?.tenant?.id?.trim() ||
+        '';
 
     useImperativeHandle(ref, () => ({
         menubutton: menubuttonRef.current,
@@ -53,26 +59,22 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
                         <span>Dashboard</span>
                     </button>
                 </Link>
-                <Link href="/agenda">
-                    <Tooltip target=".btn-agenda" position="bottom" />
-                    <button type="button" className="btn-agenda p-link layout-topbar-button" data-pr-tooltip='Agenda'>
-                        <i className="pi pi-calendar"></i>
-                        <span>Calendar</span>
-                    </button>
-                </Link>
+                {empresaLabel && (
+                    <>
+                        <Tooltip target=".btn-empresa-topbar" position="bottom" />
+                        <Link href="/registro">
+                            <button type="button" className="btn-empresa-topbar p-link layout-topbar-button layout-topbar-tenant-button" data-pr-tooltip='Dados da Contabilidade'>
+                                <i className="pi pi-building"></i>
+                                <span>{empresaLabel}</span>
+                            </button>
+                        </Link>
+                    </>
+                )}
                 <Tooltip target=".btn-login" position="bottom" />
                 <button type="button" className="btn-login p-link layout-topbar-button layout-topbar-user-button" data-pr-tooltip='Trocar Usuário' onClick={handleProfile}>
                     <i className="pi pi-user"></i>
                     <span>{loggedUserName}</span>
                 </button>
-
-                <Link href="/registro">
-                    <Tooltip target=".btn-setup" position="bottom" />
-                    <button type="button" className="btn-setup p-link layout-topbar-button" data-pr-tooltip='Empresa'>
-                        <i className="pi pi-cog"></i>
-                        <span>Settings</span>
-                    </button>
-                </Link>
             </div>
         </div>
     );

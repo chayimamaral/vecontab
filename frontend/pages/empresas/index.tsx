@@ -302,7 +302,7 @@ export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) =>
   const nomeBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
-      return <>{data.empresa.nome ?? '—'}</>;
+      return <span style={{ color: '#111827' }}>{data.empresa.nome ?? '—'}</span>;
     }
     const p = data.processo;
     const hint = p.compromissos_gerados
@@ -312,11 +312,11 @@ export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) =>
         : 'Não iniciado';
     return (
       <div className="flex flex-column">
-        <span className="text-700 inline-flex align-items-center gap-2" style={{ paddingLeft: '0.5rem' }}>
-          <i className="pi pi-arrow-right text-500" aria-hidden="true" />
+        <span className="inline-flex align-items-center gap-2" style={{ paddingLeft: '0.5rem', color: '#111827' }}>
+          <i className="pi pi-arrow-right" aria-hidden="true" style={{ color: '#111827' }} />
           {p.descricao ?? 'Processo'}
         </span>
-        <small className="text-500">{hint}</small>
+        <small style={{ color: '#111827' }}>{hint}</small>
       </div>
     );
   };
@@ -324,25 +324,25 @@ export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) =>
   const municipioBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
-      return data.empresa.municipio?.nome ?? '—';
+      return <span style={{ color: '#111827' }}>{data.empresa.municipio?.nome ?? '—'}</span>;
     }
-    return '—';
+    return <span style={{ color: '#111827' }}>—</span>;
   };
 
   const tipoEmpresaBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
-      return data.empresa.tipo_empresa?.descricao ?? '—';
+      return <span style={{ color: '#111827' }}>{data.empresa.tipo_empresa?.descricao ?? '—'}</span>;
     }
-    return '—';
+    return <span style={{ color: '#111827' }}>—</span>;
   };
 
   const regimeBodyTemplate = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType === 'empresa') {
-      return data.empresa.regime_tributario?.nome ?? '—';
+      return <span style={{ color: '#111827' }}>{data.empresa.regime_tributario?.nome ?? '—'}</span>;
     }
-    return '—';
+    return <span style={{ color: '#111827' }}>—</span>;
   };
 
   const actionBodyTemplate = (node: TreeNode) => {
@@ -407,11 +407,11 @@ export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) =>
   const rowClassName = (node: TreeNode) => {
     const data = node.data as NodeData;
     if (data.nodeType !== 'empresa') {
-      return {};
+      return '';
     }
     const children = node.children ?? [];
     if (children.length === 0) {
-      return { 'empresa-processo-nao-iniciado-row': true };
+      return 'empresa-processo-nao-iniciado-row';
     }
 
     const processos = children.map((c: TreeNode) => c.data?.processo).filter(Boolean) as Vec.EmpresaProcesso[];
@@ -420,12 +420,12 @@ export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) =>
     const iniciados = processos.filter((p) => p.iniciado === true).length;
 
     if (total > 0 && concluidos === total) {
-      return { 'empresa-processo-concluido-row': true };
+      return 'empresa-processo-concluido-row';
     }
     if (iniciados === 0) {
-      return { 'empresa-processo-nao-iniciado-row': true };
+      return 'empresa-processo-nao-iniciado-row';
     }
-    return { 'empresa-processo-em-andamento-row': true };
+    return 'empresa-processo-em-andamento-row';
   };
 
   const dialogFooter = (
@@ -544,6 +544,7 @@ export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) =>
           </div>
 
           <TreeTable
+            className="empresa-processo-tree"
             value={treeNodesFiltrados}
             expandedKeys={expandedKeys}
             onToggle={(e) => setExpandedKeys(e.value)}
@@ -621,6 +622,16 @@ export const EmpresasPage = ({ dados, tipoPessoa = 'PJ' }: EmpresasPageProps) =>
           </Dialog>
         </div>
       </div>
+      <style jsx global>{`
+        .empresa-processo-tree .p-treetable-tbody > tr.empresa-processo-nao-iniciado-row > td,
+        .empresa-processo-tree .p-treetable-tbody > tr.empresa-processo-em-andamento-row > td,
+        .empresa-processo-tree .p-treetable-tbody > tr.empresa-processo-concluido-row > td,
+        .empresa-processo-tree .p-treetable-tbody > tr.empresa-processo-nao-iniciado-row > td *,
+        .empresa-processo-tree .p-treetable-tbody > tr.empresa-processo-em-andamento-row > td *,
+        .empresa-processo-tree .p-treetable-tbody > tr.empresa-processo-concluido-row > td * {
+          color: #111827 !important;
+        }
+      `}</style>
     </div>
   );
 };

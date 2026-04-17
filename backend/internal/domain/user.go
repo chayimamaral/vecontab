@@ -21,9 +21,10 @@ type User struct {
 }
 
 type UserDetailTenant struct {
-	ID     string `json:"id"`
-	Active bool   `json:"active"`
-	Nome   string `json:"nome"`
+	ID         string `json:"id"`
+	Active     bool   `json:"active"`
+	Nome       string `json:"nome"`
+	SchemaName string `json:"schema_name,omitempty"`
 }
 
 type UserDetailResult struct {

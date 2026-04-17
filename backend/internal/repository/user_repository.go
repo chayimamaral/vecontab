@@ -70,9 +70,11 @@ func (r *UserRepository) Detail(ctx context.Context, userID string) (domain.User
 			u.role,
 			t.id,
 			t.active,
-			t.nome
+			t.nome,
+			COALESCE(tsc.schema_name, '')
 		FROM public.usuario u
 		JOIN public.tenant t ON t.id = u.tenantid
+		LEFT JOIN public.tenant_schema_catalog tsc ON tsc.tenant_id = t.id
 		WHERE u.id = $1::uuid`
 
 	var user domain.User
@@ -86,6 +88,7 @@ func (r *UserRepository) Detail(ctx context.Context, userID string) (domain.User
 		&user.Tenant.ID,
 		&user.Tenant.Active,
 		&user.Tenant.Nome,
+		&user.Tenant.SchemaName,
 	); err != nil {
 		return domain.UserDetailResponse{}, fmt.Errorf("detail user: %w", err)
 	}
@@ -101,9 +104,10 @@ func (r *UserRepository) Detail(ctx context.Context, userID string) (domain.User
 					TenantID: user.TenantID,
 					Role:     user.Role,
 					Tenant: domain.UserDetailTenant{
-						ID:     user.Tenant.ID,
-						Active: user.Tenant.Active,
-						Nome:   user.Tenant.Nome,
+						ID:         user.Tenant.ID,
+						Active:     user.Tenant.Active,
+						Nome:       user.Tenant.Nome,
+						SchemaName: user.Tenant.SchemaName,
 					},
 				},
 			},
